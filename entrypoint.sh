@@ -26,47 +26,27 @@ if [ ! -d "migrations" ]; then
   flask db init
 fi
 
-# ── Brownfield stamp ────────────────────────────────────────────────────────
-# db.create_all() inside create_app() materialises every SQLAlchemy model
-# table WITHOUT recording any revision in alembic_version. When that
-# happens, flask db upgrade tries to replay every migration from scratch
-# and crashes on the very first CREATE TABLE.
+# ── Nuclear alembic_version reset ─────────────────────────────────────────
+# The migration graph accumulated overlapping branches that repeatedly
+# tripped Alembic's overlap detection on deploy.  The schema is already
+# created by db.create_all() at startup (see app/__init__.py), so the
+# migrations serve only as a version marker going forward.
 #
-# Fix: check if bom_items exists AND alembic_version is empty. If so,
-# stamp to the current tip so Alembic skips already-applied migrations.
-NEED_STAMP=$(python3 - <<'PYEOF'
-import os, sys
-try:
-    from sqlalchemy import create_engine, text
-    url = os.environ['DATABASE_URL']
-    engine = create_engine(url)
-    with engine.connect() as conn:
-        tbl = conn.execute(text(
-            "SELECT 1 FROM information_schema.tables "
-            "WHERE table_schema='public' AND table_name='bom_items' LIMIT 1"
-        )).scalar()
-        if not tbl:
-            print('no')
-            sys.exit(0)
-        try:
-            ver = conn.execute(text("SELECT version_num FROM alembic_version LIMIT 1")).scalar()
-        except Exception:
-            ver = None
-        print('yes' if not ver else 'no')
-except Exception as e:
-    print('no', file=sys.stderr)
-    print(f'stamp-check error: {e}', file=sys.stderr)
-    print('no')
-PYEOF
-)
+# We unconditionally stamp `base_20260701` (the single, clean base marker
+# in migrations/versions/base_20260701.py).  This:
+#   - Corrects any stale alembic_version (e.g. 20260702_die_ext) that
+#     no longer exists in the file tree.
+#   - Is a no-op when alembic_version already == base_20260701.
+#   - Lets flask db upgrade below become a no-op too (already at head).
+#
+# The only way this could ever run an actual upgrade is if a FUTURE
+# migration is added with down_revision='base_20260701' — in which
+# case flask db upgrade will pick it up normally.
+# ─────────────────────────────────────────────────────────────────────────
+echo "Stamping alembic_version to base_20260701 (nuclear reset)..."
+flask db stamp base_20260701
 
-if [ "$NEED_STAMP" = "yes" ]; then
-  echo "Tables exist but alembic_version is empty — stamping to current head..."
-  flask db stamp head
-fi
-# ───────────────────────────────────────────────────────────────────────────
-
-echo "Running flask db upgrade to apply pending migrations..."
+echo "Running flask db upgrade to apply any future migrations..."
 flask db upgrade
 
 # ── Auto-seed on fresh database ─────────────────────────────────────────────
