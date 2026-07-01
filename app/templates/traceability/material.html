@@ -1,0 +1,92 @@
+{% extends "layout.html" %}
+{% block title %}Material Traceability{% endblock %}
+
+{% block content %}
+<div class="mb-6">
+  <h1 class="text-2xl font-bold text-slate-900">Material Traceability</h1>
+  <p class="text-sm text-slate-500 mt-1">Track billets and dies across the production line</p>
+</div>
+
+<form method="get" class="bg-white rounded-xl border border-slate-200 p-4 mb-6 shadow-sm">
+  <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+    <div>
+      <label for="part" class="block text-sm font-medium text-slate-700 mb-1.5">Billet Code / Batch</label>
+      <input type="text" name="part" id="part" value="{{ part }}" placeholder="e.g., BIL-5000"
+             class="block w-full rounded-lg border-slate-300 shadow-sm focus:border-primary-500 focus:ring-1 focus:ring-primary-500 text-sm py-2 px-3" />
+    </div>
+    <div>
+      <label for="lot" class="block text-sm font-medium text-slate-700 mb-1.5">Furnace ID / Die Code</label>
+      <input type="text" name="lot" id="lot" value="{{ lot }}" placeholder="e.g., FUR-01, DIE-2001"
+             class="block w-full rounded-lg border-slate-300 shadow-sm focus:border-primary-500 focus:ring-1 focus:ring-primary-500 text-sm py-2 px-3" />
+    </div>
+    <div class="md:col-span-2 flex gap-2">
+      <button type="submit" class="flex-1 inline-flex items-center justify-center px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-lg shadow-sm">
+        <svg class="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+        </svg>
+        Filter
+      </button>
+      <a href="{{ url_for('traceability.material_traceability') }}" class="inline-flex items-center justify-center px-4 py-2 bg-white border border-slate-300 text-slate-700 text-sm font-medium rounded-lg shadow-sm hover:bg-slate-50">
+        Clear
+      </a>
+    </div>
+  </div>
+</form>
+
+<div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+  <div class="overflow-x-auto">
+    <table class="w-full text-left text-sm">
+      <thead class="bg-slate-50 text-slate-600 uppercase tracking-wider text-xs font-semibold border-b border-slate-200">
+        <tr>
+          <th class="px-6 py-3">Material Type</th>
+          <th class="px-6 py-3">Material ID</th>
+          <th class="px-6 py-3">Event</th>
+          <th class="px-6 py-3">Operator</th>
+          <th class="px-6 py-3">Machine</th>
+          <th class="px-6 py-3">Details</th>
+          <th class="px-6 py-3">Time</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-slate-100">
+        {% for e in events %}
+        <tr class="hover:bg-slate-50 transition-colors">
+          <td class="px-6 py-4">
+            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium
+              {% if e.entity_type == 'BILLET' %}bg-green-100 text-green-800
+              {% elif e.entity_type == 'DIE' %}bg-amber-100 text-amber-800
+              {% else %}bg-slate-100 text-slate-700{% endif %}">
+              {{ e.entity_type or '-' }}
+            </span>
+          </td>
+          <td class="px-6 py-4 font-mono text-xs text-slate-900">{{ e.entity_id or '-' }}</td>
+          <td class="px-6 py-4 text-slate-700">{{ e.event_type or '-' }}</td>
+          <td class="px-6 py-4 text-slate-600 text-xs">{{ e.operator_id or '-' }}</td>
+          <td class="px-6 py-4 font-mono text-xs text-slate-600">{{ e.machine_name or '-' }}</td>
+          <td class="px-6 py-4">
+            {% if e.data %}
+            <button onclick="document.getElementById('mat-{{ e.id }}').classList.toggle('hidden')" class="text-primary-600 hover:text-primary-700 text-xs font-medium">View</button>
+            <div id="mat-{{ e.id }}" class="hidden mt-2 text-xs text-slate-700 bg-slate-50 p-2 rounded">
+              <pre class="whitespace-pre-wrap">{{ e.data }}</pre>
+            </div>
+            {% else %}
+            <span class="text-slate-400 text-xs">-</span>
+            {% endif %}
+          </td>
+          <td class="px-6 py-4 text-slate-500 text-xs">{{ e.occurred_at.strftime('%Y-%m-%d %H:%M') if e.occurred_at else '-' }}</td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="7" class="px-6 py-12 text-center">
+            <svg class="mx-auto h-12 w-12 text-slate-400 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+            </svg>
+            <p class="text-sm font-medium text-slate-900">No material events found.</p>
+            <p class="text-xs text-slate-500 mt-1">Try adjusting your search filters.</p>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

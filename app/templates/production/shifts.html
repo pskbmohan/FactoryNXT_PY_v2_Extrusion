@@ -1,0 +1,40 @@
+{% extends "layout.html" %}
+{% block title %}Shift Calendar{% endblock %}
+{% block content %}
+<div class="mb-6">
+  <h2 class="text-2xl font-bold text-slate-900">Shift Calendar</h2>
+  <p class="text-sm text-slate-500">Manage and view plant shift schedules.</p>
+</div>
+<div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-x-auto">
+  <table class="w-full text-left text-sm">
+    <thead class="bg-slate-50 text-slate-600 uppercase tracking-wider text-xs font-semibold border-b border-slate-200">
+      <tr>
+        <th class="py-3 px-4">Plant</th>
+        <th class="py-3 px-4">Shift</th>
+        <th class="py-3 px-4">Day of Week</th>
+        <th class="py-3 px-4">Start</th>
+        <th class="py-3 px-4">End</th>
+        <th class="py-3 px-4">Active</th>
+      </tr>
+    </thead>
+    <tbody class="divide-y divide-slate-100">
+      {% for sc in calendars %}
+      <tr>
+        <td class="py-3 px-4 font-medium">{{ sc.plant_id }}</td>
+        <td class="py-3 px-4">{{ sc.shift_name }}</td>
+        <td class="py-3 px-4 text-slate-600">{{ sc.day_of_week }}</td>
+        <td class="py-3 px-4 text-slate-600">{{ sc.start_time }}</td>
+        <td class="py-3 px-4 text-slate-600">{{ sc.end_time }}</td>
+        <td class="py-3 px-4">
+          {% if sc.is_active %}
+            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">Yes</span>
+          {% else %}
+            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-800">No</span>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

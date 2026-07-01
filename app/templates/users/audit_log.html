@@ -1,0 +1,47 @@
+{% extends 'layout.html' %}
+{% block title %}Audit Log{% endblock %}
+{% block content %}
+<div class="mb-6">
+  <h1 class="text-2xl font-bold text-slate-900">Audit Log</h1>
+  <p class="text-sm text-slate-500">Track electronic signature events and system modifications.</p>
+</div>
+<div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-x-auto">
+  <table class="w-full text-left text-sm">
+    <thead class="bg-slate-50 text-slate-600 uppercase tracking-wider text-xs font-semibold border-b border-slate-200">
+      <tr>
+        <th class="py-3 px-4">User</th>
+        <th class="py-3 px-4">Table</th>
+        <th class="py-3 px-4">Record</th>
+        <th class="py-3 px-4">Action</th>
+        <th class="py-3 px-4">Reason</th>
+        <th class="py-3 px-4">IP</th>
+        <th class="py-3 px-4">Timestamp</th>
+      </tr>
+    </thead>
+    <tbody class="divide-y divide-slate-100">
+      {% for r in records %}
+      <tr>
+        <td class="py-3 px-4 font-medium">{{ r.user_id }}</td>
+        <td class="py-3 px-4">{{ r.table_name }}</td>
+        <td class="py-3 px-4 font-mono text-xs">{{ r.record_id }}</td>
+        <td class="py-3 px-4">
+          <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {% if r.action == 'delete' %}bg-red-100 text-red-800{% elif r.action == 'create' %}bg-green-100 text-green-800{% else %}bg-blue-100 text-blue-800{% endif %}">{{ r.action }}</span>
+        </td>
+        <td class="py-3 px-4 text-slate-600 max-w-xs truncate">{{ r.esig_reason or '-' }}</td>
+        <td class="py-3 px-4 font-mono text-xs text-slate-600">{{ r.ip_address }}</td>
+        <td class="py-3 px-4 text-slate-600 text-xs">{{ r.created_at.strftime('%Y-%m-%d %H:%M') if r.created_at else '-' }}</td>
+      </tr>
+      {% else %}
+      <tr>
+        <td colspan="7" class="py-8 text-center">
+          <div class="flex flex-col items-center">
+            <svg class="h-10 w-10 text-slate-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            <p class="text-sm font-medium text-slate-900">No audit entries.</p>
+          </div>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

@@ -1,0 +1,430 @@
+{% extends 'layout.html' %}
+{% block title %}Operations – FactoryNXT{% endblock %}
+
+{% block content %}
+<div class="max-w-[1920px] mx-auto py-4" id="ops-app">
+
+  <!-- Page Header -->
+  <div class="flex flex-col md:flex-row md:justify-between md:items-center mb-4 gap-3">
+    <div>
+      <h2 class="text-2xl font-bold text-slate-900 flex items-center gap-2">
+        <svg class="w-6 h-6 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+        Operation Execution
+      </h2>
+      <p class="text-sm text-slate-500 mt-1">Scan serial numbers and record operation results against Work Orders</p>
+    </div>
+    <span id="wo-status-badge" class="hidden text-xs font-medium px-2.5 py-0.5 rounded-full bg-slate-500 text-white"></span>
+  </div>
+
+  <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+    <!-- ── LEFT: Setup Panel ── -->
+    <div class="lg:col-span-4 space-y-4">
+
+      <!-- Operator Login -->
+      <div class="bg-white rounded-xl border border-slate-200 shadow-sm">
+        <div class="bg-slate-900 text-white px-4 py-3 rounded-t-xl border-b border-slate-700 flex items-center gap-2">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+          Operator
+        </div>
+        <div class="p-4">
+          <div class="mb-2">
+            <label class="block text-sm font-semibold text-slate-700 mb-1">Operator ID</label>
+            <div class="flex gap-2">
+              <input type="text" id="operator-id" class="block w-full rounded-lg border-slate-300 shadow-sm focus:border-primary-500 focus:ring-1 focus:ring-primary-500 text-sm py-2 px-3" placeholder="Enter employee ID" />
+              <button class="inline-flex items-center px-3 py-2 bg-white hover:bg-slate-50 text-primary-600 text-sm font-medium rounded-lg border border-slate-300 shadow-sm" onclick="loginOperator()">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+              </button>
+            </div>
+          </div>
+          <div id="operator-info" class="hidden bg-emerald-50 text-emerald-800 text-sm rounded-lg p-2 mt-2"></div>
+        </div>
+      </div>
+
+      <!-- Work Order Selection -->
+      <div class="bg-white rounded-xl border border-slate-200 shadow-sm">
+        <div class="bg-slate-900 text-white px-4 py-3 rounded-t-xl border-b border-slate-700 flex items-center gap-2">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path></svg>
+          Work Order
+        </div>
+        <div class="p-4">
+          <label class="block text-sm font-semibold text-slate-700 mb-1">Select Work Order</label>
+          <select id="wo-select" class="block w-full rounded-lg border-slate-300 shadow-sm focus:border-primary-500 focus:ring-1 focus:ring-primary-500 text-sm py-2 px-3 appearance-none bg-white" onchange="onWoChange()" disabled>
+            <option value="">— Login operator first —</option>
+          </select>
+          <div class="mt-2">
+            <small class="text-slate-500" id="wo-details"></small>
+          </div>
+          <div class="mt-3" id="release-section" style="display:none">
+            <div class="bg-amber-50 text-amber-800 text-sm rounded-lg p-2 mb-2 flex items-center gap-2">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+              This WO is in <strong>DRAFT</strong> status.
+            </div>
+            <button class="inline-flex items-center justify-center px-3 py-2 bg-amber-500 hover:bg-amber-600 text-white text-sm font-medium rounded-lg shadow-sm w-full" onclick="releaseWO()">
+              <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path></svg>Release &amp; Generate Serial Numbers
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Station Selection -->
+      <div class="bg-white rounded-xl border border-slate-200 shadow-sm">
+        <div class="bg-slate-900 text-white px-4 py-3 rounded-t-xl border-b border-slate-700 flex items-center gap-2">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+          Station
+        </div>
+        <div class="p-4">
+          <label class="block text-sm font-semibold text-slate-700 mb-1">Select Station</label>
+          <select id="station-select" class="block w-full rounded-lg border-slate-300 shadow-sm focus:border-primary-500 focus:ring-1 focus:ring-primary-500 text-sm py-2 px-3 appearance-none bg-white" onchange="onStationChange()" disabled>
+            <option value="">— Select Work Order first —</option>
+          </select>
+          <div class="mt-1" id="station-step-info"></div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ── CENTRE: Scan & Submit ── -->
+    <div class="lg:col-span-5 space-y-4">
+
+      <div class="bg-white rounded-xl border border-slate-200 shadow-sm">
+        <div class="bg-primary-600 text-white px-4 py-3 rounded-t-xl border-b border-primary-700 flex items-center gap-2">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"></path></svg>
+          Scan &amp; Execute
+        </div>
+        <div class="p-4">
+          <div class="mb-3">
+            <label class="block text-sm font-semibold text-slate-700 mb-1">Serial Number</label>
+            <input type="text" id="serial-input" class="block w-full rounded-lg border-slate-300 shadow-sm focus:border-primary-500 focus:ring-1 focus:ring-primary-500 text-lg font-mono py-3 px-4" placeholder="Scan or type serial number" disabled onkeydown="if(event.key==='Enter') validateScan()" />
+          </div>
+          <div class="mb-3">
+            <label class="block text-sm font-semibold text-slate-700 mb-1">Remarks (optional)</label>
+            <input type="text" id="remarks-input" class="block w-full rounded-lg border-slate-300 shadow-sm focus:border-primary-500 focus:ring-1 focus:ring-primary-500 text-sm py-2 px-3" placeholder="Add notes..." />
+          </div>
+          <div class="grid grid-cols-1 gap-2">
+            <button class="inline-flex items-center justify-center px-4 py-3 bg-emerald-600 hover:bg-emerald-700 text-white text-base font-semibold rounded-lg shadow-sm" onclick="submitResult('OK')" id="btn-ok" disabled>
+              <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>PASS (OK)
+            </button>
+            <button class="inline-flex items-center justify-center px-4 py-3 bg-red-600 hover:bg-red-700 text-white text-base font-semibold rounded-lg shadow-sm" onclick="submitResult('NG')" id="btn-ng" disabled>
+              <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>FAIL (NG)
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Result Toast / Alert -->
+      <div id="result-alert" class="hidden rounded-lg p-4 mb-3" role="alert"></div>
+
+      <!-- Operation History for scanned SN -->
+      <div class="bg-white rounded-xl border border-slate-200 shadow-sm hidden" id="sn-history-card">
+        <div class="px-4 py-3 border-b border-slate-200 flex items-center gap-2 font-medium text-slate-900">
+          <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+          History for <span id="sn-history-label" class="font-mono text-primary-600"></span>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-sm text-left">
+            <thead class="bg-slate-50 text-slate-600 uppercase tracking-wider text-xs font-semibold border-b border-slate-200">
+              <tr>
+                <th class="px-4 py-2">Step</th><th class="px-4 py-2">Operator</th><th class="px-4 py-2">Result</th><th class="px-4 py-2">Time</th><th class="px-4 py-2">Remarks</th>
+              </tr>
+            </thead>
+            <tbody id="sn-history-body" class="divide-y divide-slate-100"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── RIGHT: Serial Number Status Board ── -->
+    <div class="lg:col-span-3">
+      <div class="bg-white rounded-xl border border-slate-200 shadow-sm">
+        <div class="px-4 py-3 border-b border-slate-200 flex justify-between items-center font-medium text-slate-900">
+          <span class="flex items-center gap-2">
+            <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path></svg>
+            Serial Numbers
+          </span>
+          <span id="sn-count" class="text-xs font-medium px-2 py-0.5 rounded-full bg-slate-100 text-slate-800">0</span>
+        </div>
+        <div class="p-2 max-h-[70vh] overflow-y-auto">
+          <div id="sn-board" class="space-y-1">
+            <p class="text-slate-500 text-center text-sm py-6">Select a Work Order to view serial numbers</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /grid -->
+</div><!-- /container -->
+{% endblock %}
+
+{% block scripts %}
+<script>
+// ──────────────────────────────────────────────────────────
+//  State
+// ──────────────────────────────────────────────────────────
+let state = {
+  operatorId: null,
+  woId: null,
+  woOrderNumber: null,
+  stationId: null,
+  routing: [],
+};
+
+// ──────────────────────────────────────────────────────────
+//  Operator Login
+// ──────────────────────────────────────────────────────────
+function loginOperator() {
+  const id = document.getElementById('operator-id').value.trim();
+  if (!id) { showAlert('result-alert', 'danger', 'Please enter an Operator ID.'); return; }
+  state.operatorId = id;
+  document.getElementById('operator-info').textContent = `Logged in: ${id}`;
+  document.getElementById('operator-info').classList.remove('hidden');
+  loadWorkOrders();
+}
+
+// ──────────────────────────────────────────────────────────
+//  Load Work Orders
+// ──────────────────────────────────────────────────────────
+async function loadWorkOrders() {
+  const res = await fetch('/api/operations/work-orders');
+  const wos = await res.json();
+  const sel = document.getElementById('wo-select');
+  sel.innerHTML = '<option value="">— Select Work Order —</option>';
+  wos.forEach(wo => {
+    const opt = document.createElement('option');
+    opt.value = wo.id;
+    opt.textContent = `${wo.order_number}  [${wo.part_number}]  — ${wo.status}`;
+    opt.dataset.status = wo.status;
+    opt.dataset.qty = wo.quantity;
+    opt.dataset.pn = wo.part_number;
+    opt.dataset.on = wo.order_number;
+    sel.appendChild(opt);
+  });
+  sel.disabled = false;
+}
+
+// ──────────────────────────────────────────────────────────
+//  WO Change
+// ──────────────────────────────────────────────────────────
+async function onWoChange() {
+  const sel = document.getElementById('wo-select');
+  const opt = sel.options[sel.selectedIndex];
+  if (!sel.value) return;
+
+  state.woId = sel.value;
+  state.woOrderNumber = opt.dataset.on;
+  const woStatus = opt.dataset.status;
+
+  // Show WO details
+  document.getElementById('wo-details').textContent = `Part: ${opt.dataset.pn}  |  Qty: ${opt.dataset.qty}  |  Status: ${woStatus}`;
+
+  // Status badge
+  const badge = document.getElementById('wo-status-badge');
+  badge.textContent = woStatus;
+  let badgeClass = 'bg-sky-100 text-sky-800';
+  if (woStatus === 'COMPLETED') badgeClass = 'bg-emerald-100 text-emerald-800';
+  else if (woStatus === 'RUNNING') badgeClass = 'bg-amber-100 text-amber-800';
+  badge.className = `text-xs font-medium px-2.5 py-0.5 rounded-full ${badgeClass}`;
+  badge.classList.remove('hidden');
+
+  // Release section
+  document.getElementById('release-section').style.display = woStatus === 'DRAFT' ? 'block' : 'none';
+
+  // Load stations
+  await loadStations(sel.value);
+
+  // Load serial number board
+  await loadSerialNumbers(sel.value);
+}
+
+// ──────────────────────────────────────────────────────────
+//  Load Stations (routing-filtered)
+// ──────────────────────────────────────────────────────────
+async function loadStations(woId) {
+  const res = await fetch(`/api/operations/stations/${woId}`);
+  const stations = await res.json();
+  const sel = document.getElementById('station-select');
+  sel.innerHTML = '<option value="">— Select Station —</option>';
+  stations.forEach(s => {
+    const opt = document.createElement('option');
+    opt.value = s.id;
+    opt.textContent = `${s.name} (${s.code})`;
+    sel.appendChild(opt);
+  });
+  sel.disabled = stations.length === 0;
+  if (stations.length === 0) {
+    sel.innerHTML = '<option value="">No stations configured in routing</option>';
+  }
+}
+
+// ──────────────────────────────────────────────────────────
+//  Station Change
+// ──────────────────────────────────────────────────────────
+function onStationChange() {
+  const stationSel = document.getElementById('station-select');
+  state.stationId = stationSel.value || null;
+  updateScanReady();
+}
+
+// ──────────────────────────────────────────────────────────
+//  Enable scan when WO + Station both selected
+// ──────────────────────────────────────────────────────────
+function updateScanReady() {
+  const ready = !!(state.operatorId && state.woId && state.stationId);
+  document.getElementById('serial-input').disabled = !ready;
+  document.getElementById('btn-ok').disabled = !ready;
+  document.getElementById('btn-ng').disabled = !ready;
+  if (ready) document.getElementById('serial-input').focus();
+}
+
+// ──────────────────────────────────────────────────────────
+//  Release WO
+// ──────────────────────────────────────────────────────────
+async function releaseWO() {
+  if (!state.woId) return;
+  if (!confirm('Release this Work Order and generate serial numbers?')) return;
+  const res = await fetch(`/api/operations/work-orders/${state.woId}/release`, { method: 'POST' });
+  const data = await res.json();
+  if (!res.ok) { showAlert('result-alert', 'danger', data.error); return; }
+  showAlert('result-alert', 'success', data.message);
+  await loadWorkOrders();
+  // Reload WO to select same one
+  const sel = document.getElementById('wo-select');
+  for (let o of sel.options) if (o.value === state.woId) { sel.value = state.woId; break; }
+  await onWoChange();
+}
+
+// ──────────────────────────────────────────────────────────
+//  Validate Scan (on Enter)
+// ──────────────────────────────────────────────────────────
+async function validateScan() {
+  const sn = document.getElementById('serial-input').value.trim();
+  if (!sn) return;
+  const res = await fetch(`/api/operations/history/${encodeURIComponent(sn)}`);
+  const data = await res.json();
+  if (data.history && data.history.length > 0) {
+    showSnHistory(sn, data.history);
+  } else {
+    hideSnHistory();
+  }
+}
+
+// ──────────────────────────────────────────────────────────
+//  Submit Result
+// ──────────────────────────────────────────────────────────
+async function submitResult(result) {
+  const sn = document.getElementById('serial-input').value.trim();
+  const remarks = document.getElementById('remarks-input').value.trim();
+
+  if (!sn) { showAlert('result-alert', 'warning', 'Please scan or enter a serial number.'); return; }
+  if (!state.stationId) { showAlert('result-alert', 'warning', 'Please select a station.'); return; }
+
+  const payload = {
+    serial_number: sn,
+    station_id: parseInt(state.stationId),
+    operator_id: state.operatorId,
+    result: result,
+    remarks: remarks,
+  };
+
+  const res = await fetch('/api/operations/scan', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  const data = await res.json();
+
+  if (!res.ok) {
+    showAlert('result-alert', 'danger', `<strong>REJECTED</strong> — ${data.error}`);
+  } else {
+    const icon = result === 'OK' ? '&#9989;' : '&#10060;';
+    showAlert('result-alert', result === 'OK' ? 'success' : 'warning',
+      `${icon} <strong>${result}</strong> recorded for <code>${sn}</code> at step ${data.routing_step} (${data.operation_name}). WO Status: <strong>${data.wo_status}</strong>`);
+    // Update WO status badge
+    const badge = document.getElementById('wo-status-badge');
+    badge.textContent = data.wo_status;
+    let badgeClass = 'bg-sky-100 text-sky-800';
+    if (data.wo_status === 'COMPLETED') badgeClass = 'bg-emerald-100 text-emerald-800';
+    else if (data.wo_status === 'RUNNING') badgeClass = 'bg-amber-100 text-amber-800';
+    badge.className = `text-xs font-medium px-2.5 py-0.5 rounded-full ${badgeClass}`;
+    // Clear scan input
+    document.getElementById('serial-input').value = '';
+    document.getElementById('remarks-input').value = '';
+    // Refresh SN board and history
+    await loadSerialNumbers(state.woId);
+    await loadSnHistory(sn);
+  }
+  document.getElementById('serial-input').focus();
+}
+
+// ──────────────────────────────────────────────────────────
+//  Serial Number Board
+// ──────────────────────────────────────────────────────────
+async function loadSerialNumbers(woId) {
+  const res = await fetch(`/api/operations/serial-numbers/${woId}`);
+  const sns = await res.json();
+  document.getElementById('sn-count').textContent = sns.length;
+  const board = document.getElementById('sn-board');
+  if (!sns.length) {
+    board.innerHTML = '<p class="text-slate-500 text-center text-sm py-6">No serial numbers yet. Release the WO first.</p>';
+    return;
+  }
+  const statusColor = {
+    PENDING: 'bg-slate-100 text-slate-800',
+    IN_PROGRESS: 'bg-primary-100 text-primary-800',
+    COMPLETED: 'bg-emerald-100 text-emerald-800',
+    REJECTED: 'bg-red-100 text-red-800'
+  };
+  board.innerHTML = sns.map(s => `
+    <div class="flex justify-between items-center border-b border-slate-100 py-2 px-3 last:border-0 hover:bg-slate-50 rounded transition-colors">
+      <span class="font-mono text-sm text-slate-700">${s.serial_number}</span>
+      <span class="text-xs font-medium px-2 py-0.5 rounded-full ${statusColor[s.current_status] || 'bg-slate-100 text-slate-800'}">${s.current_status}</span>
+    </div>
+  `).join('');
+}
+
+// ──────────────────────────────────────────────────────────
+//  SN History
+// ──────────────────────────────────────────────────────────
+async function loadSnHistory(sn) {
+  const res = await fetch(`/api/operations/history/${encodeURIComponent(sn)}`);
+  const data = await res.json();
+  if (data.history) showSnHistory(sn, data.history);
+}
+
+function showSnHistory(sn, history) {
+  document.getElementById('sn-history-card').classList.remove('hidden');
+  document.getElementById('sn-history-label').textContent = sn;
+  const tbody = document.getElementById('sn-history-body');
+  tbody.innerHTML = history.map(h => `
+    <tr class="${h.result === 'OK' ? 'bg-emerald-50' : 'bg-red-50'}">
+      <td class="px-4 py-2 font-mono text-xs">${h.routing_step}</td>
+      <td class="px-4 py-2 text-slate-700">${h.operator_id}</td>
+      <td class="px-4 py-2"><strong class="${h.result === 'OK' ? 'text-emerald-700' : 'text-red-700'}">${h.result}</strong></td>
+      <td class="px-4 py-2 text-slate-500 text-xs">${h.end_time ? new Date(h.end_time).toLocaleTimeString() : ''}</td>
+      <td class="px-4 py-2 text-slate-500 text-xs">${h.remarks || ''}</td>
+    </tr>
+  `).join('');
+}
+
+function hideSnHistory() {
+  document.getElementById('sn-history-card').classList.add('hidden');
+}
+
+// ──────────────────────────────────────────────────────────
+//  Utility
+// ──────────────────────────────────────────────────────────
+function showAlert(id, type, html) {
+  const el = document.getElementById(id);
+  const classes = {
+    success: 'bg-emerald-50 text-emerald-800 border border-emerald-200',
+    warning: 'bg-amber-50 text-amber-800 border border-amber-200',
+    danger: 'bg-red-50 text-red-800 border border-red-200',
+    info: 'bg-sky-50 text-sky-800 border border-sky-200'
+  };
+  el.className = `rounded-lg p-4 mb-3 ${classes[type] || classes.info}`;
+  el.innerHTML = html;
+  el.classList.remove('hidden');
+  setTimeout(() => { if (type === 'success') el.classList.add('hidden'); }, 5000);
+}
+</script>
+{% endblock %}

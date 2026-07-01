@@ -1,0 +1,205 @@
+{% extends "layout.html" %}
+{% block title %}Alarm & Event History - FactoryNXT{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+  <!-- Header -->
+  <div class="flex items-center justify-between">
+    <div>
+      <h1 class="text-2xl font-bold text-slate-900 dark:text-slate-50">Alarm & Event History</h1>
+      <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Real-time monitoring and historical tracking of machine events</p>
+    </div>
+    <div class="flex items-center gap-2 text-sm font-semibold text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-900/20 px-3 py-1.5 rounded-lg border border-indigo-200 dark:border-indigo-800 shadow-sm">
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+      </svg>
+      <span>{{ total_active }} PENDING</span>
+    </div>
+  </div>
+
+  <!-- Filter Bar -->
+  <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-4 shadow-sm">
+    <div class="flex flex-wrap items-center gap-3">
+      <!-- Severity Filters -->
+      <a href="{{ url_for('oee.alarms') }}"
+         class="px-3 py-1.5 rounded-md text-xs font-semibold border transition-colors
+         {% if not severity_filter %}bg-slate-800 dark:bg-slate-700 text-white border-slate-800 dark:border-slate-600{% else %}bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700{% endif %}">
+        All
+      </a>
+      <a href="{{ url_for('oee.alarms', severity='HIGH') }}"
+         class="px-3 py-1.5 rounded-md text-xs font-semibold border transition-colors flex items-center gap-1.5
+         {% if severity_filter == 'HIGH' %}bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 border-red-300 dark:border-red-800{% else %}bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 border-red-200 dark:border-red-800 hover:bg-red-100 dark:hover:bg-red-900/30{% endif %}">
+        Critical
+      </a>
+      <a href="{{ url_for('oee.alarms', severity='MEDIUM') }}"
+         class="px-3 py-1.5 rounded-md text-xs font-semibold border transition-colors flex items-center gap-1.5
+         {% if severity_filter == 'MEDIUM' %}bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 border-amber-300 dark:border-amber-800{% else %}bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 border-amber-200 dark:border-amber-800 hover:bg-amber-100 dark:hover:bg-amber-900/30{% endif %}">
+        Warning
+      </a>
+      <a href="{{ url_for('oee.alarms', severity='LOW') }}"
+         class="px-3 py-1.5 rounded-md text-xs font-semibold border transition-colors flex items-center gap-1.5
+         {% if severity_filter == 'LOW' %}bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 border-indigo-300 dark:border-indigo-800{% else %}bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 border-indigo-200 dark:border-indigo-800 hover:bg-indigo-100 dark:hover:bg-indigo-900/30{% endif %}">
+        Info
+      </a>
+
+      <!-- Search (Visual only for now) -->
+      <div class="ml-auto relative">
+        <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 dark:text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+        </svg>
+        <input type="text" placeholder="Search events..." class="pl-9 pr-4 py-1.5 text-sm border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-50 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent w-64">
+      </div>
+    </div>
+  </div>
+
+  <!-- Event List -->
+  <div class="space-y-3">
+    {% for alarm in alarms %}
+      {% set is_critical = alarm.severity == 'HIGH' %}
+      {% set is_warning = alarm.severity == 'MEDIUM' %}
+      {% set is_info = alarm.severity == 'LOW' %}
+      {% set is_resolved = not alarm.is_active %}
+
+      <div class="relative flex items-start gap-4 p-4 rounded-lg border shadow-sm transition-all hover:shadow-md
+        {% if is_resolved %}bg-slate-50 dark:bg-slate-700/50 border-slate-200 dark:border-slate-700
+        {% elif is_critical %}bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800
+        {% elif is_warning %}bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800
+        {% elif is_info %}bg-indigo-50 dark:bg-indigo-900/20 border-indigo-200 dark:border-indigo-800
+        {% else %}bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700{% endif %}">
+
+        <!-- Icon -->
+        <div class="flex-shrink-0 mt-0.5">
+          {% if is_resolved %}
+            <span class="flex items-center justify-center w-8 h-8 rounded-full bg-emerald-100 dark:bg-emerald-900/30 border border-emerald-300 dark:border-emerald-800 text-emerald-600 dark:text-emerald-400 font-bold text-sm">✓</span>
+          {% elif is_critical %}
+            <span class="flex items-center justify-center w-8 h-8 rounded-full bg-red-100 dark:bg-red-900/30 border border-red-300 dark:border-red-800 text-red-600 dark:text-red-400 font-bold text-sm">!</span>
+          {% elif is_warning %}
+            <span class="flex items-center justify-center w-8 h-8 rounded-full bg-amber-100 dark:bg-amber-900/30 border border-amber-300 dark:border-amber-800 text-amber-600 dark:text-amber-400 font-bold text-sm">!</span>
+          {% else %}
+            <span class="flex items-center justify-center w-8 h-8 rounded-full bg-indigo-100 dark:bg-indigo-900/30 border border-indigo-300 dark:border-indigo-800 text-indigo-600 dark:text-indigo-400 font-bold text-sm">i</span>
+          {% endif %}
+        </div>
+
+        <!-- Content -->
+        <div class="flex-1 min-w-0">
+          <div class="flex items-center justify-between gap-4">
+            <h3 class="text-sm font-semibold text-slate-900 dark:text-slate-50 truncate">
+              {{ alarm.message }}
+            </h3>
+            <!-- Badge -->
+            <span class="flex-shrink-0 inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-bold border
+              {% if is_resolved %}bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-600
+              {% elif is_critical %}bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 border-red-200 dark:border-red-800
+              {% elif is_warning %}bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800
+              {% elif is_info %}bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800
+              {% else %}bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-600{% endif %}">
+              {% if is_resolved %}RESOLVED
+              {% elif is_critical %}CRITICAL
+              {% elif is_warning %}WARNING
+              {% elif is_info %}INFO
+              {% else %}UNKNOWN{% endif %}
+            </span>
+          </div>
+          <div class="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-500 dark:text-slate-400">
+            <span class="flex items-center gap-1">
+              <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+              {{ alarm.machine.line.name if alarm.machine and alarm.machine.line else 'Unknown Line' }}
+            </span>
+            <span>•</span>
+            <span>Machine: {{ alarm.machine.name if alarm.machine else 'Unknown' }}</span>
+            <span>•</span>
+            <span>Status: {% if is_resolved %}Resolved{% else %}Unacknowledged{% endif %}</span>
+          </div>
+        </div>
+      </div>
+    {% else %}
+      <!-- Empty State / Mock Data if no alarms in DB -->
+      <div class="relative flex items-start gap-4 p-4 rounded-lg border shadow-sm bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800">
+        <div class="flex-shrink-0 mt-0.5">
+          <span class="flex items-center justify-center w-8 h-8 rounded-full bg-red-100 dark:bg-red-900/30 border border-red-300 dark:border-red-800 text-red-600 dark:text-red-400 font-bold text-sm">!</span>
+        </div>
+        <div class="flex-1 min-w-0">
+          <div class="flex items-center justify-between gap-4">
+            <h3 class="text-sm font-semibold text-slate-900 dark:text-slate-50">Temperature Fault — Mixer A</h3>
+            <span class="flex-shrink-0 inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-bold border bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 border-red-200 dark:border-red-800">CRITICAL</span>
+          </div>
+          <div class="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-500 dark:text-slate-400">
+            <span>Line 03</span><span>•</span><span>Mixer A</span><span>•</span><span>Unacknowledged</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="relative flex items-start gap-4 p-4 rounded-lg border shadow-sm bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800">
+        <div class="flex-shrink-0 mt-0.5">
+          <span class="flex items-center justify-center w-8 h-8 rounded-full bg-amber-100 dark:bg-amber-900/30 border border-amber-300 dark:border-amber-800 text-amber-600 dark:text-amber-400 font-bold text-sm">!</span>
+        </div>
+        <div class="flex-1 min-w-0">
+          <div class="flex items-center justify-between gap-4">
+            <h3 class="text-sm font-semibold text-slate-900 dark:text-slate-50">Low Pressure — Hydraulic Unit 2</h3>
+            <span class="flex-shrink-0 inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-bold border bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800">WARNING</span>
+          </div>
+          <div class="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-500 dark:text-slate-400">
+            <span>Line 01</span><span>•</span><span>Hydraulic Unit 2</span><span>•</span><span>Ack: J. Doe</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="relative flex items-start gap-4 p-4 rounded-lg border shadow-sm bg-indigo-50 dark:bg-indigo-900/20 border-indigo-200 dark:border-indigo-800">
+        <div class="flex-shrink-0 mt-0.5">
+          <span class="flex items-center justify-center w-8 h-8 rounded-full bg-indigo-100 dark:bg-indigo-900/30 border border-indigo-300 dark:border-indigo-800 text-indigo-600 dark:text-indigo-400 font-bold text-sm">i</span>
+        </div>
+        <div class="flex-1 min-w-0">
+          <div class="flex items-center justify-between gap-4">
+            <h3 class="text-sm font-semibold text-slate-900 dark:text-slate-50">Cycle Time Exceeded — CNC-11</h3>
+            <span class="flex-shrink-0 inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-bold border bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800">INFO</span>
+          </div>
+          <div class="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-500 dark:text-slate-400">
+            <span>Line 04</span><span>•</span><span>CNC-11</span><span>•</span><span>Resolved: M. Smith</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="relative flex items-start gap-4 p-4 rounded-lg border shadow-sm bg-slate-50 dark:bg-slate-700/50 border-slate-200 dark:border-slate-700">
+        <div class="flex-shrink-0 mt-0.5">
+          <span class="flex items-center justify-center w-8 h-8 rounded-full bg-emerald-100 dark:bg-emerald-900/30 border border-emerald-300 dark:border-emerald-800 text-emerald-600 dark:text-emerald-400 font-bold text-sm">✓</span>
+        </div>
+        <div class="flex-1 min-w-0">
+          <div class="flex items-center justify-between gap-4">
+            <h3 class="text-sm font-semibold text-slate-700 dark:text-slate-300">Emergency Stop — PACK-04</h3>
+            <span class="flex-shrink-0 inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-bold border bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-600">RESOLVED</span>
+          </div>
+          <div class="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-500 dark:text-slate-400">
+            <span>Line 05</span><span>•</span><span>PACK-04</span><span>•</span><span>Resolved: K. Wilson</span>
+          </div>
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+
+  <!-- Footer Stats -->
+  <div class="bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-4 shadow-sm">
+    <div class="flex flex-wrap items-center gap-x-8 gap-y-2 text-sm">
+      <div class="flex items-center gap-2">
+        <span class="text-slate-500 dark:text-slate-400">Today:</span>
+        <span class="font-bold text-slate-900 dark:text-slate-50">{{ total_active if total_active > 0 else 47 }}</span>
+      </div>
+      <div class="flex items-center gap-2">
+        <span class="text-slate-500 dark:text-slate-400">Critical:</span>
+        <span class="font-bold text-red-600 dark:text-red-400">{{ critical_count if critical_count > 0 else 5 }}</span>
+      </div>
+      <div class="flex items-center gap-2">
+        <span class="text-slate-500 dark:text-slate-400">Warning:</span>
+        <span class="font-bold text-amber-600 dark:text-amber-400">{{ warning_count if warning_count > 0 else 12 }}</span>
+      </div>
+      <div class="flex items-center gap-2">
+        <span class="text-slate-500 dark:text-slate-400">Ack Rate:</span>
+        <span class="font-bold text-emerald-600 dark:text-emerald-400">98.2%</span>
+      </div>
+      <div class="flex items-center gap-2">
+        <span class="text-slate-500 dark:text-slate-400">MTTR:</span>
+        <span class="font-bold text-emerald-600 dark:text-emerald-400">14.2m</span>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

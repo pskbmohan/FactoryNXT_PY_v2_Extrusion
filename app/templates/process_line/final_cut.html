@@ -1,0 +1,78 @@
+{% extends "layout.html" %}
+{% block title %}Final Cut{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+  <div class="flex items-center justify-between">
+    <div>
+      <h1 class="text-2xl font-bold text-slate-900 dark:text-slate-50">Final Cut</h1>
+      <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Final length cut and bundle preparation</p>
+    </div>
+  </div>
+
+  <!-- Summary -->
+  <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+    <div class="bg-white dark:bg-slate-800 rounded-lg shadow p-4">
+      <div class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Final Cuts Today</div>
+      <div class="text-3xl font-bold text-slate-900 dark:text-slate-50 mt-2">{{ cuts_today or 0 }}</div>
+    </div>
+    <div class="bg-white dark:bg-slate-800 rounded-lg shadow p-4">
+      <div class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Avg Length (m)</div>
+      <div class="text-3xl font-bold text-primary-600 dark:text-primary-500 mt-2">{{ '%.2f'|format(avg_length_m or 0) }}</div>
+    </div>
+    <div class="bg-white dark:bg-slate-800 rounded-lg shadow p-4">
+      <div class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">In Spec</div>
+      <div class="text-3xl font-bold text-emerald-600 dark:text-emerald-400 mt-2">{{ in_spec_count or 0 }}</div>
+    </div>
+    <div class="bg-white dark:bg-slate-800 rounded-lg shadow p-4">
+      <div class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Out of Spec</div>
+      <div class="text-3xl font-bold {% if (out_of_spec_count or 0) > 0 %}text-red-600 dark:text-red-400{% else %}text-slate-900 dark:text-slate-50{% endif %} mt-2">{{ out_of_spec_count or 0 }}</div>
+    </div>
+  </div>
+
+  <!-- Final Cut List -->
+  <div class="bg-white dark:bg-slate-800 rounded-lg shadow overflow-hidden">
+    <div class="px-6 py-4 border-b border-slate-200 dark:border-slate-700">
+      <h2 class="text-lg font-semibold text-slate-900 dark:text-slate-50">Final Cut Records</h2>
+    </div>
+    <div class="overflow-x-auto">
+      <table class="w-full text-sm text-left">
+        <thead class="bg-slate-50 dark:bg-slate-700/50 text-slate-600 dark:text-slate-400 uppercase tracking-wider text-xs font-semibold border-b border-slate-200 dark:border-slate-700">
+          <tr>
+            <th class="px-6 py-3">Profile</th>
+            <th class="px-6 py-3">Bundle</th>
+            <th class="px-6 py-3">Length (m)</th>
+            <th class="px-6 py-3">Pieces</th>
+            <th class="px-6 py-3">Weight (kg)</th>
+            <th class="px-6 py-3">Spec</th>
+            <th class="px-6 py-3">At</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-100 dark:divide-slate-700">
+          {% for rec in records or [] %}
+          <tr class="hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
+            <td class="px-6 py-3 font-mono text-xs text-slate-900 dark:text-slate-50">{{ rec.profile_code }}</td>
+            <td class="px-6 py-3 text-slate-600 dark:text-slate-400 font-mono">{{ rec.bundle_id }}</td>
+            <td class="px-6 py-3 text-slate-600 dark:text-slate-400">{{ rec.length_m }}</td>
+            <td class="px-6 py-3 text-slate-600 dark:text-slate-400">{{ rec.pieces }}</td>
+            <td class="px-6 py-3 text-slate-600 dark:text-slate-400">{{ rec.weight_kg }}</td>
+            <td class="px-6 py-3">
+              <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium
+                {% if rec.in_spec %}bg-emerald-100 dark:bg-emerald-900/30 text-emerald-800 dark:text-emerald-300
+                {% else %}bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300{% endif %}">
+                {{ 'OK' if rec.in_spec else 'REJECT' }}
+              </span>
+            </td>
+            <td class="px-6 py-3 text-slate-600 dark:text-slate-400">{{ rec.recorded_at.strftime('%Y-%m-%d %H:%M') if rec.recorded_at else '' }}</td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="7" class="px-6 py-8 text-center text-slate-500 dark:text-slate-400"><p class="text-sm">No final cuts recorded.</p></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,133 @@
+{% extends "layout.html" %}
+{% block title %}Tool Shop Dashboard{% endblock %}
+
+{% block content %}
+<div class="kpi-hero mb-6">
+  <div class="kpi-card">
+    <div class="kpi-label">Available Dies</div>
+    <div class="kpi-value">{{ available_count or 0 }}</div>
+  </div>
+  <div class="kpi-card">
+    <div class="kpi-label">In QC / Testing</div>
+    <div class="kpi-value">{{ qc_count or 0 }}</div>
+  </div>
+  <div class="kpi-card">
+    <div class="kpi-label">Pending Nitriding</div>
+    <div class="kpi-value">{{ nitriding_count or 0 }}</div>
+  </div>
+</div>
+
+<div>
+<div class="space-y-6">
+  <div class="flex items-center justify-between">
+    <div>
+      <h1 class="text-2xl font-bold text-slate-900 dark:text-slate-50">Tool Shop</h1>
+      <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Die registry and workflow pipeline</p>
+    </div>
+    <a href="{{ url_for('tool_shop.die_new') }}" class="inline-flex items-center gap-2 px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-lg shadow-sm">
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+      </svg>
+      + New Die Inward
+    </a>
+  </div>
+
+  <!-- KPI Cards -->
+  <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
+    <div class="bg-white dark:bg-slate-800 rounded-lg shadow p-4">
+      <div class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Total Dies</div>
+      <div class="text-3xl font-bold text-slate-900 dark:text-slate-50 mt-2">{{ total_dies or 0 }}</div>
+    </div>
+    <div class="bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-lg shadow p-4">
+      <div class="text-xs font-semibold uppercase tracking-wider text-emerald-700 dark:text-emerald-400">Available</div>
+      <div class="text-3xl font-bold text-emerald-900 dark:text-emerald-100 mt-2">{{ available_count or 0 }}</div>
+    </div>
+    <div class="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg shadow p-4">
+      <div class="text-xs font-semibold uppercase tracking-wider text-amber-700 dark:text-amber-400">In QC</div>
+      <div class="text-3xl font-bold text-amber-900 dark:text-amber-100 mt-2">{{ qc_count or 0 }}</div>
+    </div>
+    <div class="bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800 rounded-lg shadow p-4">
+      <div class="text-xs font-semibold uppercase tracking-wider text-indigo-700 dark:text-indigo-400">Nitriding</div>
+      <div class="text-3xl font-bold text-indigo-900 dark:text-indigo-100 mt-2">{{ nitriding_count or 0 }}</div>
+    </div>
+    <div class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg shadow p-4">
+      <div class="text-xs font-semibold uppercase tracking-wider text-red-700 dark:text-red-400">Rejected</div>
+      <div class="text-3xl font-bold text-red-900 dark:text-red-100 mt-2">{{ rejected_count or 0 }}</div>
+    </div>
+  </div>
+
+  <!-- Workflow Pipeline -->
+  <div class="bg-white dark:bg-slate-800 rounded-lg shadow overflow-hidden">
+    <div class="px-6 py-4 border-b border-slate-200 dark:border-slate-700">
+      <h2 class="text-lg font-semibold text-slate-900 dark:text-slate-50">Workflow Pipeline</h2>
+    </div>
+    <div class="p-6">
+      <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
+        {% set stages = [
+          ('NEW', 'New', 'bg-slate-50 dark:bg-slate-700 border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300'),
+          ('INSPECTED', 'Inspected', 'bg-blue-50 dark:bg-blue-900/20 border-blue-300 dark:border-blue-700 text-blue-700 dark:text-blue-300'),
+          ('TESTING_PENDING', 'Testing', 'bg-amber-50 dark:bg-amber-900/20 border-amber-300 dark:border-amber-700 text-amber-700 dark:text-amber-300'),
+          ('TESTING_PASSED', 'Tested OK', 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-300 dark:border-emerald-700 text-emerald-700 dark:text-emerald-300'),
+          ('NITRIDING_PENDING', 'Nitriding', 'bg-indigo-50 dark:bg-indigo-900/20 border-indigo-300 dark:border-indigo-700 text-indigo-700 dark:text-indigo-300'),
+          ('NITRIDED', 'Nitrided', 'bg-purple-50 dark:bg-purple-900/20 border-purple-300 dark:border-purple-700 text-purple-700 dark:text-purple-300'),
+          ('AVAILABLE', 'Ready', 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-300 dark:border-emerald-700 text-emerald-700 dark:text-emerald-300')
+        ] %}
+        {% for stage_key, stage_label, stage_cls in stages %}
+        <div class="rounded-lg border-2 {{ stage_cls }} p-3 text-center">
+          <div class="text-xs font-medium opacity-80">{{ stage_label }}</div>
+          <div class="text-2xl font-bold mt-1">{{ pipeline.get(stage_key, 0) if pipeline else 0 }}</div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Recent Activity -->
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+    <div class="bg-white dark:bg-slate-800 rounded-lg shadow overflow-hidden">
+      <div class="px-6 py-4 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between">
+        <h3 class="text-sm font-semibold text-slate-900 dark:text-slate-50">Recent Inspections</h3>
+        <a href="{{ url_for('tool_shop.inspection_list') }}" class="text-xs text-primary-600 dark:text-primary-400 hover:underline">View all &rarr;</a>
+      </div>
+      <div class="divide-y divide-slate-100 dark:divide-slate-700">
+        {% for ins in (recent_inspections or [])[:5] %}
+        {% set pass_all = (ins.dimensions_ok and ins.surface_ok) %}
+        <div class="px-6 py-3 flex items-center justify-between">
+          <div>
+            <p class="text-sm font-medium text-slate-900 dark:text-slate-50">{{ ins.die.die_code if ins.die else '-' }}</p>
+            <p class="text-xs text-slate-500 dark:text-slate-400">{{ ins.inspection_date.strftime('%Y-%m-%d') if ins.inspection_date else '' }}</p>
+          </div>
+          <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium
+            {% if pass_all %}bg-emerald-100 dark:bg-emerald-900/30 text-emerald-800 dark:text-emerald-300
+            {% else %}bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300{% endif %}">
+            {{ 'PASS' if pass_all else 'FAIL' }}
+          </span>
+        </div>
+        {% else %}
+        <div class="px-6 py-6 text-center text-xs text-slate-500 dark:text-slate-400">No inspections yet</div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <div class="bg-white dark:bg-slate-800 rounded-lg shadow overflow-hidden">
+      <div class="px-6 py-4 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between">
+        <h3 class="text-sm font-semibold text-slate-900 dark:text-slate-50">Active Shortages</h3>
+        <a href="{{ url_for('tool_shop.shortages') }}" class="text-xs text-primary-600 dark:text-primary-400 hover:underline">View all &rarr;</a>
+      </div>
+      <div class="divide-y divide-slate-100 dark:divide-slate-700">
+        {% for shortage in (shortages or [])[:5] %}
+        <div class="px-6 py-3 flex items-center justify-between">
+          <div>
+            <p class="text-sm font-medium text-slate-900 dark:text-slate-50">{{ shortage.die_code }}</p>
+            <p class="text-xs text-slate-500 dark:text-slate-400">Profile: {{ shortage.profile_code }}</p>
+          </div>
+          <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300">SHORT</span>
+        </div>
+        {% else %}
+        <div class="px-6 py-6 text-center text-xs text-slate-500 dark:text-slate-400">No active shortages</div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</div>
+</div>{% endblock %}

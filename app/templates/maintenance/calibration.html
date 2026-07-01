@@ -1,0 +1,61 @@
+{% extends "layout.html" %}
+{% block title %}Calibration Records{% endblock %}
+
+{% block content %}
+<div class="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+  <div>
+    <h1 class="text-2xl font-bold text-slate-900">Calibration Records</h1>
+    <p class="text-sm text-slate-500 mt-1">Manage and track equipment calibration history.</p>
+  </div>
+  <a href="{{ url_for('maintenance.calibration_new') }}" class="inline-flex items-center px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-lg shadow-sm">
+    + New Record
+  </a>
+</div>
+
+<div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+  <div class="overflow-x-auto">
+    <table class="w-full text-left text-sm">
+      <thead class="bg-slate-50 text-slate-600 uppercase tracking-wider text-xs font-semibold border-b border-slate-200">
+        <tr>
+          <th class="px-6 py-3">Machine</th>
+          <th class="px-6 py-3">Result</th>
+          <th class="px-6 py-3">Certificate #</th>
+          <th class="px-6 py-3">Performed By</th>
+          <th class="px-6 py-3">Performed At</th>
+          <th class="px-6 py-3">Next Due</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-slate-100">
+        {% for r in records %}
+        <tr class="hover:bg-slate-50 transition-colors">
+          <td class="px-6 py-4 font-mono text-xs font-medium text-slate-900">{{ r.machine_id }}</td>
+          <td class="px-6 py-4">
+            {% if r.result == 'Pass' %}
+              <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">Pass</span>
+            {% elif r.result == 'Fail' %}
+              <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">Fail</span>
+            {% else %}
+              <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">Conditional</span>
+            {% endif %}
+          </td>
+          <td class="px-6 py-4 text-slate-700">{{ r.certificate_number }}</td>
+          <td class="px-6 py-4 text-slate-700">{{ r.performed_by }}</td>
+          <td class="px-6 py-4 text-slate-500 text-xs">{{ r.performed_at.strftime('%Y-%m-%d') }}</td>
+          <td class="px-6 py-4 text-slate-500 text-xs">{{ r.next_due_at.strftime('%Y-%m-%d') }}</td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="6" class="px-6 py-12 text-center">
+            <svg class="mx-auto h-12 w-12 text-slate-400 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            <p class="text-sm font-medium text-slate-900">No records found.</p>
+            <p class="text-xs text-slate-500 mt-1">Create a new calibration record to get started.</p>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

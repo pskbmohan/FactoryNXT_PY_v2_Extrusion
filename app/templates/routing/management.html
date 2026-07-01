@@ -1,0 +1,71 @@
+{% extends "layout.html" %}
+{% block title %}Routing Steps{% endblock %}
+
+{% block content %}
+<div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
+  <div class="mb-6">
+    <h2 class="text-2xl font-bold text-slate-900">Routing Steps Management</h2>
+    <p class="text-sm text-slate-500 mt-1">Configure workstation sequences and standard cycle times.</p>
+  </div>
+
+  <form class="mb-6" method="get">
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+      <div class="relative md:col-span-1">
+        <label for="part" class="block text-sm font-medium text-slate-700 mb-1">Product Board / Part Number</label>
+        <select id="part" name="part" class="block w-full rounded-lg border-slate-300 shadow-sm focus:border-primary-500 focus:ring-1 focus:ring-primary-500 text-sm py-2 px-3 appearance-none bg-white">
+          <option value="" {% if part_filter == '' %}selected{% endif %}>All Part Numbers</option>
+          {% for p in part_numbers %}
+          <option value="{{ p }}" {% if part_filter == p %}selected{% endif %}>{{ p }}</option>
+          {% endfor %}
+        </select>
+        <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 pt-6 text-slate-500">
+          <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+        </div>
+      </div>
+      <div>
+        <button type="submit" class="inline-flex items-center px-4 py-2 bg-white hover:bg-slate-50 text-slate-700 text-sm font-medium rounded-lg border border-slate-300 shadow-sm">Apply</button>
+      </div>
+      <div class="md:justify-self-end">
+        <a href="{{ url_for('routing.create_routing_step') }}" class="inline-flex items-center px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-lg shadow-sm">Create New Routing Step</a>
+      </div>
+    </div>
+  </form>
+
+  <div class="overflow-x-auto">
+    <table class="w-full text-left text-sm">
+      <thead class="bg-slate-50 text-slate-600 uppercase tracking-wider text-xs font-semibold border-b border-slate-200">
+        <tr>
+          <th class="px-4 py-3">Part Number</th>
+          <th class="px-4 py-3 text-center">Seq No.</th>
+          <th class="px-4 py-3">Operation Name</th>
+          <th class="px-4 py-3">Workstation Class</th>
+          <th class="px-4 py-3 text-right">Cycle Time (Seconds)</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-slate-100">
+        {% if steps|length == 0 %}
+        <tr>
+          <td colspan="5" class="px-4 py-12 text-center">
+            <div class="flex flex-col items-center justify-center">
+              <svg class="h-12 w-12 text-slate-400 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"></path></svg>
+              <p class="text-sm font-medium text-slate-900">No routing steps found</p>
+              <p class="text-xs text-slate-500 mt-1">Create your first routing step to get started.</p>
+            </div>
+          </td>
+        </tr>
+        {% else %}
+        {% for step in steps %}
+        <tr class="hover:bg-slate-50 transition-colors">
+          <td class="px-4 py-3 font-medium text-slate-900">{{ step.part_number }}</td>
+          <td class="px-4 py-3 text-center font-mono text-slate-700">{{ step.operation_sequence }}</td>
+          <td class="px-4 py-3 text-slate-700">{{ step.operation_name }}</td>
+          <td class="px-4 py-3 text-slate-700">{{ step.workstation_type or 'Standard' }}</td>
+          <td class="px-4 py-3 text-right font-mono text-slate-700">{{ step.standard_cycle_time_sec }}s</td>
+        </tr>
+        {% endfor %}
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

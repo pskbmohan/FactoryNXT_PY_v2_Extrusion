@@ -1,0 +1,91 @@
+{% extends "layout.html" %}
+{% block title %}Alerts{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+  <div class="flex items-center justify-between">
+    <div>
+      <h1 class="text-2xl font-bold text-slate-900 dark:text-slate-50">Alerts</h1>
+      <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Active and recent system alerts</p>
+    </div>
+    <a href="{{ url_for('kpi_alerts.rules') }}" class="inline-flex items-center px-3 py-1.5 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600 text-sm font-medium rounded-lg">
+      Manage Rules
+    </a>
+  </div>
+
+  <!-- Severity chips filter -->
+  <div class="flex flex-wrap gap-2">
+    <a href="{{ url_for('kpi_alerts.alerts_list') }}" class="px-3 py-1 text-sm rounded-full {% if not request.args.get('severity') %}bg-primary-600 text-white{% else %}bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600{% endif %}">All</a>
+    {% for sev in ['CRITICAL','HIGH','MEDIUM','LOW'] %}
+    <a href="{{ url_for('kpi_alerts.alerts_list', severity=sev) }}" class="px-3 py-1 text-sm rounded-full {% if request.args.get('severity') == sev %}bg-primary-600 text-white{% else %}bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600{% endif %}">{{ sev }}</a>
+    {% endfor %}
+  </div>
+
+  <!-- Alerts Table -->
+  <div class="bg-white dark:bg-slate-800 rounded-lg shadow overflow-hidden">
+    <div class="overflow-x-auto">
+      <table class="w-full text-sm text-left">
+        <thead class="bg-slate-50 dark:bg-slate-700/50 text-slate-600 dark:text-slate-400 uppercase tracking-wider text-xs font-semibold border-b border-slate-200 dark:border-slate-700">
+          <tr>
+            <th class="px-6 py-3">Severity</th>
+            <th class="px-6 py-3">Title</th>
+            <th class="px-6 py-3">Source</th>
+            <th class="px-6 py-3">Status</th>
+            <th class="px-6 py-3">Created</th>
+            <th class="px-6 py-3 text-right">Actions</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-100 dark:divide-slate-700">
+          {% for alert in alerts or [] %}
+          <tr class="hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors
+            {% if alert.severity == 'CRITICAL' %}bg-red-50 dark:bg-red-900/10
+            {% elif alert.severity == 'HIGH' %}bg-amber-50 dark:bg-amber-900/10{% endif %}">
+            <td class="px-6 py-3">
+              <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium
+                {% if alert.severity == 'CRITICAL' %}bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300
+                {% elif alert.severity == 'HIGH' %}bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300
+                {% elif alert.severity == 'MEDIUM' %}bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-300
+                {% else %}bg-slate-100 dark:bg-slate-700 text-slate-800 dark:text-slate-200{% endif %}">
+                {{ alert.severity }}
+              </span>
+            </td>
+            <td class="px-6 py-3 font-medium text-slate-900 dark:text-slate-50">{{ alert.title }}</td>
+            <td class="px-6 py-3 text-slate-600 dark:text-slate-400">{{ alert.source }}</td>
+            <td class="px-6 py-3">
+              <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium
+                {% if alert.status == 'OPEN' %}bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300
+                {% elif alert.status == 'ACKNOWLEDGED' %}bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-300
+                {% else %}bg-emerald-100 dark:bg-emerald-900/30 text-emerald-800 dark:text-emerald-300{% endif %}">
+                {{ alert.status }}
+              </span>
+            </td>
+            <td class="px-6 py-3 text-slate-600 dark:text-slate-400 text-xs">{{ alert.created_at.strftime('%Y-%m-%d %H:%M') if alert.created_at else '' }}</td>
+            <td class="px-6 py-3 text-right">
+              {% if alert.status == 'OPEN' %}
+              <form method="post" action="{{ url_for('kpi_alerts.alert_ack', id=alert.id) }}" class="inline">
+                <button type="submit" class="px-3 py-1 bg-amber-500 hover:bg-amber-600 text-white text-xs rounded">Acknowledge</button>
+              </form>
+              {% endif %}
+              {% if alert.status != 'CLOSED' %}
+              <form method="post" action="{{ url_for('kpi_alerts.alert_close', id=alert.id) }}" class="inline">
+                <button type="submit" class="px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white text-xs rounded ml-1">Close</button>
+              </form>
+              {% endif %}
+            </td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="6" class="px-6 py-12 text-center text-slate-500 dark:text-slate-400">
+              <svg class="mx-auto h-12 w-12 text-emerald-400 dark:text-emerald-500 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <p class="text-sm font-medium text-emerald-700 dark:text-emerald-400">No alerts match the filter</p>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

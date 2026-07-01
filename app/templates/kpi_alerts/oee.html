@@ -1,0 +1,104 @@
+{% extends "layout.html" %}
+{% block title %}OEE - Machine-wise{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+  <div class="flex items-center justify-between">
+    <div>
+      <h1 class="text-2xl font-bold text-slate-900 dark:text-slate-50">Overall Equipment Effectiveness</h1>
+      <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Machine-wise Availability / Performance / Quality</p>
+    </div>
+    <form method="get" class="flex items-center gap-2">
+      <select name="machine_id" class="block rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-200 shadow-sm focus:border-primary-500 focus:ring-1 focus:ring-primary-500 text-sm py-2 px-3">
+        <option value="">All Machines</option>
+        {% for m in machines %}
+        <option value="{{ m.id }}" {% if selected_machine == m.id %}selected{% endif %}>{{ m.name }}</option>
+        {% endfor %}
+      </select>
+      <input type="date" name="date" value="{{ selected_date or '' }}" class="block rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-200 shadow-sm focus:border-primary-500 focus:ring-1 focus:ring-primary-500 text-sm py-2 px-3" />
+      <button type="submit" class="inline-flex items-center px-3 py-1.5 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-lg">Filter</button>
+    </form>
+  </div>
+
+  <!-- Integration note -->
+  <div class="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+    <div class="flex items-start gap-3">
+      <svg class="w-5 h-5 text-blue-500 dark:text-blue-400 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+      </svg>
+      <div class="text-sm text-blue-800 dark:text-blue-300">
+        <p class="font-semibold mb-1">Integrating real machine data</p>
+        <p>Values below are derived from seeded demo data. To integrate live OEE from machine PLCs/SCADA, configure the
+          <code class="bg-blue-100 dark:bg-blue-900/40 px-1 rounded text-xs">LIVE_OEE_ENABLED</code> environment
+          variable (set to <code class="bg-blue-100 dark:bg-blue-900/40 px-1 rounded text-xs">true</code>) and point
+          <code class="bg-blue-100 dark:bg-blue-900/40 px-1 rounded text-xs">PLC_ENDPOINT</code> /
+          <code class="bg-blue-100 dark:bg-blue-900/40 px-1 rounded text-xs">ERP_ENDPOINT</code> at your real data
+          sources via the <a href="{{ url_for('integrations.hub') }}" class="underline font-medium hover:text-blue-600">Integrations&nbsp;Hub</a>.
+          The KPI engine will then compute OEE from live shift data instead of demo snapshots.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Machine OEE table -->
+  <div class="bg-white dark:bg-slate-800 rounded-lg shadow overflow-hidden">
+    <div class="overflow-x-auto">
+      <table class="w-full text-sm text-left">
+        <thead class="bg-slate-50 dark:bg-slate-700/50 text-slate-600 dark:text-slate-400 uppercase tracking-wider text-xs font-semibold border-b border-slate-200 dark:border-slate-700">
+          <tr>
+            <th class="px-6 py-3">Machine</th>
+            <th class="px-6 py-3">Availability</th>
+            <th class="px-6 py-3">Performance</th>
+            <th class="px-6 py-3">Quality</th>
+            <th class="px-6 py-3">OEE</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-100 dark:divide-slate-700">
+          {% for row in rows or [] %}
+          <tr class="hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
+            <td class="px-6 py-3 font-medium text-slate-900 dark:text-slate-50">{{ row.machine_name }}</td>
+            <td class="px-6 py-3">
+              <div class="flex items-center gap-2">
+                <div class="w-24 bg-slate-100 dark:bg-slate-700 rounded-full h-2">
+                  <div class="bg-emerald-500 h-2 rounded-full" style="width: {{ (row.availability or 0) * 100 }}%"></div>
+                </div>
+                <span class="text-sm text-slate-700 dark:text-slate-300">{{ '%.1f'|format((row.availability or 0) * 100) }}%</span>
+              </div>
+            </td>
+            <td class="px-6 py-3">
+              <div class="flex items-center gap-2">
+                <div class="w-24 bg-slate-100 dark:bg-slate-700 rounded-full h-2">
+                  <div class="bg-indigo-500 h-2 rounded-full" style="width: {{ (row.performance or 0) * 100 }}%"></div>
+                </div>
+                <span class="text-sm text-slate-700 dark:text-slate-300">{{ '%.1f'|format((row.performance or 0) * 100) }}%</span>
+              </div>
+            </td>
+            <td class="px-6 py-3">
+              <div class="flex items-center gap-2">
+                <div class="w-24 bg-slate-100 dark:bg-slate-700 rounded-full h-2">
+                  <div class="bg-emerald-500 h-2 rounded-full" style="width: {{ (row.quality or 0) * 100 }}%"></div>
+                </div>
+                <span class="text-sm text-slate-700 dark:text-slate-300">{{ '%.1f'|format((row.quality or 0) * 100) }}%</span>
+              </div>
+            </td>
+            <td class="px-6 py-3">
+              <span class="text-sm font-bold {% if (row.oee or 0) >= 0.85 %}text-emerald-600 dark:text-emerald-400
+                {% elif (row.oee or 0) >= 0.65 %}text-amber-600 dark:text-amber-400
+                {% else %}text-red-600 dark:text-red-400{% endif %}">
+                {{ '%.1f'|format((row.oee or 0) * 100) }}%
+              </span>
+            </td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="5" class="px-6 py-8 text-center text-slate-500 dark:text-slate-400">
+              <p class="text-sm">No OEE data for the selected period.</p>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

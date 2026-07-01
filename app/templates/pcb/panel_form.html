@@ -1,0 +1,40 @@
+{% extends 'layout.html' %}
+{% block title %}New Panel{% endblock %}
+{% block content %}
+<div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6 max-w-2xl mx-auto">
+  <div class="mb-6">
+    <h2 class="text-2xl font-bold text-slate-900">Create PCB Panel</h2>
+    <p class="text-sm text-slate-500 mt-1">Register a new PCB panel and its child boards under a work order.</p>
+  </div>
+
+  <form method="post" class="space-y-4">
+    <div>
+      <label class="block text-sm font-medium text-slate-700 mb-1">Work Order</label>
+      <div class="relative">
+        <select name="wo_id" class="block w-full rounded-lg border-slate-300 shadow-sm focus:border-primary-500 focus:ring-1 focus:ring-primary-500 text-sm py-2 px-3 appearance-none bg-white" required>
+          {% for wo in work_orders %}<option value="{{ wo.id }}">{{ wo.order_number }} - {{ wo.part_number }}</option>{% endfor %}
+        </select>
+        <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-slate-500">
+          <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div>
+        <label class="block text-sm font-medium text-slate-700 mb-1">Panel Serial</label>
+        <input type="text" name="panel_serial" class="block w-full rounded-lg border-slate-300 shadow-sm focus:border-primary-500 focus:ring-1 focus:ring-primary-500 text-sm py-2 px-3 font-mono" required>
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-slate-700 mb-1">Board Count</label>
+        <input type="number" name="board_count" class="block w-full rounded-lg border-slate-300 shadow-sm focus:border-primary-500 focus:ring-1 focus:ring-primary-500 text-sm py-2 px-3" value="4" required>
+      </div>
+    </div>
+
+    <div class="flex items-center gap-3 pt-4 border-t border-slate-200">
+      <button type="submit" class="inline-flex items-center px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-lg shadow-sm">Create</button>
+      <a href="{{ url_for('pcb.index') }}" class="inline-flex items-center px-4 py-2 bg-white hover:bg-slate-50 text-slate-700 text-sm font-medium rounded-lg border border-slate-300 shadow-sm">Cancel</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

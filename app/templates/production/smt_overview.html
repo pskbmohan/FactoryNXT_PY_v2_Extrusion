@@ -1,0 +1,41 @@
+{% extends "layout.html" %}
+{% block title %}SMT Line Overview{% endblock %}
+{% block content %}
+<div class="mb-6">
+  <h2 class="text-2xl font-bold text-slate-900">SMT Line Overview</h2>
+  <p class="text-sm text-slate-500">Real-time performance summary of production lines.</p>
+</div>
+<div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-x-auto">
+  <table class="w-full text-left text-sm">
+    <thead class="bg-slate-50 text-slate-600 uppercase tracking-wider text-xs font-semibold border-b border-slate-200">
+      <tr>
+        <th class="py-3 px-4">Line</th>
+        <th class="py-3 px-4">Name</th>
+        <th class="py-3 px-4">Active</th>
+        <th class="py-3 px-4">Latest Shift Date</th>
+        <th class="py-3 px-4">Latest Shift</th>
+        <th class="py-3 px-4">OEE</th>
+      </tr>
+    </thead>
+    <tbody class="divide-y divide-slate-100">
+      {% for line in lines %}
+      {% set snap = latest_oee_by_line.get(line.id) %}
+      <tr>
+        <td class="py-3 px-4 font-medium">{{ line.code }}</td>
+        <td class="py-3 px-4">{{ line.name }}</td>
+        <td class="py-3 px-4">
+          {% if line.is_active %}
+            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">Yes</span>
+          {% else %}
+            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-800">No</span>
+          {% endif %}
+        </td>
+        <td class="py-3 px-4 text-slate-600">{{ snap.shift_date if snap else '-' }}</td>
+        <td class="py-3 px-4 text-slate-600">{{ snap.shift_name if snap else '-' }}</td>
+        <td class="py-3 px-4 font-semibold text-blue-600">{{ '%.1f'|format(snap.oee) if snap and snap.oee is not none else '-' }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

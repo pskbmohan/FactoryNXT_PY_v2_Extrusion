@@ -1,0 +1,45 @@
+{% extends "layout.html" %}
+{% block title %}PPAP Records{% endblock %}
+{% block content %}
+<div class="mb-6">
+  <h2 class="text-2xl font-bold text-slate-900">PPAP Records</h2>
+  <p class="text-sm text-slate-500">Filter Production Part Approval Process documentation.</p>
+</div>
+<form class="mb-6 max-w-lg" method="get">
+  <div class="flex gap-3 items-end">
+    <div class="flex-1">
+      <label class="block text-sm font-medium text-slate-700 mb-1">Part Number</label>
+      <input type="text" name="part" value="{{ part }}" class="block w-full rounded-lg border-slate-300 shadow-sm focus:border-primary-500 focus:ring-1 focus:ring-primary-500 text-sm py-2 px-3" />
+    </div>
+    <button class="inline-flex items-center px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-lg shadow-sm" type="submit">Filter</button>
+  </div>
+</form>
+<div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-x-auto">
+  <table class="w-full text-left text-sm">
+    <thead class="bg-slate-50 text-slate-600 uppercase tracking-wider text-xs font-semibold border-b border-slate-200">
+      <tr>
+        <th class="py-3 px-4">Part</th>
+        <th class="py-3 px-4">WO</th>
+        <th class="py-3 px-4">Level</th>
+        <th class="py-3 px-4">Status</th>
+        <th class="py-3 px-4">Submitted</th>
+        <th class="py-3 px-4">Approved</th>
+      </tr>
+    </thead>
+    <tbody class="divide-y divide-slate-100">
+      {% for r in records %}
+      <tr>
+        <td class="py-3 px-4 font-medium">{{ r.part_number }}</td>
+        <td class="py-3 px-4 text-slate-600">{{ r.wo_id or '-' }}</td>
+        <td class="py-3 px-4">{{ r.level }}</td>
+        <td class="py-3 px-4">
+          <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {% if r.status == 'Approved' %}bg-green-100 text-green-800{% elif r.status == 'Rejected' %}bg-red-100 text-red-800{% else %}bg-yellow-100 text-yellow-800{% endif %}">{{ r.status }}</span>
+        </td>
+        <td class="py-3 px-4 text-slate-600 text-xs">{{ r.submitted_at or '-' }}</td>
+        <td class="py-3 px-4 text-slate-600 text-xs">{{ r.approved_at or '-' }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

@@ -1,0 +1,414 @@
+{% extends 'layout.html' %}
+{% block title %}Routing Designer – {{ routing.routing_code }} Rev {{ routing.revision }}{% endblock %}
+{% block content %}
+<!-- Drawflow CDN -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/drawflow@0.0.59/dist/drawflow.min.css" />
+<script src="https://cdn.jsdelivr.net/npm/drawflow@0.0.59/dist/drawflow.min.js"></script>
+<style>
+/* ── Drawflow node override (required for dynamic injection) ── */
+.drawflow-node { background:#fff; border:2px solid #cbd5e1; border-radius:8px; min-width:170px; padding:0; box-shadow:0 2px 8px rgba(0,0,0,.1); font-family:inherit; }
+.drawflow-node.selected { border-color:#2563eb; box-shadow:0 0 0 3px rgba(37,99,235,.2); }
+.drawflow-node .node-header { background:linear-gradient(135deg,#0f172a,#1e293b); color:#e2e8f0; padding:7px 12px; border-radius:6px 6px 0 0; font-size:12px; font-weight:700; display:flex; align-items:center; gap:6px; }
+.drawflow-node .node-header .step-badge { background:#38bdf8; color:#0f172a; border-radius:10px; padding:1px 7px; font-size:10px; font-weight:800; }
+.drawflow-node .node-body { padding:8px 12px; font-size:12px; color:#475569; }
+.drawflow-node .node-body .nd-row { display:flex; justify-content:space-between; align-items:center; gap:4px; margin-bottom:3px; }
+.drawflow-node .node-body .nd-label { color:#94a3b8; font-size:11px; }
+.drawflow-node .node-body .nd-val { font-weight:600; color:#1e293b; font-size:12px; }
+.drawflow-node .node-body .qc-tag { background:#fef3c7; color:#92400e; border-radius:10px; padding:1px 7px; font-size:10px; font-weight:700; }
+.drawflow-node .node-footer { padding:5px 12px; border-top:1px solid #f1f5f9; display:flex; gap:6px; }
+.drawflow-node .node-footer button { font-size:11px; padding:3px 8px; border-radius:4px; border:none; cursor:pointer; }
+.drawflow-node .node-footer .btn-edit { background:#eff6ff; color:#2563eb; }
+.drawflow-node .node-footer .btn-del { background:#fef2f2; color:#ef4444; }
+/* ── Custom overrides ── */
+.rb-toolbox-list::-webkit-scrollbar { width: 6px; }
+.rb-toolbox-list::-webkit-scrollbar-track { background: transparent; }
+.rb-toolbox-list::-webkit-scrollbar-thumb { background-color: #334155; border-radius: 3px; }
+.rb-config-body::-webkit-scrollbar { width: 6px; }
+.rb-config-body::-webkit-scrollbar-track { background: transparent; }
+.rb-config-body::-webkit-scrollbar-thumb { background-color: #cbd5e1; border-radius: 3px; }
+</style>
+
+<div id="rb-toast" class="fixed top-20 right-5 z-50 px-5 py-3 rounded-lg text-sm font-semibold shadow-lg opacity-0 pointer-events-none transition-opacity duration-200"></div>
+
+<!-- Page Header -->
+<div class="flex flex-col md:flex-row md:items-center md:justify-between mb-4 gap-4">
+  <div>
+    <nav class="flex text-sm text-slate-500 mb-1">
+      <a href="{{ url_for('routing_builder.manage_routings') }}" class="hover:text-primary-600 transition-colors">Routing Management</a>
+      <span class="mx-2 text-slate-400">&rsaquo;</span>
+      <span class="text-slate-900 font-medium">Designer</span>
+    </nav>
+    <h1 class="text-2xl font-bold text-slate-900 flex items-center flex-wrap gap-2">
+      {{ routing.routing_code }} – {{ routing.routing_name }}
+      <span class="text-xs font-semibold px-2.5 py-0.5 rounded-full {% if routing.status == 'RELEASED' %}bg-emerald-100 text-emerald-800{% elif routing.status == 'DRAFT' %}bg-sky-100 text-sky-800{% else %}bg-slate-100 text-slate-600{% endif %}">{{ routing.status }}</span>
+    </h1>
+    <div class="text-xs text-slate-500 mt-1">Rev {{ routing.revision }}{% if routing.product_id %} &bull; Part: {{ routing.product_id }}{% endif %}</div>
+  </div>
+  <div class="flex flex-wrap gap-2">
+    {% if routing.status != 'RELEASED' %}
+    <button id="btn-save" class="inline-flex items-center px-3 py-1.5 bg-primary-600 hover:bg-primary-700 text-white text-xs font-semibold rounded-lg shadow-sm transition-colors">
+      <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"></path></svg>
+      Save
+    </button>
+    {% endif %}
+    <button id="btn-validate" class="inline-flex items-center px-3 py-1.5 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold rounded-lg border border-slate-300 shadow-sm transition-colors">
+      <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+      Validate
+    </button>
+    <a href="{{ url_for('routing_builder.routing_history', routing_id=routing.id) }}" class="inline-flex items-center px-3 py-1.5 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold rounded-lg border border-slate-300 shadow-sm transition-colors">
+      <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+      History
+    </a>
+    {% if routing.status == 'DRAFT' %}
+    <form method="post" action="{{ url_for('routing_builder.change_status', routing_id=routing.id) }}">
+      <input type="hidden" name="status" value="RELEASED">
+      <button type="submit" class="inline-flex items-center px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-lg shadow-sm transition-colors">
+        <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+        Release
+      </button>
+    </form>
+    {% endif %}
+    <form method="post" action="{{ url_for('routing_builder.clone_routing', routing_id=routing.id) }}">
+      <button type="submit" class="inline-flex items-center px-3 py-1.5 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold rounded-lg border border-slate-300 shadow-sm transition-colors">
+        <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
+        Clone
+      </button>
+    </form>
+  </div>
+</div>
+
+<!-- Designer Shell -->
+<div class="flex h-[calc(100vh-180px)] min-h-[500px] rounded-xl overflow-hidden shadow-sm border border-slate-200 bg-slate-100">
+  <!-- Toolbox -->
+  <div class="w-52 min-w-[180px] bg-slate-900 text-slate-300 flex flex-col overflow-hidden flex-shrink-0 border-r border-slate-700">
+    <div class="p-3 border-b border-slate-700">
+      <h3 class="text-xs font-bold text-slate-100 uppercase tracking-wider mb-2">Stations</h3>
+      <input class="rb-toolbox-search w-full bg-slate-800 border border-slate-600 rounded-md px-3 py-1.5 text-xs text-slate-200 placeholder-slate-500 outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500" id="station-search" type="text" placeholder="Search stations…" />
+    </div>
+    <div class="rb-toolbox-list flex-1 overflow-y-auto p-2">
+      {% for s in stations %}
+      <div class="rb-station-item flex items-center gap-2 px-3 py-2 text-xs text-slate-300 cursor-grab hover:bg-slate-800 hover:text-slate-100 transition-colors rounded-md select-none" draggable="true" data-station-id="{{ s.id }}" data-station-name="{{ s.name }}" id="drag-{{ s.id }}">
+        <span class="w-2 h-2 rounded-full bg-sky-400 flex-shrink-0"></span>
+        <span>{{ s.name }}</span>
+      </div>
+      {% else %}
+      <div class="p-4 text-xs text-slate-500 text-center">No active stations.<br>Add stations in Admin &rarr; Stations.</div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- Canvas -->
+  <div class="flex-1 flex flex-col overflow-hidden relative">
+    <div class="bg-white border-b border-slate-200 px-4 py-2 flex items-center gap-2 flex-wrap">
+      <div class="flex-1 text-xs text-slate-500">
+        <strong class="text-slate-700">Canvas</strong> &bull; Drag stations from the left panel &bull; Click a node to configure
+        {% if routing.status == 'RELEASED' %}
+        <span class="text-red-500 ml-2">&#128274; Read-only (Released)</span>
+        {% endif %}
+      </div>
+      <button onclick="editor.zoom_in()" class="inline-flex items-center justify-center w-8 h-8 bg-white hover:bg-slate-50 text-slate-600 text-sm font-semibold rounded-md border border-slate-300 shadow-sm transition-colors">+</button>
+      <button onclick="editor.zoom_out()" class="inline-flex items-center justify-center w-8 h-8 bg-white hover:bg-slate-50 text-slate-600 text-sm font-semibold rounded-md border border-slate-300 shadow-sm transition-colors">&minus;</button>
+      <button onclick="editor.zoom_reset()" class="inline-flex items-center px-2.5 h-8 bg-white hover:bg-slate-50 text-slate-600 text-xs font-semibold rounded-md border border-slate-300 shadow-sm transition-colors">&#8635; Reset</button>
+      <button id="btn-auto-layout" class="inline-flex items-center px-2.5 h-8 bg-white hover:bg-slate-50 text-slate-600 text-xs font-semibold rounded-md border border-slate-300 shadow-sm transition-colors">&#10515; Auto Layout</button>
+    </div>
+    <div id="drawflow" class="flex-1 bg-slate-100 relative overflow-hidden" style="background-image: radial-gradient(#cbd5e1 1px, transparent 1px); background-size: 20px 20px;"></div>
+  </div>
+
+  <!-- Config Panel -->
+  <div class="w-72 min-w-[260px] bg-white border-l border-slate-200 flex flex-col overflow-hidden flex-shrink-0 hidden" id="config-panel">
+    <div class="bg-slate-900 text-slate-100 px-4 py-3 text-xs font-bold flex items-center justify-between">
+      <span>&#9881; Step Config</span>
+      <button onclick="closeConfigPanel()" class="text-slate-400 hover:text-white transition-colors text-lg leading-none">&times;</button>
+    </div>
+    <div class="rb-config-body flex-1 overflow-y-auto p-4">
+      <div class="text-xs text-slate-500 py-8 text-center">Click a node on the canvas to configure its step properties.</div>
+    </div>
+  </div>
+</div>
+
+<script>
+const ROUTING_ID = {{ routing.id }};
+const READ_ONLY  = {{ 'true' if routing.status == 'RELEASED' else 'false' }};
+const INITIAL_STEPS = {{ steps | tojson }};
+
+// ── Init Drawflow ──
+const drawflowEl = document.getElementById('drawflow');
+const editor = new Drawflow(drawflowEl);
+editor.reroute = true;
+editor.editor_mode = READ_ONLY ? 'view' : 'edit';
+editor.start();
+
+// Custom node HTML template
+function nodeHTML(stepNo, stationName, stepName, cycleTime, qcRequired) {
+  return `
+    <div class="node-header">
+      <span class="step-badge">#${stepNo}</span>
+      <span>${stepName || stationName || 'Step'}</span>
+    </div>
+    <div class="node-body">
+      <div class="nd-row">
+        <span class="nd-label">Station</span>
+        <span class="nd-val">${stationName || '—'}</span>
+      </div>
+      ${cycleTime ? `<div class="nd-row"><span class="nd-label">Cycle Time</span><span class="nd-val">${cycleTime}s</span></div>` : ''}
+      ${qcRequired ? '<div class="nd-row"><span class="qc-tag">QC ✓</span></div>' : ''}
+    </div>
+    <div class="node-footer">
+      <button class="btn-edit" onclick="openConfig(event)">&#9998; Edit</button>
+      ${!READ_ONLY ? '<button class="btn-del" onclick="deleteNode(event)">&#128465;</button>' : ''}
+    </div>`;
+}
+
+// ── Load existing steps ──
+let nodeCounter = INITIAL_STEPS.length + 1;
+
+if (INITIAL_STEPS.length > 0) {
+  INITIAL_STEPS.forEach(s => {
+    const nodeId = editor.addNode(
+      s.step_name || s.station_name || 'Step',
+      1, 1,
+      s.pos_x || 100, s.pos_y || 100,
+      'routing-node',
+      { step_no: s.step_no, station_id: s.station_id, station_name: s.station_name,
+        step_name: s.step_name, cycle_time: s.cycle_time, operator_skill: s.operator_skill,
+        parallel: s.parallel, qc_required: s.qc_required, mandatory: s.mandatory,
+        rework_allowed: s.rework_allowed, remarks: s.remarks, db_id: s.id },
+      nodeHTML(s.step_no, s.station_name, s.step_name, s.cycle_time, s.qc_required)
+    );
+  });
+}
+
+// ── Drag and Drop ──
+const stationItems = document.querySelectorAll('.rb-station-item');
+stationItems.forEach(item => {
+  item.addEventListener('dragstart', e => {
+    e.dataTransfer.setData('station_id', item.dataset.stationId);
+    e.dataTransfer.setData('station_name', item.dataset.stationName);
+    item.classList.add('opacity-50');
+  });
+  item.addEventListener('dragend', () => item.classList.remove('opacity-50'));
+});
+
+drawflowEl.addEventListener('dragover', e => e.preventDefault());
+drawflowEl.addEventListener('drop', e => {
+  if (READ_ONLY) return;
+  e.preventDefault();
+  const stationId   = e.dataTransfer.getData('station_id');
+  const stationName = e.dataTransfer.getData('station_name');
+  if (!stationId) return;
+  const rect = drawflowEl.getBoundingClientRect();
+  const x = e.clientX - rect.left - editor.canvas_x;
+  const y = e.clientY - rect.top  - editor.canvas_y;
+  const stepNo = nodeCounter;
+  nodeCounter++;
+  const stepName = stationName;
+  editor.addNode(
+    stepName,
+    1, 1,
+    x / editor.zoom, y / editor.zoom,
+    'routing-node',
+    { step_no: stepNo, station_id: parseInt(stationId), station_name: stationName,
+      step_name: stepName, cycle_time: null, operator_skill: '', parallel: false,
+      qc_required: false, mandatory: true, rework_allowed: true, remarks: '' },
+    nodeHTML(stepNo, stationName, stepName, null, false)
+  );
+});
+
+// ── Config panel ──
+let activeNodeId = null;
+
+function openConfig(e) {
+  e.stopPropagation();
+  const nodeEl = e.target.closest('.drawflow-node');
+  if (!nodeEl) return;
+  const id = parseInt(nodeEl.id.replace('node-', ''));
+  openConfigById(id);
+}
+
+function openConfigById(id) {
+  activeNodeId = id;
+  const data = editor.getNodeFromId(id).data;
+  const panel = document.getElementById('config-panel');
+  const readonly = READ_ONLY;
+  panel.querySelector('.rb-config-body').innerHTML = `
+    <div class="space-y-4">
+      <div>
+        <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">Step No.</label>
+        <input id="cf-step-no" type="number" value="${data.step_no}" min="1" ${readonly?'readonly':''} class="w-full border border-slate-300 rounded-md px-2.5 py-1.5 text-sm text-slate-900 outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500 disabled:bg-slate-100">
+      </div>
+      <div>
+        <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">Station</label>
+        <input id="cf-station" type="text" value="${data.station_name || ''}" readonly class="w-full border border-slate-300 rounded-md px-2.5 py-1.5 text-sm text-slate-500 bg-slate-100">
+      </div>
+      <div>
+        <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">Step Name</label>
+        <input id="cf-step-name" type="text" value="${data.step_name || data.station_name || ''}" ${readonly?'readonly':''} class="w-full border border-slate-300 rounded-md px-2.5 py-1.5 text-sm text-slate-900 outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500 disabled:bg-slate-100">
+      </div>
+      <div>
+        <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">Cycle Time (seconds)</label>
+        <input id="cf-cycle-time" type="number" value="${data.cycle_time || ''}" min="0" step="0.1" ${readonly?'readonly':''} class="w-full border border-slate-300 rounded-md px-2.5 py-1.5 text-sm text-slate-900 outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500 disabled:bg-slate-100">
+      </div>
+      <div>
+        <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">Operator Skill</label>
+        <input id="cf-skill" type="text" value="${data.operator_skill || ''}" placeholder="e.g. Senior Welder" ${readonly?'readonly':''} class="w-full border border-slate-300 rounded-md px-2.5 py-1.5 text-sm text-slate-900 outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500 disabled:bg-slate-100">
+      </div>
+      <div>
+        <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-2">Options</label>
+        <div class="space-y-2">
+          <label class="flex items-center gap-2 text-sm text-slate-700 cursor-pointer"><input type="checkbox" id="cf-parallel" ${data.parallel?'checked':''} ${readonly?'disabled':''} class="w-4 h-4 rounded border-slate-300 text-primary-600 focus:ring-primary-500 disabled:opacity-50"> Parallel Processing Allowed</label>
+          <label class="flex items-center gap-2 text-sm text-slate-700 cursor-pointer"><input type="checkbox" id="cf-qc" ${data.qc_required?'checked':''} ${readonly?'disabled':''} class="w-4 h-4 rounded border-slate-300 text-primary-600 focus:ring-primary-500 disabled:opacity-50"> Quality Check Required</label>
+          <label class="flex items-center gap-2 text-sm text-slate-700 cursor-pointer"><input type="checkbox" id="cf-mandatory" ${data.mandatory?'checked':''} ${readonly?'disabled':''} class="w-4 h-4 rounded border-slate-300 text-primary-600 focus:ring-primary-500 disabled:opacity-50"> Mandatory Step</label>
+          <label class="flex items-center gap-2 text-sm text-slate-700 cursor-pointer"><input type="checkbox" id="cf-rework" ${data.rework_allowed?'checked':''} ${readonly?'disabled':''} class="w-4 h-4 rounded border-slate-300 text-primary-600 focus:ring-primary-500 disabled:opacity-50"> Rework Allowed</label>
+        </div>
+      </div>
+      <div>
+        <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">Remarks</label>
+        <textarea id="cf-remarks" ${readonly?'readonly':''} class="w-full border border-slate-300 rounded-md px-2.5 py-1.5 text-sm text-slate-900 outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500 disabled:bg-slate-100 resize-y min-h-[60px]">${data.remarks || ''}</textarea>
+      </div>
+    </div>
+  `;
+  if (!readonly) {
+    panel.querySelector('.rb-config-body').insertAdjacentHTML('beforeend', `
+      <div class="pt-4 mt-4 border-t border-slate-200">
+        <button class="inline-flex items-center px-3 py-1.5 bg-primary-600 hover:bg-primary-700 text-white text-xs font-semibold rounded-md shadow-sm transition-colors" onclick="applyConfig()">&#10003; Apply</button>
+      </div>
+    `);
+  }
+  panel.classList.remove('hidden');
+}
+
+function closeConfigPanel() {
+  document.getElementById('config-panel').classList.add('hidden');
+  activeNodeId = null;
+}
+
+function applyConfig() {
+  if (!activeNodeId) return;
+  const data = {
+    step_no: parseInt(document.getElementById('cf-step-no').value),
+    station_id: editor.getNodeFromId(activeNodeId).data.station_id,
+    station_name: editor.getNodeFromId(activeNodeId).data.station_name,
+    step_name: document.getElementById('cf-step-name').value,
+    cycle_time: parseFloat(document.getElementById('cf-cycle-time').value) || null,
+    operator_skill: document.getElementById('cf-skill').value,
+    parallel: document.getElementById('cf-parallel').checked,
+    qc_required: document.getElementById('cf-qc').checked,
+    mandatory: document.getElementById('cf-mandatory').checked,
+    rework_allowed: document.getElementById('cf-rework').checked,
+    remarks: document.getElementById('cf-remarks').value,
+  };
+  editor.updateNodeDataFromId(activeNodeId, data);
+  editor.drawflow.drawflow.Home.data[activeNodeId].html =
+    nodeHTML(data.step_no, data.station_name, data.step_name, data.cycle_time, data.qc_required);
+  editor.updateConnectionNodes('node-' + activeNodeId);
+  const nodeEl = document.getElementById('node-' + activeNodeId);
+  if (nodeEl) nodeEl.querySelector('.drawflow_content_node').innerHTML =
+    nodeHTML(data.step_no, data.station_name, data.step_name, data.cycle_time, data.qc_required);
+  showToast('Step updated.', 'success');
+}
+
+function deleteNode(e) {
+  e.stopPropagation();
+  const nodeEl = e.target.closest('.drawflow-node');
+  if (!nodeEl) return;
+  const id = parseInt(nodeEl.id.replace('node-', ''));
+  if (confirm('Delete this step?')) {
+    editor.removeNodeId('node-' + id);
+    closeConfigPanel();
+  }
+}
+
+// ── Auto Layout ──
+document.getElementById('btn-auto-layout').addEventListener('click', () => {
+  const nodes = editor.drawflow.drawflow.Home.data;
+  const ids = Object.keys(nodes);
+  const xStart = 160, yStart = 80, yGap = 140;
+  ids.forEach((id, i) => {
+    const node = nodes[id];
+    node.pos_x = xStart;
+    node.pos_y = yStart + i * yGap;
+    const el = document.getElementById('node-' + id);
+    if (el) {
+      el.style.left = node.pos_x + 'px';
+      el.style.top  = node.pos_y + 'px';
+    }
+  });
+  editor.updateConnectionNodes();
+  showToast('Auto layout applied.', 'success');
+});
+
+// ── Save ──
+const btnSave = document.getElementById('btn-save');
+if (btnSave) {
+  btnSave.addEventListener('click', () => {
+    const df = editor.export();
+    const nodes = df.drawflow.Home.data;
+    const steps = Object.entries(nodes).map(([id, node]) => ({
+      node_id: id,
+      step_no:    node.data.step_no,
+      station_id: node.data.station_id,
+      step_name:  node.data.step_name || node.data.station_name || '',
+      cycle_time: node.data.cycle_time || null,
+      operator_skill: node.data.operator_skill || null,
+      parallel:   node.data.parallel || false,
+      qc_required: node.data.qc_required || false,
+      mandatory:  node.data.mandatory !== undefined ? node.data.mandatory : true,
+      rework_allowed: node.data.rework_allowed !== undefined ? node.data.rework_allowed : true,
+      remarks:    node.data.remarks || null,
+      pos_x:      node.pos_x,
+      pos_y:      node.pos_y,
+    }));
+
+    const connections = [];
+    Object.values(nodes).forEach(node => {
+      (node.outputs?.output_1?.connections || []).forEach(conn => {
+        connections.push({ from_node_id: String(node.id), to_node_id: conn.node });
+      });
+    });
+
+    fetch(`/routing/builder/${ROUTING_ID}/save`, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ canvas_data: df, steps, connections })
+    })
+    .then(r => r.json())
+    .then(res => {
+      if (res.ok) showToast('Routing saved successfully!', 'success');
+      else showToast('Error: ' + res.error, 'error');
+    })
+    .catch(() => showToast('Network error while saving.', 'error'));
+  });
+}
+
+// ── Validate ──
+document.getElementById('btn-validate').addEventListener('click', () => {
+  fetch('/api/routing/validate', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({ routing_id: ROUTING_ID })
+  })
+  .then(r => r.json())
+  .then(res => {
+    if (res.valid) showToast('Validation passed! Routing is valid.', 'success');
+    else showToast('Validation failed: ' + res.errors.join(' | '), 'error');
+  });
+});
+
+// ── Station search ──
+document.getElementById('station-search').addEventListener('input', function() {
+  const q = this.value.toLowerCase();
+  document.querySelectorAll('.rb-station-item').forEach(el => {
+    el.style.display = el.dataset.stationName.toLowerCase().includes(q) ? '' : 'none';
+  });
+});
+
+// ── Toast helper ──
+function showToast(msg, type) {
+  const el = document.getElementById('rb-toast');
+  el.textContent = msg;
+  el.className = `fixed top-20 right-5 z-50 px-5 py-3 rounded-lg text-sm font-semibold shadow-lg transition-opacity duration-200 ${type === 'success' ? 'bg-emerald-50 text-emerald-800 border-l-4 border-emerald-500' : 'bg-red-50 text-red-800 border-l-4 border-red-500'}`;
+  el.classList.remove('opacity-0', 'pointer-events-none');
+  setTimeout(() => el.classList.add('opacity-0', 'pointer-events-none'), 3200);
+}
+</script>
+{% endblock %}

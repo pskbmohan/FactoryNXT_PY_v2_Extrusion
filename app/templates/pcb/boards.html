@@ -1,0 +1,65 @@
+{% extends 'layout.html' %}
+{% block title %}PCB Boards{% endblock %}
+{% block content %}
+<div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
+  <div class="mb-6">
+    <h2 class="text-2xl font-bold text-slate-900">PCB Boards</h2>
+    <p class="text-sm text-slate-500 mt-1">View and filter individual PCB boards.</p>
+  </div>
+
+  <form method="get" class="mb-6 flex flex-col sm:flex-row gap-3">
+    <div class="relative sm:w-64">
+      <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Work Order</label>
+      <select name="wo_id" class="block w-full rounded-lg border-slate-300 shadow-sm focus:border-primary-500 focus:ring-1 focus:ring-primary-500 text-sm py-2 px-3 appearance-none bg-white">
+        <option value="">All Work Orders</option>
+        {% for wo in work_orders %}<option value="{{ wo.id }}" {% if selected_wo==wo.id %}selected{% endif %}>{{ wo.order_number }}</option>{% endfor %}
+      </select>
+      <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 pt-6 text-slate-500">
+        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+      </div>
+    </div>
+    <div class="flex items-end">
+      <button type="submit" class="inline-flex items-center px-4 py-2 bg-white hover:bg-slate-50 text-slate-700 text-sm font-medium rounded-lg border border-slate-300 shadow-sm">Filter</button>
+    </div>
+  </form>
+
+  <div class="overflow-x-auto">
+    <table class="w-full text-left text-sm">
+      <thead class="bg-slate-50 text-slate-600 uppercase tracking-wider text-xs font-semibold border-b border-slate-200">
+        <tr>
+          <th class="px-4 py-3">Serial#</th>
+          <th class="px-4 py-3">WO#</th>
+          <th class="px-4 py-3">Panel</th>
+          <th class="px-4 py-3">Status</th>
+          <th class="px-4 py-3">Created</th>
+          <th class="px-4 py-3"></th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-slate-100">
+        {% for b in boards %}
+        <tr class="hover:bg-slate-50 transition-colors">
+          <td class="px-4 py-3 font-mono font-medium text-slate-900">{{ b.serial_number }}</td>
+          <td class="px-4 py-3 text-slate-700">{{ b.work_order.order_number if b.work_order else '—' }}</td>
+          <td class="px-4 py-3 font-mono text-slate-700">{{ b.panel.panel_serial if b.panel else '—' }}</td>
+          <td class="px-4 py-3 text-slate-700">{{ b.status }}</td>
+          <td class="px-4 py-3 text-slate-500">{{ b.created_at.strftime('%Y-%m-%d') if b.created_at else '—' }}</td>
+          <td class="px-4 py-3">
+            <a href="{{ url_for('pcb.board_detail', board_id=b.id) }}" class="inline-flex items-center px-3 py-1.5 bg-primary-50 hover:bg-primary-100 text-primary-700 text-xs font-medium rounded-md transition-colors">Detail</a>
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="6" class="px-4 py-12 text-center">
+            <div class="flex flex-col items-center justify-center">
+              <svg class="h-12 w-12 text-slate-400 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"></path></svg>
+              <p class="text-sm font-medium text-slate-900">No boards found</p>
+              <p class="text-xs text-slate-500 mt-1">No PCB boards match the current filter.</p>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

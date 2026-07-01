@@ -1,0 +1,68 @@
+{% extends "layout.html" %}
+{% block title %}Quenching{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+  <div class="flex items-center justify-between">
+    <div>
+      <h1 class="text-2xl font-bold text-slate-900 dark:text-slate-50">Quenching</h1>
+      <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Post-extrusion cooling records</p>
+    </div>
+  </div>
+
+  <!-- Quench Type Selector -->
+  <div class="bg-white dark:bg-slate-800 rounded-lg shadow p-6">
+    <h2 class="text-sm font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-4">Quench Type</h2>
+    <div class="flex flex-wrap gap-3">
+      {% for qt in ['WATER_SPRAY','AIR_FAN','WATER_BATH','NONE'] %}
+      <a href="{{ url_for('process_line.quenching', quench_type=qt) }}" class="px-4 py-2 rounded-lg text-sm font-medium
+        {% if request.args.get('quench_type') == qt %}bg-primary-600 text-white
+        {% else %}bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600{% endif %}">
+        {{ qt|replace('_', ' ') }}
+      </a>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- Quench Records -->
+  <div class="bg-white dark:bg-slate-800 rounded-lg shadow overflow-hidden">
+    <div class="px-6 py-4 border-b border-slate-200 dark:border-slate-700">
+      <h2 class="text-lg font-semibold text-slate-900 dark:text-slate-50">Quench Records</h2>
+    </div>
+    <div class="overflow-x-auto">
+      <table class="w-full text-sm text-left">
+        <thead class="bg-slate-50 dark:bg-slate-700/50 text-slate-600 dark:text-slate-400 uppercase tracking-wider text-xs font-semibold border-b border-slate-200 dark:border-slate-700">
+          <tr>
+            <th class="px-6 py-3">Run ID</th>
+            <th class="px-6 py-3">Quench Type</th>
+            <th class="px-6 py-3">Entry Temp (°C)</th>
+            <th class="px-6 py-3">Exit Temp (°C)</th>
+            <th class="px-6 py-3">Duration (s)</th>
+            <th class="px-6 py-3">Recorded At</th>
+            <th class="px-6 py-3 text-right">Actions</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-100 dark:divide-slate-700">
+          {% for rec in records or [] %}
+          <tr class="hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
+            <td class="px-6 py-3 font-medium text-slate-900 dark:text-slate-50 font-mono">{{ rec.run_id }}</td>
+            <td class="px-6 py-3 text-slate-600 dark:text-slate-400">{{ rec.quench_type }}</td>
+            <td class="px-6 py-3 text-slate-600 dark:text-slate-400">{{ rec.entry_temp or '-' }}</td>
+            <td class="px-6 py-3 text-slate-600 dark:text-slate-400">{{ rec.exit_temp or '-' }}</td>
+            <td class="px-6 py-3 text-slate-600 dark:text-slate-400">{{ rec.duration_s or '-' }}</td>
+            <td class="px-6 py-3 text-slate-600 dark:text-slate-400">{{ rec.recorded_at.strftime('%Y-%m-%d %H:%M') if rec.recorded_at else '' }}</td>
+            <td class="px-6 py-3 text-right">
+              <a href="{{ url_for('process_line.quench_trend', run_id=rec.run_id) }}" class="text-primary-600 dark:text-primary-400 hover:underline text-xs font-medium">Trend &rarr;</a>
+            </td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="7" class="px-6 py-8 text-center text-slate-500 dark:text-slate-400"><p class="text-sm">No quench records.</p></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,59 @@
+{% extends "layout.html" %}
+{% block title %}Machine Availability{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+  <div class="flex items-center justify-between">
+    <div>
+      <h1 class="text-2xl font-bold text-slate-900 dark:text-slate-50">Machine Availability</h1>
+      <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Real-time status of production equipment</p>
+    </div>
+  </div>
+
+  <!-- Status Summary -->
+  <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+    <div class="bg-white dark:bg-slate-800 rounded-lg shadow p-4">
+      <div class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Total Machines</div>
+      <div class="text-3xl font-bold text-slate-900 dark:text-slate-50 mt-2">{{ machines | length }}</div>
+    </div>
+    <div class="bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-lg shadow p-4">
+      <div class="text-xs font-semibold uppercase tracking-wider text-emerald-700 dark:text-emerald-400">Running</div>
+      <div class="text-3xl font-bold text-emerald-900 dark:text-emerald-100 mt-2">{{ running_count }}</div>
+    </div>
+    <div class="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg shadow p-4">
+      <div class="text-xs font-semibold uppercase tracking-wider text-amber-700 dark:text-amber-400">Idle</div>
+      <div class="text-3xl font-bold text-amber-900 dark:text-amber-100 mt-2">{{ idle_count }}</div>
+    </div>
+    <div class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg shadow p-4">
+      <div class="text-xs font-semibold uppercase tracking-wider text-red-700 dark:text-red-400">Down</div>
+      <div class="text-3xl font-bold text-red-900 dark:text-red-100 mt-2">{{ down_count }}</div>
+    </div>
+  </div>
+
+  <!-- Machines Grid -->
+  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+    {% for machine in machines or [] %}
+    <div class="bg-white dark:bg-slate-800 rounded-lg shadow p-4">
+      <div class="flex items-center justify-between mb-2">
+        <h3 class="text-sm font-semibold text-slate-900 dark:text-slate-50">{{ machine.name }}</h3>
+        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium
+          {% if machine.status == 'Running' %}bg-emerald-100 dark:bg-emerald-900/30 text-emerald-800 dark:text-emerald-300
+          {% elif machine.status in ['Available','Idle'] %}bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-300
+          {% elif machine.status in ['Down','Maintenance'] %}bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300
+          {% else %}bg-slate-100 dark:bg-slate-700 text-slate-800 dark:text-slate-200{% endif %}">
+          {{ machine.status }}
+        </span>
+      </div>
+      <div class="text-xs text-slate-500 dark:text-slate-400 space-y-1">
+        <div>Line: <span class="font-mono">#{{ machine.line_id }}</span></div>
+        <div>Created: {% if machine.created_at %}{{ machine.created_at.strftime('%Y-%m-%d') }}{% else %}-{% endif %}</div>
+      </div>
+    </div>
+    {% else %}
+    <div class="col-span-full bg-white dark:bg-slate-800 rounded-lg shadow p-8 text-center text-slate-500 dark:text-slate-400">
+      <p class="text-sm">No machines configured.</p>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

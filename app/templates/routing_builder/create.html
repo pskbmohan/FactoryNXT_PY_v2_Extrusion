@@ -1,0 +1,83 @@
+{% extends 'layout.html' %}
+{% block title %}New Routing – FactoryNXT{% endblock %}
+{% block content %}
+<div class="max-w-3xl mx-auto space-y-6">
+  <nav class="flex" aria-label="Breadcrumb">
+    <ol class="inline-flex items-center space-x-1 md:space-x-3 text-sm text-slate-500">
+      <li><a href="{{ url_for('routing_builder.manage_routings') }}" class="hover:text-primary-600 transition-colors">Routing Management</a></li>
+      <li><svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg></li>
+      <li class="text-slate-900 font-medium" aria-current="page">New Routing</li>
+    </ol>
+  </nav>
+
+  <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+    <div class="bg-slate-900 px-6 py-5 border-b border-slate-800">
+      <h2 class="text-xl font-bold text-white flex items-center gap-2">
+        <svg class="w-5 h-5 text-primary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+        Create Routing Header
+      </h2>
+      <p class="text-slate-400 text-sm mt-1">Define the routing master record. You will add steps in the visual designer next.</p>
+    </div>
+
+    <div class="p-6">
+      <div class="bg-slate-50 border border-slate-200 border-dashed rounded-lg p-4 mb-6">
+        <h4 class="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">Example</h4>
+        <div class="flex flex-wrap gap-2">
+          <span class="text-xs text-slate-600 bg-slate-200 px-2.5 py-1 rounded-full">Code: RT-1001</span>
+          <span class="text-xs text-slate-600 bg-slate-200 px-2.5 py-1 rounded-full">Name: Battery Pack Assembly</span>
+          <span class="text-xs text-slate-600 bg-slate-200 px-2.5 py-1 rounded-full">Part: BP-100AH</span>
+          <span class="text-xs text-slate-600 bg-slate-200 px-2.5 py-1 rounded-full">Rev: A</span>
+        </div>
+      </div>
+
+      <form method="post" class="space-y-5">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1">Routing Code <span class="text-red-500">*</span></label>
+            <input type="text" name="routing_code" placeholder="e.g. RT-1001" required autocomplete="off" class="block w-full rounded-lg border-slate-300 shadow-sm focus:border-primary-500 focus:ring-1 focus:ring-primary-500 text-sm py-2 px-3" />
+            <p class="text-xs text-slate-500 mt-1">Unique code for this routing family.</p>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1">Routing Name <span class="text-red-500">*</span></label>
+            <input type="text" name="routing_name" placeholder="e.g. Battery Pack Assembly" required class="block w-full rounded-lg border-slate-300 shadow-sm focus:border-primary-500 focus:ring-1 focus:ring-primary-500 text-sm py-2 px-3" />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1">Product / Part Number</label>
+            <input type="text" name="product_id" placeholder="e.g. BP-100AH" class="block w-full rounded-lg border-slate-300 shadow-sm focus:border-primary-500 focus:ring-1 focus:ring-primary-500 text-sm py-2 px-3" />
+            <p class="text-xs text-slate-500 mt-1">Leave blank to assign later.</p>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1">Revision</label>
+            <div class="relative">
+              <select name="revision" class="block w-full rounded-lg border-slate-300 shadow-sm focus:border-primary-500 focus:ring-1 focus:ring-primary-500 text-sm py-2 px-3 appearance-none bg-white">
+                {% for r in ['A','B','C','D','E','F','G','H','I','J'] %}
+                <option value="{{ r }}">{{ r }}</option>
+                {% endfor %}
+              </select>
+              <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-slate-500">
+                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+              </div>
+            </div>
+            <p class="text-xs text-slate-500 mt-1">Start with A for a new routing.</p>
+          </div>
+          <div class="md:col-span-2">
+            <label class="block text-sm font-medium text-slate-700 mb-1">Description</label>
+            <textarea name="description" placeholder="Optional – describe the routing purpose, product family, or key notes." rows="3" class="block w-full rounded-lg border-slate-300 shadow-sm focus:border-primary-500 focus:ring-1 focus:ring-primary-500 text-sm py-2 px-3 resize-y"></textarea>
+          </div>
+        </div>
+
+        <div class="flex items-center justify-end gap-3 pt-5 border-t border-slate-200">
+          <a href="{{ url_for('routing_builder.manage_routings') }}" class="inline-flex items-center px-4 py-2 bg-white hover:bg-slate-50 text-slate-700 text-sm font-medium rounded-lg border border-slate-300 shadow-sm">
+            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
+            Cancel
+          </a>
+          <button type="submit" class="inline-flex items-center px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-lg shadow-sm">
+            Create &amp; Open Designer
+            <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

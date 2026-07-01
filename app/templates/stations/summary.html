@@ -1,0 +1,205 @@
+{% extends "layout.html" %}
+{% block title %}Station Summary{% endblock %}
+
+{% block content %}
+<!-- Header -->
+<div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
+  <div>
+    <h1 class="text-2xl font-bold text-slate-900">Station Summary</h1>
+    <p class="text-sm text-slate-500 mt-1">Monitor real-time station status, check-ins, and checkout results.</p>
+  </div>
+  <a href="{{ url_for('stations.create') }}"
+     class="mt-4 sm:mt-0 inline-flex items-center justify-center px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-lg shadow-sm transition-colors">
+    <svg class="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+    </svg>
+    Create Station
+  </a>
+</div>
+
+<!-- Main Dashboard Grid -->
+<div class="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-6">
+
+  <!-- Left Sidebar: Station Selector & Running WOs -->
+  <div class="lg:col-span-1 space-y-6">
+
+    <!-- Station Selector -->
+    <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+      <div class="px-4 py-3 border-b border-slate-200 bg-slate-50/50">
+        <h3 class="text-sm font-semibold text-slate-900 uppercase tracking-wide">Select Station</h3>
+      </div>
+      <div class="p-4">
+        <form method="get" action="{{ url_for('stations.summary') }}">
+          <div class="relative">
+            <select name="station_id" onchange="this.form.submit()"
+                    class="block w-full appearance-none rounded-lg border-slate-300 bg-white py-2 pl-3 pr-10 text-sm text-slate-900 shadow-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500 transition-colors">
+              {% for s in stations %}
+              <option value="{{ s.id }}" {% if selected_station and selected_station.id == s.id %}selected{% endif %}>
+                {{ s.name }} ({{ s.code }})
+              </option>
+              {% else %}
+              <option value="">No stations available</option>
+              {% endfor %}
+            </select>
+            <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-slate-500">
+              <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+              </svg>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Running Work Orders -->
+    <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+      <div class="px-4 py-3 border-b border-slate-200 bg-slate-50/50 flex items-center justify-between">
+        <h3 class="text-sm font-semibold text-slate-900 uppercase tracking-wide">Running WOs</h3>
+        <span class="text-xs font-medium text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full">{{ running_wos|length }}</span>
+      </div>
+      <div class="max-h-64 overflow-y-auto divide-y divide-slate-100">
+        {% for wo in running_wos %}
+        <div class="p-3 hover:bg-slate-50 transition-colors">
+          <div class="text-sm font-medium text-slate-900">{{ wo.order_number }}</div>
+          <div class="text-xs text-slate-500 mt-0.5">{{ wo.part_number }} (Qty: {{ wo.quantity }})</div>
+        </div>
+        {% else %}
+        <div class="p-4 text-center text-xs text-slate-500">No running work orders.</div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- Link to Routes -->
+    <a href="{{ url_for('routing.list_routing') }}"
+       class="block bg-white rounded-xl border border-slate-200 shadow-sm p-4 hover:bg-slate-50 transition-colors group">
+      <div class="flex items-center gap-3">
+        <div class="p-2 rounded-lg bg-indigo-50 text-indigo-600 group-hover:bg-indigo-100 transition-colors">
+          <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+          </svg>
+        </div>
+        <div>
+          <div class="text-sm font-semibold text-slate-900">View Routings</div>
+          <div class="text-xs text-slate-500">Manage station assignments</div>
+        </div>
+      </div>
+    </a>
+  </div>
+
+  <!-- Right Main Area: Check-in / Check-out Status -->
+  <div class="lg:col-span-3 space-y-6">
+
+    {% if not selected_station %}
+    <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-12 text-center">
+      <svg class="mx-auto h-12 w-12 text-slate-400 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+      </svg>
+      <p class="text-sm font-medium text-slate-900">No station selected.</p>
+      <p class="text-xs text-slate-500 mt-1">Please create a station or select one from the sidebar.</p>
+    </div>
+    {% else %}
+
+    <!-- Top Row: Ready for Check-in (Left) | Checked-out Pass (Right) -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+      <!-- Ready for Check-in -->
+      <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+        <div class="px-4 py-3 border-b border-slate-200 bg-blue-50/50 flex items-center justify-between">
+          <h3 class="text-sm font-semibold text-blue-900 uppercase tracking-wide flex items-center gap-2">
+            <svg class="w-4 h-4 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
+            </svg>
+            Ready for Check-in
+          </h3>
+          <span class="text-xs font-medium text-blue-700 bg-blue-100 px-2 py-0.5 rounded-full">{{ ready_for_checkin|length }}</span>
+        </div>
+        <div class="max-h-80 overflow-y-auto divide-y divide-slate-100">
+          {% for s in ready_for_checkin %}
+          <div class="p-3 hover:bg-slate-50 transition-colors flex items-center justify-between">
+            <div>
+              <div class="text-sm font-mono font-medium text-slate-900">{{ s.serial_number }}</div>
+              <div class="text-xs text-slate-500">WO: {{ s.work_order.order_number if s.work_order else 'N/A' }}</div>
+            </div>
+            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
+              Pending
+            </span>
+          </div>
+          {% else %}
+          <div class="p-6 text-center">
+            <p class="text-xs text-slate-500">No units ready for check-in at this station.</p>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+
+      <!-- Checked-out Pass -->
+      <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+        <div class="px-4 py-3 border-b border-slate-200 bg-green-50/50 flex items-center justify-between">
+          <h3 class="text-sm font-semibold text-green-900 uppercase tracking-wide flex items-center gap-2">
+            <svg class="w-4 h-4 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            Checked-out Pass
+          </h3>
+          <span class="text-xs font-medium text-green-700 bg-green-100 px-2 py-0.5 rounded-full">{{ checked_out_pass|length }}</span>
+        </div>
+        <div class="max-h-80 overflow-y-auto divide-y divide-slate-100">
+          {% for tx in checked_out_pass %}
+          <div class="p-3 hover:bg-slate-50 transition-colors">
+            <div class="flex items-center justify-between mb-1">
+              <div class="text-sm font-mono font-medium text-slate-900">{{ tx.serial_number }}</div>
+              <span class="text-xs text-slate-500">{{ tx.created_at.strftime('%H:%M') if tx.created_at else '' }}</span>
+            </div>
+            <div class="text-xs text-slate-600">
+              WO: {{ tx.work_order.order_number if tx.work_order else 'N/A' }} | Op: {{ tx.operator_id }}
+            </div>
+            {% if tx.remarks %}
+            <div class="text-xs text-slate-500 mt-1 italic">"{{ tx.remarks }}"</div>
+            {% endif %}
+          </div>
+          {% else %}
+          <div class="p-6 text-center">
+            <p class="text-xs text-slate-500">No recent passed check-outs.</p>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Bottom Row: Checked-out Fail -->
+    <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+      <div class="px-4 py-3 border-b border-slate-200 bg-red-50/50 flex items-center justify-between">
+        <h3 class="text-sm font-semibold text-red-900 uppercase tracking-wide flex items-center gap-2">
+          <svg class="w-4 h-4 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          Checked-out Fail
+        </h3>
+        <span class="text-xs font-medium text-red-700 bg-red-100 px-2 py-0.5 rounded-full">{{ checked_out_fail|length }}</span>
+      </div>
+      <div class="max-h-64 overflow-y-auto divide-y divide-slate-100">
+        {% for tx in checked_out_fail %}
+        <div class="p-3 hover:bg-red-50/30 transition-colors">
+          <div class="flex items-center justify-between mb-1">
+            <div class="text-sm font-mono font-medium text-red-900">{{ tx.serial_number }}</div>
+            <span class="text-xs text-slate-500">{{ tx.created_at.strftime('%Y-%m-%d %H:%M') if tx.created_at else '' }}</span>
+          </div>
+          <div class="text-xs text-slate-600">
+            WO: {{ tx.work_order.order_number if tx.work_order else 'N/A' }} | Op: {{ tx.operator_id }}
+          </div>
+          {% if tx.remarks %}
+          <div class="text-xs text-red-600 mt-1 font-medium">Reason: {{ tx.remarks }}</div>
+          {% endif %}
+        </div>
+        {% else %}
+        <div class="p-6 text-center">
+          <p class="text-xs text-slate-500">No recent failed check-outs. Great job!</p>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

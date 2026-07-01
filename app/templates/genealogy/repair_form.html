@@ -1,0 +1,125 @@
+{% extends "layout.html" %}
+{% block title %}New Repair Record{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto">
+  <!-- Header -->
+  <div class="mb-6">
+    <h1 class="text-2xl font-bold text-slate-900">New Repair Record</h1>
+    <p class="text-sm text-slate-500 mt-1">Log a rework event (die swap, material replacement, profile re-cut) for traceability.</p>
+  </div>
+
+  <!-- Form Card -->
+  <form method="post" class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+    <div class="p-6 space-y-6">
+
+      <!-- Section 1: Identification -->
+      <div>
+        <h3 class="text-sm font-semibold text-slate-900 uppercase tracking-wide mb-4 pb-2 border-b border-slate-100">Identification</h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+          <div>
+            <label for="board_id" class="block text-sm font-medium text-slate-700 mb-1.5">Profile / Unit <span class="text-red-500">*</span></label>
+            <div class="relative">
+              <select name="board_id" id="board_id" required
+                      class="block w-full appearance-none rounded-lg border-slate-300 bg-white py-2 pl-3 pr-10 text-sm text-slate-900 shadow-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500 transition-colors">
+                {% for b in boards %}
+                <option value="{{ b.id }}">{{ b.serial_number }}</option>
+                {% endfor %}
+              </select>
+              <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-slate-500">
+                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                </svg>
+              </div>
+            </div>
+          </div>
+          <div>
+            <label for="wo_id" class="block text-sm font-medium text-slate-700 mb-1.5">Work Order <span class="text-red-500">*</span></label>
+            <div class="relative">
+              <select name="wo_id" id="wo_id" required
+                      class="block w-full appearance-none rounded-lg border-slate-300 bg-white py-2 pl-3 pr-10 text-sm text-slate-900 shadow-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500 transition-colors">
+                {% for wo in work_orders %}
+                <option value="{{ wo.id }}">{{ wo.order_number }}</option>
+                {% endfor %}
+              </select>
+              <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-slate-500">
+                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                </svg>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Section 2: Rework Details -->
+      <div>
+        <h3 class="text-sm font-semibold text-slate-900 uppercase tracking-wide mb-4 pb-2 border-b border-slate-100">Rework Details</h3>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-5 mb-5">
+          <div class="md:col-span-3">
+            <label for="reference_designator" class="block text-sm font-medium text-slate-700 mb-1.5">Location / Die Identifier <span class="text-red-500">*</span></label>
+            <input type="text" name="reference_designator" id="reference_designator" required
+                   class="block w-full rounded-lg border-slate-300 shadow-sm focus:border-primary-500 focus:ring-1 focus:ring-primary-500 text-sm py-2 px-3 transition-colors font-mono"
+                   placeholder="e.g., DIE-410, PULLER-2, STRETCH-STN-3" />
+          </div>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+          <div>
+            <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">Removed Material / Part</label>
+            <div class="space-y-3">
+              <input type="text" name="removed_part_number" required placeholder="Part Number *"
+                     class="block w-full rounded-lg border-slate-300 shadow-sm focus:border-primary-500 focus:ring-1 focus:ring-primary-500 text-sm py-2 px-3 transition-colors font-mono" />
+              <input type="text" name="removed_lot" placeholder="Lot / Billet Number (Optional)"
+                     class="block w-full rounded-lg border-slate-300 shadow-sm focus:border-primary-500 focus:ring-1 focus:ring-primary-500 text-sm py-2 px-3 transition-colors font-mono" />
+            </div>
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">Replacement Material / Part</label>
+            <div class="space-y-3">
+              <input type="text" name="installed_part_number" required placeholder="Part Number *"
+                     class="block w-full rounded-lg border-slate-300 shadow-sm focus:border-primary-500 focus:ring-1 focus:ring-primary-500 text-sm py-2 px-3 transition-colors font-mono" />
+              <input type="text" name="installed_lot" placeholder="Lot / Billet Number (Optional)"
+                     class="block w-full rounded-lg border-slate-300 shadow-sm focus:border-primary-500 focus:ring-1 focus:ring-primary-500 text-sm py-2 px-3 transition-colors font-mono" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Section 3: Accountability -->
+      <div>
+        <h3 class="text-sm font-semibold text-slate-900 uppercase tracking-wide mb-4 pb-2 border-b border-slate-100">Accountability</h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+          <div>
+            <label for="reason_code" class="block text-sm font-medium text-slate-700 mb-1.5">Reason Code <span class="text-red-500">*</span></label>
+            <input type="text" name="reason_code" id="reason_code" required
+                   class="block w-full rounded-lg border-slate-300 shadow-sm focus:border-primary-500 focus:ring-1 focus:ring-primary-500 text-sm py-2 px-3 transition-colors"
+                   placeholder="e.g., Surface score, Dimensional miss, Alloy mismatch" />
+          </div>
+          <div>
+            <label for="operator_id" class="block text-sm font-medium text-slate-700 mb-1.5">Operator ID <span class="text-red-500">*</span></label>
+            <input type="text" name="operator_id" id="operator_id" required
+                   class="block w-full rounded-lg border-slate-300 shadow-sm focus:border-primary-500 focus:ring-1 focus:ring-primary-500 text-sm py-2 px-3 transition-colors"
+                   placeholder="e.g., OP-102" />
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Form Actions -->
+    <div class="px-6 py-4 bg-slate-50 border-t border-slate-200 flex items-center justify-end gap-3">
+      <a href="{{ url_for('genealogy.repairs') }}"
+         class="inline-flex items-center px-4 py-2 bg-white border border-slate-300 text-slate-700 text-sm font-medium rounded-lg shadow-sm hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-primary-500/20 transition-colors">
+        Cancel
+      </a>
+      <button type="submit"
+              class="inline-flex items-center px-4 py-2 bg-primary-600 text-white text-sm font-medium rounded-lg shadow-sm hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500/20 transition-colors">
+        <svg class="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+        </svg>
+        Save Record
+      </button>
+    </div>
+  </form>
+</div>
+{% endblock %}

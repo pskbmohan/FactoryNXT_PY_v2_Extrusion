@@ -1,0 +1,59 @@
+{% extends "layout.html" %}
+{% block title %}Nitriding Records{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+  <div class="flex items-center justify-between">
+    <div>
+      <h1 class="text-2xl font-bold text-slate-900 dark:text-slate-50">Nitriding Records</h1>
+      <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Surface hardening furnace batches</p>
+    </div>
+    <a href="{{ url_for('tool_shop.die_list') }}" class="inline-flex items-center px-3 py-1.5 text-sm font-medium rounded-md bg-primary-600 text-white hover:bg-primary-700">&larr; Back to Dies</a>
+  </div>
+
+  <div class="bg-white dark:bg-slate-800 rounded-lg shadow overflow-hidden">
+    <div class="overflow-x-auto">
+      <table class="w-full text-sm text-left">
+        <thead class="bg-slate-50 dark:bg-slate-700/50 text-slate-600 dark:text-slate-400 uppercase tracking-wider text-xs font-semibold border-b border-slate-200 dark:border-slate-700">
+          <tr>
+            <th class="px-6 py-3">Die Code</th>
+            <th class="px-6 py-3">Furnace</th>
+            <th class="px-6 py-3">Recorded At</th>
+            <th class="px-6 py-3">Start Temp (°C)</th>
+            <th class="px-6 py-3">End Temp (°C)</th>
+            <th class="px-6 py-3">Duration (h)</th>
+            <th class="px-6 py-3">Hardness Before (HV)</th>
+            <th class="px-6 py-3">Hardness After (HV)</th>
+            <th class="px-6 py-3">Atmosphere</th>
+            <th class="px-6 py-3">Operator</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-100 dark:divide-slate-700">
+          {% for rec in records or [] %}
+          <tr class="hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
+            <td class="px-6 py-3 font-medium text-slate-900 dark:text-slate-50">
+              <a href="{{ url_for('tool_shop.die_detail', id=rec.die_id) }}" class="hover:text-primary-600 dark:hover:text-primary-400">{{ rec.die.die_code if rec.die else '-' }}</a>
+            </td>
+            <td class="px-6 py-3 text-slate-600 dark:text-slate-400">{{ rec.furnace_id or '-' }}</td>
+            <td class="px-6 py-3 text-slate-600 dark:text-slate-400">{{ rec.created_at.strftime('%Y-%m-%d %H:%M') if rec.created_at else '' }}</td>
+            <td class="px-6 py-3 text-slate-600 dark:text-slate-400">{{ '%.1f'|format(rec.start_temp) if rec.start_temp else '-' }}</td>
+            <td class="px-6 py-3 text-slate-600 dark:text-slate-400">{{ '%.1f'|format(rec.end_temp) if rec.end_temp else '-' }}</td>
+            <td class="px-6 py-3 text-slate-600 dark:text-slate-400">{{ '%.1f'|format(rec.duration_hours) if rec.duration_hours else '-' }}</td>
+            <td class="px-6 py-3 text-slate-600 dark:text-slate-400">{{ '%.1f'|format(rec.hardness_before) if rec.hardness_before else '-' }}</td>
+            <td class="px-6 py-3 text-slate-600 dark:text-slate-400">{{ '%.1f'|format(rec.hardness_after) if rec.hardness_after else '-' }}</td>
+            <td class="px-6 py-3 text-slate-600 dark:text-slate-400">{{ rec.atmosphere or '-' }}</td>
+            <td class="px-6 py-3 text-slate-600 dark:text-slate-400">{{ rec.operator or '-' }}</td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="10" class="px-6 py-12 text-center text-slate-500 dark:text-slate-400">
+              <p class="text-sm">No nitriding records.</p>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

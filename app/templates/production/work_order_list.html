@@ -1,0 +1,138 @@
+{% extends "layout.html" %}
+{% block title %}Work Orders{% endblock %}
+
+{% block content %}
+<!-- Header & Actions -->
+<div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
+  <div>
+    <h1 class="text-2xl font-bold text-slate-900">Work Orders</h1>
+    <p class="text-sm text-slate-500 mt-1">Manage and track production work orders.</p>
+  </div>
+  <a href="{{ url_for('production.work_order_new') }}"
+     class="mt-4 sm:mt-0 inline-flex items-center justify-center px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-lg shadow-sm transition-colors">
+    <svg class="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+    </svg>
+    New Work Order
+  </a>
+</div>
+
+<!-- Filters -->
+<div class="bg-white rounded-xl border border-slate-200 p-4 mb-6 shadow-sm">
+  <div class="flex items-center gap-3">
+    <label for="status-filter" class="text-sm font-medium text-slate-700 whitespace-nowrap">Filter by status:</label>
+    <div class="relative w-full sm:w-64">
+      <select id="status-filter" onchange="location.href='?status='+this.value"
+              class="block w-full appearance-none rounded-lg border-slate-300 bg-white py-2 pl-3 pr-10 text-sm text-slate-900 shadow-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500 transition-colors">
+        <option value="">All Statuses</option>
+        {% for s in ['DRAFT','RELEASED','RUNNING','COMPLETED','CANCELLED'] %}
+        <option value="{{ s }}" {% if status==s %}selected{% endif %}>{{ s|replace('_',' ')|capitalize }}</option>
+        {% endfor %}
+      </select>
+      <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-slate-500">
+        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+        </svg>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Data Table -->
+<div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+  <div class="overflow-x-auto">
+    <table class="w-full text-left text-sm">
+      <thead class="bg-slate-50 text-slate-600 uppercase tracking-wider text-xs font-semibold border-b border-slate-200">
+        <tr>
+          <th class="px-6 py-3">WO #</th>
+          <th class="px-6 py-3">Part #</th>
+          <th class="px-6 py-3">Qty</th>
+          <th class="px-6 py-3">Priority</th>
+          <th class="px-6 py-3">Status</th>
+          <th class="px-6 py-3">Scheduled Start</th>
+          <th class="px-6 py-3">Scheduled End</th>
+          <th class="px-6 py-3 text-right">Actions</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-slate-100">
+        {% for o in orders %}
+        <tr class="
+            {% if o.priority == 'urgent' %}bg-red-50/50
+            {% elif o.priority == 'high' %}bg-amber-50/50
+            {% else %}hover:bg-slate-50{% endif %}
+          transition-colors">
+          <td class="px-6 py-4 font-mono text-xs font-medium text-slate-900">{{ o.order_number }}</td>
+          <td class="px-6 py-4 text-slate-700">{{ o.part_number }}</td>
+          <td class="px-6 py-4 text-slate-700 font-medium">{{ o.quantity }}</td>
+          <td class="px-6 py-4">
+            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+              {% if o.priority == 'urgent' %}bg-red-100 text-red-800
+              {% elif o.priority == 'high' %}bg-amber-100 text-amber-800
+              {% else %}bg-slate-100 text-slate-700{% endif %}">
+              {{ o.priority|capitalize }}
+            </span>
+          </td>
+          <td class="px-6 py-4">
+            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+              {% if o.status == 'COMPLETED' %}bg-green-100 text-green-800
+              {% elif o.status == 'RUNNING' %}bg-blue-100 text-blue-800
+              {% elif o.status == 'RELEASED' %}bg-indigo-100 text-indigo-800
+              {% elif o.status == 'DRAFT' %}bg-slate-100 text-slate-700
+              {% elif o.status == 'CANCELLED' %}bg-red-100 text-red-800
+              {% else %}bg-slate-100 text-slate-700{% endif %}">
+              {{ o.status|replace('_', ' ')|capitalize }}
+            </span>
+          </td>
+          <td class="px-6 py-4 text-slate-700 text-xs font-mono">{{ o.scheduled_start.strftime('%Y-%m-%d %H:%M') if o.scheduled_start else '—' }}</td>
+          <td class="px-6 py-4 text-slate-700 text-xs font-mono">{{ o.scheduled_end.strftime('%Y-%m-%d %H:%M') if o.scheduled_end else '—' }}</td>
+          <td class="px-6 py-4 text-right">
+            <div class="flex items-center justify-end gap-2">
+              {% if o.status == 'DRAFT' %}
+              <form method="post" action="{{ url_for('production.work_order_release', id=o.id) }}" class="inline">
+                <button type="submit"
+                        title="Release this work order to the floor"
+                        class="inline-flex items-center gap-1 px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white text-xs font-medium rounded-md shadow-sm transition-colors">
+                  <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3l14 9-14 9V3z" />
+                  </svg>
+                  Release
+                </button>
+              </form>
+              {% endif %}
+              <form method="post" action="{{ url_for('production.work_order_status', id=o.id) }}" class="flex items-center gap-2">
+                <div class="relative">
+                  <select name="status" class="appearance-none rounded-lg border-slate-300 bg-white py-1.5 pl-2.5 pr-8 text-xs text-slate-900 shadow-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500 transition-colors">
+                    {% for s in ['DRAFT','RELEASED','RUNNING','COMPLETED','CANCELLED'] if s != o.status %}
+                    <option value="{{ s }}">{{ s|replace('_',' ')|capitalize }}</option>
+                    {% endfor %}
+                  </select>
+                  <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-slate-500">
+                    <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </div>
+                </div>
+                <button type="submit"
+                        class="inline-flex items-center px-3 py-1.5 bg-primary-600 hover:bg-primary-700 text-white text-xs font-medium rounded-md shadow-sm transition-colors">
+                  Update
+                </button>
+              </form>
+            </div>
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="8" class="px-6 py-12 text-center">
+            <svg class="mx-auto h-12 w-12 text-slate-400 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+            </svg>
+            <p class="text-sm font-medium text-slate-900">No work orders found.</p>
+            <p class="text-xs text-slate-500 mt-1">Adjust your filters or create a new work order.</p>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

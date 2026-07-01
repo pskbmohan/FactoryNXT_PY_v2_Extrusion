@@ -1,0 +1,66 @@
+{% extends 'layout.html' %}
+{% block title %}Production Schedule{% endblock %}
+{% block content %}
+<div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
+  <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-6 gap-4">
+    <div>
+      <h2 class="text-2xl font-bold text-slate-900">Production Schedule</h2>
+      <p class="text-sm text-slate-500 mt-1">Manage and view upcoming production schedule entries.</p>
+    </div>
+    <div class="flex gap-3">
+      <a href="{{ url_for('scheduling.new') }}" class="inline-flex items-center px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-lg shadow-sm">
+        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+        New Entry
+      </a>
+      <a href="{{ url_for('scheduling.shifts') }}" class="inline-flex items-center px-4 py-2 bg-white hover:bg-slate-50 text-slate-700 text-sm font-medium rounded-lg border border-slate-300 shadow-sm">Shift Calendar</a>
+    </div>
+  </div>
+
+  <div class="overflow-x-auto">
+    <table class="w-full text-left text-sm">
+      <thead class="bg-slate-50 text-slate-600 uppercase tracking-wider text-xs font-semibold border-b border-slate-200">
+        <tr>
+          <th class="px-4 py-3">WO#</th>
+          <th class="px-4 py-3">Line</th>
+          <th class="px-4 py-3">Scheduled Start</th>
+          <th class="px-4 py-3">Scheduled End</th>
+          <th class="px-4 py-3">Actual Start</th>
+          <th class="px-4 py-3">Actual End</th>
+          <th class="px-4 py-3 text-center">Seq</th>
+          <th class="px-4 py-3 text-center">Locked</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-slate-100">
+        {% for s in schedule %}
+        <tr class="hover:bg-slate-50 transition-colors">
+          <td class="px-4 py-3 font-medium text-slate-900">{{ s.work_order.order_number if s.work_order else '—' }}</td>
+          <td class="px-4 py-3 text-slate-700">{{ s.smt_line.name if s.smt_line else '—' }}</td>
+          <td class="px-4 py-3 text-slate-700">{{ s.scheduled_start.strftime('%Y-%m-%d %H:%M') if s.scheduled_start else '—' }}</td>
+          <td class="px-4 py-3 text-slate-700">{{ s.scheduled_end.strftime('%Y-%m-%d %H:%M') if s.scheduled_end else '—' }}</td>
+          <td class="px-4 py-3 text-slate-500">{{ s.actual_start.strftime('%Y-%m-%d %H:%M') if s.actual_start else '—' }}</td>
+          <td class="px-4 py-3 text-slate-500">{{ s.actual_end.strftime('%Y-%m-%d %H:%M') if s.actual_end else '—' }}</td>
+          <td class="px-4 py-3 text-center font-mono text-slate-700">{{ s.sequence_order }}</td>
+          <td class="px-4 py-3 text-center">
+            {% if s.is_locked %}
+            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800">Locked</span>
+            {% else %}
+            <span class="text-slate-400">—</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="8" class="px-4 py-12 text-center">
+            <div class="flex flex-col items-center justify-center">
+              <svg class="h-12 w-12 text-slate-400 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+              <p class="text-sm font-medium text-slate-900">No schedule entries</p>
+              <p class="text-xs text-slate-500 mt-1">Get started by creating a new schedule entry.</p>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,105 @@
+{% extends "layout.html" %}
+{% block title %}Users{% endblock %}
+
+{% block content %}
+<!-- Header -->
+<div class="mb-6">
+  <h1 class="text-2xl font-bold text-slate-900">User Management</h1>
+  <p class="text-sm text-slate-500 mt-1">Manage system users, roles, and plant assignments.</p>
+</div>
+
+<!-- Filter Card -->
+<form method="get" class="bg-white rounded-xl border border-slate-200 p-4 mb-6 shadow-sm">
+  <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+    <div class="md:col-span-1">
+      <label for="plant" class="block text-sm font-medium text-slate-700 mb-1.5">Plant</label>
+      <div class="relative">
+        <select name="plant" id="plant"
+                class="block w-full appearance-none rounded-lg border-slate-300 bg-white py-2 pl-3 pr-10 text-sm text-slate-900 shadow-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500 transition-colors">
+          <option value="">All Plants</option>
+          {% for p in plants %}
+          <option value="{{ p.id }}" {% if plant_id == p.id %}selected{% endif %}>{{ p.code }}</option>
+          {% endfor %}
+        </select>
+        <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-slate-500">
+          <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+          </svg>
+        </div>
+      </div>
+    </div>
+    <div class="md:col-span-1">
+      <label for="role" class="block text-sm font-medium text-slate-700 mb-1.5">Role</label>
+      <div class="relative">
+        <select name="role" id="role"
+                class="block w-full appearance-none rounded-lg border-slate-300 bg-white py-2 pl-3 pr-10 text-sm text-slate-900 shadow-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500 transition-colors">
+          <option value="">All Roles</option>
+          {% for r in roles %}
+          <option value="{{ r.id }}" {% if role_id == r.id %}selected{% endif %}>{{ r.display_name }}</option>
+          {% endfor %}
+        </select>
+        <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-slate-500">
+          <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+          </svg>
+        </div>
+      </div>
+    </div>
+    <div class="md:col-span-2 flex gap-2">
+      <button type="submit" class="flex-1 inline-flex items-center justify-center px-4 py-2 bg-slate-800 hover:bg-slate-900 text-white text-sm font-medium rounded-lg shadow-sm transition-colors">
+        <svg class="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+        </svg>
+        Filter
+      </button>
+      <a href="{{ url_for('admin.users') }}" class="inline-flex items-center justify-center px-4 py-2 bg-white border border-slate-300 text-slate-700 text-sm font-medium rounded-lg shadow-sm hover:bg-slate-50 transition-colors">
+        Clear
+      </a>
+    </div>
+  </div>
+</form>
+
+<!-- Data Table -->
+<div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+  <div class="overflow-x-auto">
+    <table class="w-full text-left text-sm">
+      <thead class="bg-slate-50 text-slate-600 uppercase tracking-wider text-xs font-semibold border-b border-slate-200">
+        <tr>
+          <th class="px-6 py-3">Employee ID</th>
+          <th class="px-6 py-3">Name</th>
+          <th class="px-6 py-3">Role</th>
+          <th class="px-6 py-3">Plant</th>
+          <th class="px-6 py-3">Status</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-slate-100">
+        {% for u in users %}
+        <tr class="hover:bg-slate-50 transition-colors">
+          <td class="px-6 py-4 font-mono text-xs font-medium text-slate-900">{{ u.employee_id }}</td>
+          <td class="px-6 py-4 font-medium text-slate-900">{{ u.full_name }}</td>
+          <td class="px-6 py-4 text-slate-600 text-sm">{{ u.role }}</td>
+          <td class="px-6 py-4 text-slate-600 text-sm">{{ u.plant.code if u.plant else '-' }}</td>
+          <td class="px-6 py-4">
+            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+              {% if u.is_active %}bg-green-100 text-green-800
+              {% else %}bg-slate-100 text-slate-600{% endif %}">
+              {{ 'Active' if u.is_active else 'Inactive' }}
+            </span>
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="5" class="px-6 py-12 text-center">
+            <svg class="mx-auto h-12 w-12 text-slate-400 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+            </svg>
+            <p class="text-sm font-medium text-slate-900">No users found.</p>
+            <p class="text-xs text-slate-500 mt-1">Try adjusting your search filters.</p>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

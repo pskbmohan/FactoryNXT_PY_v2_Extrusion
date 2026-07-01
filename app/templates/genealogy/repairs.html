@@ -1,0 +1,63 @@
+{% extends "layout.html" %}
+{% block title %}Repair Records{% endblock %}
+
+{% block content %}
+<!-- Header & Actions -->
+<div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
+  <div>
+    <h1 class="text-2xl font-bold text-slate-900">Rework Records</h1>
+    <p class="text-sm text-slate-500 mt-1">Log and track all profile rework and repair events.</p>
+  </div>
+  <a href="{{ url_for('genealogy.repair_new') }}"
+     class="mt-4 sm:mt-0 inline-flex items-center justify-center px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-lg shadow-sm transition-colors">
+    <svg class="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+    </svg>
+    New Rework
+  </a>
+</div>
+
+<!-- Data Table -->
+<div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+  <div class="overflow-x-auto">
+    <table class="w-full text-left text-sm">
+      <thead class="bg-slate-50 text-slate-600 uppercase tracking-wider text-xs font-semibold border-b border-slate-200">
+        <tr>
+          <th class="px-6 py-3">Profile</th>
+          <th class="px-6 py-3">Work Order</th>
+          <th class="px-6 py-3">Location / Die</th>
+          <th class="px-6 py-3">Removed Part</th>
+          <th class="px-6 py-3">Installed Part</th>
+          <th class="px-6 py-3">Reason</th>
+          <th class="px-6 py-3">Operator</th>
+          <th class="px-6 py-3">Repaired At</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-slate-100">
+        {% for r in records %}
+        <tr class="hover:bg-red-50/30 transition-colors">
+          <td class="px-6 py-4 font-mono text-xs font-medium text-slate-900">{{ r.board.serial_number if r.board else '-' }}</td>
+          <td class="px-6 py-4 text-slate-700 text-xs">{{ r.wo_id or '-' }}</td>
+          <td class="px-6 py-4 font-mono text-xs font-semibold text-slate-900">{{ r.reference_designator }}</td>
+          <td class="px-6 py-4 text-slate-600 text-xs font-mono">{{ r.removed_part_number or '-' }}</td>
+          <td class="px-6 py-4 text-slate-700 text-xs font-mono">{{ r.installed_part_number or '-' }}</td>
+          <td class="px-6 py-4 text-slate-600 text-xs">{{ r.reason_code or '-' }}</td>
+          <td class="px-6 py-4 text-slate-600 text-xs">{{ r.operator_id or '-' }}</td>
+          <td class="px-6 py-4 text-slate-500 text-xs">{{ r.repaired_at.strftime('%Y-%m-%d %H:%M') if r.repaired_at else '-' }}</td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="8" class="px-6 py-12 text-center">
+            <svg class="mx-auto h-12 w-12 text-slate-400 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9m0 0l3-3m-3 3l3 3" />
+            </svg>
+            <p class="text-sm font-medium text-slate-900">No repair records found.</p>
+            <p class="text-xs text-slate-500 mt-1">No rework records on file.</p>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

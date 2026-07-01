@@ -1,0 +1,57 @@
+{% extends 'layout.html' %}
+{% block title %}New Certification{% endblock %}
+{% block content %}
+<div class="mb-6">
+  <h1 class="text-2xl font-bold text-slate-900">New Operator Certification</h1>
+  <p class="text-sm text-slate-500">Log operator competency and certification details.</p>
+</div>
+<form method="post" class="max-w-2xl">
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+    <div>
+      <label class="block text-sm font-medium text-slate-700 mb-1">User</label>
+      <div class="relative">
+        <select name="user_id" required class="appearance-none block w-full rounded-lg border-slate-300 shadow-sm focus:border-primary-500 focus:ring-1 focus:ring-primary-500 text-sm py-2 px-3 pr-10">
+          {% for p in profiles %}<option value="{{ p.id }}">{{ p.full_name }} ({{ p.employee_id }})</option>{% endfor %}
+        </select>
+        <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-slate-500">
+          <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+        </div>
+      </div>
+    </div>
+    <div>
+      <label class="block text-sm font-medium text-slate-700 mb-1">Operation Code</label>
+      <input type="text" name="operation_code" required class="block w-full rounded-lg border-slate-300 shadow-sm focus:border-primary-500 focus:ring-1 focus:ring-primary-500 text-sm py-2 px-3" />
+    </div>
+    <div>
+      <label class="block text-sm font-medium text-slate-700 mb-1">Certification Level</label>
+      <div class="relative">
+        <select name="certification_level" class="appearance-none block w-full rounded-lg border-slate-300 shadow-sm focus:border-primary-500 focus:ring-1 focus:ring-primary-500 text-sm py-2 px-3 pr-10">
+          <option>Trainee</option>
+          <option>Qualified</option>
+          <option>Certified</option>
+          <option>Expert</option>
+        </select>
+        <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-slate-500">
+          <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+        </div>
+      </div>
+    </div>
+    <div>
+      <label class="block text-sm font-medium text-slate-700 mb-1">Certified At</label>
+      <input type="datetime-local" name="certified_at" required class="block w-full rounded-lg border-slate-300 shadow-sm focus:border-primary-500 focus:ring-1 focus:ring-primary-500 text-sm py-2 px-3" />
+    </div>
+    <div>
+      <label class="block text-sm font-medium text-slate-700 mb-1">Expiry Date</label>
+      <input type="date" name="expiry_date" class="block w-full rounded-lg border-slate-300 shadow-sm focus:border-primary-500 focus:ring-1 focus:ring-primary-500 text-sm py-2 px-3" />
+    </div>
+    <div>
+      <label class="block text-sm font-medium text-slate-700 mb-1">Certified By</label>
+      <input type="text" name="certified_by" class="block w-full rounded-lg border-slate-300 shadow-sm focus:border-primary-500 focus:ring-1 focus:ring-primary-500 text-sm py-2 px-3" />
+    </div>
+  </div>
+  <div class="flex gap-3">
+    <button type="submit" class="inline-flex items-center px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-lg shadow-sm">Save</button>
+    <a href="{{ url_for('users.certifications') }}" class="inline-flex items-center px-4 py-2 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 text-sm font-medium rounded-lg shadow-sm">Cancel</a>
+  </div>
+</form>
+{% endblock %}

@@ -1,0 +1,42 @@
+{% extends "layout.html" %}
+{% block title %}PM Schedule{% endblock %}
+{% block content %}
+<div class="mb-6">
+  <h2 class="text-2xl font-bold text-slate-900">PM Schedule</h2>
+  <p class="text-sm text-slate-500">Preventative maintenance schedules for machines.</p>
+</div>
+<div class="flex gap-2 mb-6 border-b border-slate-200">
+  <a href="{{ url_for('machines.pm_schedule', status='all') }}" class="px-4 py-2 text-sm font-medium border-b-2 {% if status == 'all' %}border-primary-600 text-primary-600{% else %}border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300{% endif %}">All</a>
+  {% for s in ['Pending','Due','Overdue','Completed'] %}
+  <a href="{{ url_for('machines.pm_schedule', status=s) }}" class="px-4 py-2 text-sm font-medium border-b-2 {% if status == s %}border-primary-600 text-primary-600{% else %}border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300{% endif %}">{{ s }}</a>
+  {% endfor %}
+</div>
+<div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-x-auto">
+  <table class="w-full text-left text-sm">
+    <thead class="bg-slate-50 text-slate-600 uppercase tracking-wider text-xs font-semibold border-b border-slate-200">
+      <tr>
+        <th class="py-3 px-4">Machine</th>
+        <th class="py-3 px-4">Task</th>
+        <th class="py-3 px-4">Frequency (days)</th>
+        <th class="py-3 px-4">Last Completed</th>
+        <th class="py-3 px-4">Due At</th>
+        <th class="py-3 px-4">Status</th>
+      </tr>
+    </thead>
+    <tbody class="divide-y divide-slate-100">
+      {% for p in schedules %}
+      <tr>
+        <td class="py-3 px-4 font-medium">{{ p.machine_id }}</td>
+        <td class="py-3 px-4">{{ p.task_name }}</td>
+        <td class="py-3 px-4">{{ p.frequency_days or '-' }}</td>
+        <td class="py-3 px-4 text-slate-600">{{ p.last_completed_at or '-' }}</td>
+        <td class="py-3 px-4 text-slate-600">{{ p.due_at or '-' }}</td>
+        <td class="py-3 px-4">
+          <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {% if p.status == 'Completed' %}bg-green-100 text-green-800{% elif p.status == 'Overdue' %}bg-red-100 text-red-800{% elif p.status == 'Due' %}bg-yellow-100 text-yellow-800{% else %}bg-slate-100 text-slate-800{% endif %}">{{ p.status }}</span>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

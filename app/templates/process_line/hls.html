@@ -1,0 +1,115 @@
+{% extends "layout.html" %}
+{% block title %}HLS - Heating{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+  <div class="flex items-center justify-between">
+    <div>
+      <h1 class="text-2xl font-bold text-slate-900 dark:text-slate-50">HLS - Billet Heating</h1>
+      <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Hot logging shear setpoints and actuals</p>
+    </div>
+  </div>
+
+  <!-- Setpoint Load -->
+  <form method="post" action="{{ url_for('process_line.hls_load') }}" class="bg-white dark:bg-slate-800 rounded-lg shadow p-6">
+    <h2 class="text-sm font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-4">Load Setpoint Profile</h2>
+    <input type="hidden" name="machine_name" value="HLS-01" />
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div>
+        <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Profile</label>
+        <select name="setpoint_profile_id" class="block w-full rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-200 shadow-sm focus:border-primary-500 focus:ring-1 focus:ring-primary-500 text-sm py-2 px-3">
+          {% for p in profiles or [] %}
+          <option value="{{ p.id }}">{{ p.profile_code or p.id }} ({{ p.alloy or '-' }})</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Alloy</label>
+        <select name="alloy" class="block w-full rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-200 shadow-sm focus:border-primary-500 focus:ring-1 focus:ring-primary-500 text-sm py-2 px-3">
+          {% for a in ['6061','6063','6082','6005','6463'] %}
+          <option value="{{ a }}">{{ a }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Target Temp (°C)</label>
+        <input type="number" name="target_temp" class="block w-full rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-200 shadow-sm focus:border-primary-500 focus:ring-1 focus:ring-primary-500 text-sm py-2 px-3" />
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Soak Time (min)</label>
+        <input type="number" name="soak_time_min" class="block w-full rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-200 shadow-sm focus:border-primary-500 focus:ring-1 focus:ring-primary-500 text-sm py-2 px-3" />
+      </div>
+    </div>
+    <div class="mt-4 flex justify-end">
+      <button type="submit" class="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-lg shadow-sm">Load Setpoint</button>
+    </div>
+  </form>
+
+  <!-- Capture Actual -->
+  <div class="bg-white dark:bg-slate-800 rounded-lg shadow p-6">
+    <h2 class="text-sm font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-4">Capture Actual</h2>
+    <form method="post" action="{{ url_for('process_line.hls_capture_new') }}" class="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <input type="hidden" name="machine_name" value="HLS-01" />
+      <div>
+        <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Actual Temp (°C)</label>
+        <input type="number" step="0.1" name="actual_temp" class="block w-full rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-200 shadow-sm focus:border-primary-500 focus:ring-1 focus:ring-primary-500 text-sm py-2 px-3" />
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Billet #</label>
+        <input type="text" name="billet_number" class="block w-full rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-200 shadow-sm focus:border-primary-500 focus:ring-1 focus:ring-primary-500 text-sm py-2 px-3" />
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Soak (min)</label>
+        <input type="number" step="0.1" name="soak_time_min" class="block w-full rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-200 shadow-sm focus:border-primary-500 focus:ring-1 focus:ring-primary-500 text-sm py-2 px-3" />
+      </div>
+      <div class="flex items-end">
+        <button type="submit" class="w-full px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-lg shadow-sm">Capture</button>
+      </div>
+    </form>
+  </div>
+
+  <!-- History -->
+  <div class="bg-white dark:bg-slate-800 rounded-lg shadow overflow-hidden">
+    <div class="px-6 py-4 border-b border-slate-200 dark:border-slate-700">
+      <h2 class="text-lg font-semibold text-slate-900 dark:text-slate-50">Recent Runs</h2>
+    </div>
+    <div class="overflow-x-auto">
+      <table class="w-full text-sm text-left">
+        <thead class="bg-slate-50 dark:bg-slate-700/50 text-slate-600 dark:text-slate-400 uppercase tracking-wider text-xs font-semibold border-b border-slate-200 dark:border-slate-700">
+          <tr>
+            <th class="px-6 py-3">Run ID</th>
+            <th class="px-6 py-3">Alloy</th>
+            <th class="px-6 py-3">Target (°C)</th>
+            <th class="px-6 py-3">Actual (°C)</th>
+            <th class="px-6 py-3">Soak (min)</th>
+            <th class="px-6 py-3">Status</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-100 dark:divide-slate-700">
+          {% for run in runs or [] %}
+          <tr class="hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
+            <td class="px-6 py-3 font-medium text-slate-900 dark:text-slate-50 font-mono">{{ run.run_id }}</td>
+            <td class="px-6 py-3 text-slate-600 dark:text-slate-400">{{ run.alloy }}</td>
+            <td class="px-6 py-3 text-slate-600 dark:text-slate-400">{{ run.target_temp }}</td>
+            <td class="px-6 py-3 text-slate-600 dark:text-slate-400">{{ run.actual_temp or '-' }}</td>
+            <td class="px-6 py-3 text-slate-600 dark:text-slate-400">{{ run.soak_time_min or '-' }}</td>
+            <td class="px-6 py-3">
+              <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium
+                {% if run.status == 'COMPLETED' %}bg-emerald-100 dark:bg-emerald-900/30 text-emerald-800 dark:text-emerald-300
+                {% elif run.status == 'IN_PROGRESS' %}bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300
+                {% else %}bg-slate-100 dark:bg-slate-700 text-slate-800 dark:text-slate-200{% endif %}">
+                {{ run.status }}
+              </span>
+            </td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="6" class="px-6 py-8 text-center text-slate-500 dark:text-slate-400"><p class="text-sm">No HLS runs recorded.</p></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,130 @@
+{% extends "layout.html" %}
+{% block title %}Admin Dashboard{% endblock %}
+
+{% block content %}
+<div class="kpi-hero mb-6">
+  <div class="kpi-card">
+    <div class="kpi-label">Active Users</div>
+    <div class="kpi-value">{{ user_count or 0 }}</div>
+  </div>
+  <div class="kpi-card">
+    <div class="kpi-label">Plants Configured</div>
+    <div class="kpi-value">{{ plant_count or 0 }}</div>
+  </div>
+  <div class="kpi-card">
+    <div class="kpi-label">Alert Rules Active</div>
+    <div class="kpi-value">{{ alert_rules_active if alert_rules_active is defined else '—' }}</div>
+  </div>
+</div>
+
+<div>
+<!-- Header -->
+<div class="mb-8">
+  <h1 class="text-2xl font-bold text-slate-900">Admin & Integration</h1>
+  <p class="text-sm text-slate-500 mt-1">System configuration, user management, and audit oversight.</p>
+</div>
+
+<!-- Stats Grid -->
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+  <div class="bg-white rounded-xl border border-slate-200 p-6 shadow-sm hover:shadow-md transition-shadow">
+    <div class="flex items-center gap-4">
+      <div class="p-3 rounded-lg bg-blue-50 text-blue-600">
+        <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+        </svg>
+      </div>
+      <div>
+        <div class="text-2xl font-bold text-slate-900">{{ plant_count }}</div>
+        <div class="text-sm font-medium text-slate-500 uppercase tracking-wide">Plants</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="bg-white rounded-xl border border-slate-200 p-6 shadow-sm hover:shadow-md transition-shadow">
+    <div class="flex items-center gap-4">
+      <div class="p-3 rounded-lg bg-indigo-50 text-indigo-600">
+        <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+        </svg>
+      </div>
+      <div>
+        <div class="text-2xl font-bold text-slate-900">{{ user_count }}</div>
+        <div class="text-sm font-medium text-slate-500 uppercase tracking-wide">Users</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="bg-white rounded-xl border border-slate-200 p-6 shadow-sm hover:shadow-md transition-shadow">
+    <div class="flex items-center gap-4">
+      <div class="p-3 rounded-lg bg-amber-50 text-amber-600">
+        <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+        </svg>
+      </div>
+      <div>
+        <div class="text-2xl font-bold text-slate-900">{{ role_count }}</div>
+        <div class="text-sm font-medium text-slate-500 uppercase tracking-wide">Roles</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="bg-white rounded-xl border border-slate-200 p-6 shadow-sm hover:shadow-md transition-shadow">
+    <div class="flex items-center gap-4">
+      <div class="p-3 rounded-lg bg-emerald-50 text-emerald-600">
+        <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+        </svg>
+      </div>
+      <div>
+        <div class="text-2xl font-bold text-slate-900">{{ recent_audit|length }}</div>
+        <div class="text-sm font-medium text-slate-500 uppercase tracking-wide">Recent Events</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Recent Audit Log Table -->
+<div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+  <div class="px-6 py-4 border-b border-slate-200 bg-slate-50/50 flex items-center justify-between">
+    <h2 class="text-lg font-semibold text-slate-900">Recent Audit Log</h2>
+    <a href="{{ url_for('admin.audit_log') }}" class="text-sm font-medium text-primary-600 hover:text-primary-700 transition-colors">View All &rarr;</a>
+  </div>
+  <div class="overflow-x-auto">
+    <table class="w-full text-left text-sm">
+      <thead class="bg-slate-50 text-slate-600 uppercase tracking-wider text-xs font-semibold border-b border-slate-200">
+        <tr>
+          <th class="px-6 py-3">Time</th>
+          <th class="px-6 py-3">User</th>
+          <th class="px-6 py-3">Plant</th>
+          <th class="px-6 py-3">Table</th>
+          <th class="px-6 py-3">Action</th>
+          <th class="px-6 py-3">Record ID</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-slate-100">
+        {% for e in recent_audit %}
+        <tr class="hover:bg-slate-50 transition-colors">
+          <td class="px-6 py-4 text-slate-500 text-xs font-mono">{{ e.created_at.strftime('%Y-%m-%d %H:%M') if e.created_at else '-' }}</td>
+          <td class="px-6 py-4 font-medium text-slate-900 text-xs">{{ e.user_id or '-' }}</td>
+          <td class="px-6 py-4 text-slate-600 text-xs">{{ e.plant_id or '-' }}</td>
+          <td class="px-6 py-4 text-slate-700 text-xs font-mono">{{ e.table_name }}</td>
+          <td class="px-6 py-4">
+            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+              {% if e.action == 'DELETE' %}bg-red-100 text-red-800
+              {% elif e.action == 'UPDATE' %}bg-amber-100 text-amber-800
+              {% else %}bg-blue-100 text-blue-800{% endif %}">
+              {{ e.action }}
+            </span>
+          </td>
+          <td class="px-6 py-4 text-slate-600 text-xs font-mono">{{ e.record_id }}</td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="6" class="px-6 py-8 text-center text-slate-500 text-sm">No recent audit events.</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+</div>{% endblock %}

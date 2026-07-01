@@ -1,0 +1,124 @@
+{% extends 'layout.html' %}
+{% block title %}Routing Management – FactoryNXT{% endblock %}
+{% block content %}
+<div class="space-y-6">
+  <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+    <div>
+      <nav class="flex text-sm text-slate-500 mb-1">
+        <span>Master Data</span>
+        <span class="mx-2 text-slate-400">&rsaquo;</span>
+        <span class="text-slate-900 font-medium">Routing Management</span>
+      </nav>
+      <h1 class="text-2xl font-bold text-slate-900 flex items-center gap-2">
+        <svg class="w-6 h-6 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"></path></svg>
+        Routing Management
+      </h1>
+    </div>
+    <a href="{{ url_for('routing_builder.create_routing') }}" class="inline-flex items-center px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-lg shadow-sm transition-colors">
+      <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+      New Routing
+    </a>
+  </div>
+
+  <!-- Filter Bar -->
+  <form method="get" class="bg-white rounded-xl border border-slate-200 shadow-sm p-4 flex flex-col sm:flex-row gap-3">
+    <div class="flex-1">
+      <input type="text" name="q" value="{{ search }}" placeholder="Search code, name or part number…" class="block w-full rounded-lg border-slate-300 shadow-sm focus:border-primary-500 focus:ring-1 focus:ring-primary-500 text-sm py-2 px-3" />
+    </div>
+    <div class="relative sm:w-48">
+      <select name="status" class="block w-full rounded-lg border-slate-300 shadow-sm focus:border-primary-500 focus:ring-1 focus:ring-primary-500 text-sm py-2 px-3 appearance-none bg-white">
+        <option value="" {% if not status_filter %}selected{% endif %}>All Status</option>
+        <option value="DRAFT" {% if status_filter == 'DRAFT' %}selected{% endif %}>Draft</option>
+        <option value="RELEASED" {% if status_filter == 'RELEASED' %}selected{% endif %}>Released</option>
+        <option value="OBSOLETE" {% if status_filter == 'OBSOLETE' %}selected{% endif %}>Obsolete</option>
+      </select>
+      <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-slate-500">
+        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+      </div>
+    </div>
+    <div class="flex gap-2">
+      <button type="submit" class="inline-flex items-center px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-lg shadow-sm transition-colors">
+        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+        Search
+      </button>
+      <a href="{{ url_for('routing_builder.manage_routings') }}" class="inline-flex items-center px-4 py-2 bg-white hover:bg-slate-50 text-slate-700 text-sm font-medium rounded-lg border border-slate-300 shadow-sm transition-colors">
+        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+        Clear
+      </a>
+    </div>
+  </form>
+
+  <!-- Table -->
+  <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+    <div class="overflow-x-auto">
+      <table class="w-full text-left text-sm">
+        <thead class="bg-slate-50 text-slate-600 uppercase tracking-wider text-xs font-semibold border-b border-slate-200">
+          <tr>
+            <th class="px-4 py-3">Routing Code</th>
+            <th class="px-4 py-3">Rev</th>
+            <th class="px-4 py-3">Routing Name</th>
+            <th class="px-4 py-3">Part Number</th>
+            <th class="px-4 py-3">Status</th>
+            <th class="px-4 py-3">Created</th>
+            <th class="px-4 py-3">Actions</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-100">
+          {% for r in routings %}
+          <tr class="hover:bg-slate-50 transition-colors">
+            <td class="px-4 py-3 font-semibold text-slate-900">{{ r.routing_code }}</td>
+            <td class="px-4 py-3 font-mono text-slate-600 font-semibold">{{ r.revision }}</td>
+            <td class="px-4 py-3 text-slate-700">{{ r.routing_name }}</td>
+            <td class="px-4 py-3 text-slate-700">{{ r.product_id or '—' }}</td>
+            <td class="px-4 py-3">
+              <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide
+                {% if r.status == 'RELEASED' %}bg-emerald-100 text-emerald-800
+                {% elif r.status == 'DRAFT' %}bg-sky-100 text-sky-800
+                {% else %}bg-slate-100 text-slate-600{% endif %}">
+                {{ r.status }}
+              </span>
+            </td>
+            <td class="px-4 py-3 text-slate-500 text-xs whitespace-nowrap">{{ r.created_at.strftime('%d %b %Y') if r.created_at else '—' }}</td>
+            <td class="px-4 py-3">
+              <div class="flex flex-wrap gap-1.5">
+                <a href="{{ url_for('routing_builder.designer', routing_id=r.id) }}" class="inline-flex items-center px-2.5 py-1 bg-primary-600 hover:bg-primary-700 text-white text-[11px] font-semibold rounded-md shadow-sm transition-colors">&#9998; Design</a>
+                <a href="{{ url_for('routing_builder.routing_history', routing_id=r.id) }}" class="inline-flex items-center px-2.5 py-1 bg-white hover:bg-slate-50 text-slate-700 text-[11px] font-semibold rounded-md border border-slate-300 shadow-sm transition-colors">&#128336; History</a>
+                <a href="{{ url_for('routing_builder.assign_routing', routing_id=r.id) }}" class="inline-flex items-center px-2.5 py-1 bg-white hover:bg-slate-50 text-slate-700 text-[11px] font-semibold rounded-md border border-slate-300 shadow-sm transition-colors">&#128279; Assign</a>
+                <form method="post" action="{{ url_for('routing_builder.clone_routing', routing_id=r.id) }}">
+                  <button type="submit" class="inline-flex items-center px-2.5 py-1 bg-amber-500 hover:bg-amber-600 text-white text-[11px] font-semibold rounded-md shadow-sm transition-colors" title="Clone to next revision">&#128203; Clone</button>
+                </form>
+                {% if r.status == 'DRAFT' %}
+                <form method="post" action="{{ url_for('routing_builder.change_status', routing_id=r.id) }}">
+                  <input type="hidden" name="status" value="RELEASED">
+                  <button type="submit" class="inline-flex items-center px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-semibold rounded-md shadow-sm transition-colors">&#9989; Release</button>
+                </form>
+                {% elif r.status == 'RELEASED' %}
+                <form method="post" action="{{ url_for('routing_builder.change_status', routing_id=r.id) }}">
+                  <input type="hidden" name="status" value="OBSOLETE">
+                  <button type="submit" class="inline-flex items-center px-2.5 py-1 bg-white hover:bg-slate-50 text-slate-700 text-[11px] font-semibold rounded-md border border-slate-300 shadow-sm transition-colors" onclick="return confirm('Mark this routing as OBSOLETE?')">&#128683; Obsolete</button>
+                </form>
+                {% endif %}
+              </div>
+            </td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="7">
+              <div class="text-center py-12">
+                <svg class="w-12 h-12 text-slate-300 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"></path></svg>
+                <p class="text-sm font-medium text-slate-900">No routings found</p>
+                <p class="text-xs text-slate-500 mt-1 mb-4">Create your first routing to get started.</p>
+                <a href="{{ url_for('routing_builder.create_routing') }}" class="inline-flex items-center px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-lg shadow-sm transition-colors">
+                  <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                  New Routing
+                </a>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

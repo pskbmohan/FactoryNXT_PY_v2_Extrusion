@@ -1,0 +1,40 @@
+{% extends "layout.html" %}
+{% block title %}Quality Dashboard{% endblock %}
+{% block content %}
+<div class="mb-6">
+  <h2 class="text-2xl font-bold text-slate-900">Quality & Compliance Dashboard</h2>
+  <p class="text-sm text-slate-500">Overview of system quality metrics and open actions.</p>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+  <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
+    <div class="text-sm font-medium text-slate-500 uppercase tracking-wider">Total Defects</div>
+    <div class="mt-2 text-3xl font-bold text-slate-900">{{ total_defects }}</div>
+  </div>
+  <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
+    <div class="text-sm font-medium text-slate-500 uppercase tracking-wider">Open CAPAs</div>
+    <div class="mt-2 text-3xl font-bold text-red-600">{{ open_capas }}</div>
+  </div>
+  <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
+    <div class="text-sm font-medium text-slate-500 uppercase tracking-wider">Active Golden Boards</div>
+    <div class="mt-2 text-3xl font-bold text-green-600">{{ active_golden }}</div>
+  </div>
+  <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
+    <div class="text-sm font-medium text-slate-500 uppercase tracking-wider">Open PPAP Records</div>
+    <div class="mt-2 text-3xl font-bold text-yellow-600">{{ open_ppap }}</div>
+  </div>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+  <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
+    <h4 class="text-md font-semibold text-slate-900 mb-4">Defects</h4>
+    <a class="inline-flex items-center px-3 py-1.5 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-md shadow-sm" href="{{ url_for('quality.defects') }}">View Defects</a>
+  </div>
+  <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
+    <h4 class="text-md font-semibold text-slate-900 mb-4">CAPA</h4>
+    <a class="inline-flex items-center px-3 py-1.5 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-md shadow-sm" href="{{ url_for('quality.capas') }}">View CAPAs</a>
+  </div>
+  <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
+    <h4 class="text-md font-semibold text-slate-900 mb-4">PPAP</h4>
+    <a class="inline-flex items-center px-3 py-1.5 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-md shadow-sm" href="{{ url_for('quality.ppap') }}">View PPAP Records</a>
+  </div>
+</div>
+{% endblock %}

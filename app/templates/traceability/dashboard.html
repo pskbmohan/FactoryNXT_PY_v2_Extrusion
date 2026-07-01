@@ -1,0 +1,150 @@
+{% extends "layout.html" %}
+{% block title %}Extrusion Traceability Dashboard{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+  <div class="flex items-center justify-between">
+    <div>
+      <h1 class="text-2xl font-bold text-slate-900 dark:text-slate-50">Extrusion Traceability</h1>
+      <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Track material flow and process events across the production line</p>
+    </div>
+  </div>
+
+  <!-- KPI Cards -->
+  <div class="grid grid-cols-2 md:grid-cols-6 gap-4">
+    <div class="bg-white dark:bg-slate-800 rounded-lg shadow p-4">
+      <div class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Total Records</div>
+      <div class="text-3xl font-bold text-slate-900 dark:text-slate-50 mt-2">{{ total_traces or 0 }}</div>
+    </div>
+    <div class="bg-white dark:bg-slate-800 rounded-lg shadow p-4">
+      <div class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Orders</div>
+      <div class="text-3xl font-bold text-blue-600 dark:text-blue-400 mt-2">{{ entity_counts.get('ORDER', 0) if entity_counts is defined else 0 }}</div>
+    </div>
+    <div class="bg-white dark:bg-slate-800 rounded-lg shadow p-4">
+      <div class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Process Runs</div>
+      <div class="text-3xl font-bold text-purple-600 dark:text-purple-400 mt-2">{{ entity_counts.get('PROCESS_RUN', 0) if entity_counts is defined else 0 }}</div>
+    </div>
+    <div class="bg-white dark:bg-slate-800 rounded-lg shadow p-4">
+      <div class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Billets</div>
+      <div class="text-3xl font-bold text-green-600 dark:text-green-400 mt-2">{{ entity_counts.get('BILLET', 0) if entity_counts is defined else 0 }}</div>
+    </div>
+    <div class="bg-white dark:bg-slate-800 rounded-lg shadow p-4">
+      <div class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Dies</div>
+      <div class="text-3xl font-bold text-amber-600 dark:text-amber-400 mt-2">{{ entity_counts.get('DIE', 0) if entity_counts is defined else 0 }}</div>
+    </div>
+    <div class="bg-white dark:bg-slate-800 rounded-lg shadow p-4">
+      <div class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Recent Inspections</div>
+      <div class="text-3xl font-bold text-emerald-600 dark:text-emerald-400 mt-2">{{ recent_inspections|length }}</div>
+    </div>
+  </div>
+
+  <div>
+    <!-- Filter Card -->
+    <form method="get" class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-4 mb-6 shadow-sm">
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+        <div class="md:col-span-1">
+          <label for="entity_type" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Entity Type</label>
+          <select name="entity_type" id="entity_type" class="block w-full rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-200 shadow-sm focus:border-primary-500 focus:ring-1 focus:ring-primary-500 text-sm py-2 px-3">
+            <option value="">All Types</option>
+            {% for et in ['ORDER', 'PROCESS_RUN', 'BILLET', 'DIE', 'WORK_ORDER'] %}
+            <option value="{{ et }}" {% if selected_entity_type == et %}selected{% endif %}>{{ et }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="md:col-span-1">
+          <label for="event_type" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Event Type</label>
+          <input type="text" name="event_type" id="event_type" value="{{ selected_event_type or '' }}" placeholder="e.g., INSPECTION"
+                 class="block w-full rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-200 shadow-sm focus:border-primary-500 focus:ring-1 focus:ring-primary-500 text-sm py-2 px-3" />
+        </div>
+        <div class="md:col-span-2 flex gap-2">
+          <button type="submit" class="flex-1 inline-flex items-center justify-center px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-lg shadow-sm">
+            <svg class="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+            Filter
+          </button>
+          <a href="{{ url_for('traceability.traceability_dashboard') }}" class="inline-flex items-center justify-center px-4 py-2 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 text-sm font-medium rounded-lg shadow-sm hover:bg-slate-50 dark:hover:bg-slate-600">
+            Clear
+          </a>
+        </div>
+      </div>
+    </form>
+
+    <!-- Records Table -->
+    <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
+      <div class="overflow-x-auto">
+        <table class="w-full text-left text-sm">
+          <thead class="bg-slate-50 dark:bg-slate-700/50 text-slate-600 dark:text-slate-400 uppercase tracking-wider text-xs font-semibold border-b border-slate-200 dark:border-slate-700">
+            <tr>
+              <th class="px-6 py-3">Timestamp</th>
+              <th class="px-6 py-3">Entity</th>
+              <th class="px-6 py-3">Event</th>
+              <th class="px-6 py-3">Operator</th>
+              <th class="px-6 py-3">Machine</th>
+              <th class="px-6 py-3">Result</th>
+              <th class="px-6 py-3"></th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100 dark:divide-slate-700">
+            {% for rec in records %}
+            <tr class="hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
+              <td class="px-6 py-4 text-slate-500 dark:text-slate-400 text-xs font-mono">{{ rec.occurred_at.strftime('%Y-%m-%d %H:%M') if rec.occurred_at else '-' }}</td>
+              <td class="px-6 py-4">
+                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium
+                  {% if rec.entity_type == 'ORDER' %}bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300
+                  {% elif rec.entity_type == 'DIE' %}bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-300
+                  {% elif rec.entity_type == 'BILLET' %}bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300
+                  {% elif rec.entity_type == 'PROCESS_RUN' %}bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-300
+                  {% elif rec.entity_type == 'WORK_ORDER' %}bg-teal-100 dark:bg-teal-900/30 text-teal-800 dark:text-teal-300
+                  {% else %}bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300{% endif %}">
+                  {{ rec.entity_type or '-' }}
+                </span>
+                <span class="text-xs text-slate-600 dark:text-slate-400 ml-2 font-mono">{{ rec.entity_id[:8] if rec.entity_id else '-' }}</span>
+              </td>
+              <td class="px-6 py-4 text-slate-700 dark:text-slate-300">{{ rec.event_type or '-' }}</td>
+              <td class="px-6 py-4 text-slate-600 dark:text-slate-400 text-xs">{{ rec.operator_id or '-' }}</td>
+              <td class="px-6 py-4 font-mono text-xs text-slate-600 dark:text-slate-400">{{ rec.machine_id or '-' }}</td>
+              <td class="px-6 py-4">
+                {% set result_val = rec.data.get('status', '') if rec.data is mapping else '' %}
+                {% if result_val %}
+                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium
+                  {% if 'PASS' in result_val or 'OK' in result_val or 'COMPLETE' in result_val %}bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300
+                  {% elif 'FAIL' in result_val or 'REJECT' in result_val %}bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300
+                  {% else %}bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300{% endif %}">
+                  {{ result_val }}
+                </span>
+                {% else %}
+                <span class="text-slate-400 dark:text-slate-500 text-xs">-</span>
+                {% endif %}
+              </td>
+              <td class="px-6 py-4 text-right">
+                {% if rec.data %}
+                <button onclick="document.getElementById('data-{{ rec.id }}').classList.toggle('hidden')" class="text-primary-600 dark:text-primary-400 hover:text-primary-700 text-xs font-medium">Details</button>
+                {% endif %}
+              </td>
+            </tr>
+            {% if rec.data %}
+            <tr id="data-{{ rec.id }}" class="hidden bg-slate-50 dark:bg-slate-700/30">
+              <td colspan="7" class="px-6 py-4">
+                <pre class="text-xs text-slate-700 dark:text-slate-300 whitespace-pre-wrap">{{ rec.data }}</pre>
+              </td>
+            </tr>
+            {% endif %}
+            {% else %}
+            <tr>
+              <td colspan="7" class="px-6 py-12 text-center">
+                <svg class="mx-auto h-12 w-12 text-slate-400 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+                <p class="text-sm font-medium text-slate-900 dark:text-slate-100">No traceability records found.</p>
+                <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Try adjusting your filters.</p>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

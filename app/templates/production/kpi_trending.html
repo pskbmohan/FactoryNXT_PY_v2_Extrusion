@@ -1,0 +1,59 @@
+{% extends "layout.html" %}
+{% block title %}KPI Trending{% endblock %}
+{% block content %}
+<div class="mb-6">
+  <h2 class="text-2xl font-bold text-slate-900">KPI Trending</h2>
+  <p class="text-sm text-slate-500">Track performance over time.</p>
+</div>
+<form class="mb-6 max-w-xs" method="get">
+  <div>
+    <label class="block text-sm font-medium text-slate-700 mb-1">Metric</label>
+    <div class="relative">
+      <select name="metric" onchange="this.form.submit()" class="appearance-none block w-full rounded-lg border-slate-300 shadow-sm focus:border-primary-500 focus:ring-1 focus:ring-primary-500 text-sm py-2 px-3 pr-10">
+        {% for m in ['oee','fpy','throughput','scrap_rate','downtime'] %}
+        <option value="{{ m }}" {% if metric==m %}selected{% endif %}>{{ m|upper }}</option>
+        {% endfor %}
+      </select>
+      <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-slate-500">
+        <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+      </div>
+    </div>
+  </div>
+</form>
+<div class="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
+  <p class="text-sm text-blue-800">Showing last 90 records for <strong>{{ metric|upper }}</strong>. Integrate Chart.js or Plotly for trend charts.</p>
+</div>
+<div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-x-auto">
+  <table class="w-full text-left text-sm">
+    <thead class="bg-slate-50 text-slate-600 uppercase tracking-wider text-xs font-semibold border-b border-slate-200">
+      <tr>
+        <th class="py-3 px-4">Metric</th>
+        <th class="py-3 px-4">Value</th>
+        <th class="py-3 px-4">Unit</th>
+        <th class="py-3 px-4">Line</th>
+        <th class="py-3 px-4">Recorded At</th>
+      </tr>
+    </thead>
+    <tbody class="divide-y divide-slate-100">
+      {% for r in records %}
+      <tr>
+        <td class="py-3 px-4 font-medium">{{ r.metric_name }}</td>
+        <td class="py-3 px-4">{{ r.value }}</td>
+        <td class="py-3 px-4 text-slate-600">{{ r.unit or '-' }}</td>
+        <td class="py-3 px-4 text-slate-600">{{ r.line or '-' }}</td>
+        <td class="py-3 px-4 text-slate-600 text-xs">{{ r.recorded_at.strftime('%Y-%m-%d %H:%M') }}</td>
+      </tr>
+      {% else %}
+      <tr>
+        <td colspan="5" class="py-8 text-center">
+          <div class="flex flex-col items-center">
+            <svg class="h-10 w-10 text-slate-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
+            <p class="text-sm font-medium text-slate-900">No KPI data.</p>
+          </div>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

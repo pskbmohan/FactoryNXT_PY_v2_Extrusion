@@ -1,0 +1,108 @@
+{% extends 'layout.html' %}
+{% block title %}New Inspection Plan{% endblock %}
+{% block content %}
+<div class="mb-6">
+  <h1 class="text-2xl font-bold text-slate-900 dark:text-slate-50">New Inspection Plan</h1>
+  <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">
+    Define AQL sampling for an extrusion-domain inspection target (die, billet, profile, bundle, process stage, or machine setup).
+  </p>
+</div>
+<form method="post" class="max-w-3xl">
+  <div class="bg-white dark:bg-slate-800 rounded-lg shadow overflow-hidden">
+    <div class="px-6 py-4 border-b border-slate-200 dark:border-slate-700">
+      <h2 class="text-sm font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Inspection Target</h2>
+    </div>
+    <div class="p-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div>
+        <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Target Type <span class="text-red-500">*</span></label>
+        <select name="target_type" id="target_type" required class="block w-full rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-200 shadow-sm focus:border-primary-500 focus:ring-1 focus:ring-primary-500 text-sm py-2 px-3">
+          <option value="">-- Choose what's being inspected --</option>
+          <option value="DIE">Die</option>
+          <option value="BILLET">Billet</option>
+          <option value="PROFILE">Extruded Profile</option>
+          <option value="BUNDLE">Bundle / Pack</option>
+          <option value="PROCESS_STAGE">Process Stage (HLS / Pressing / Quenching …)</option>
+          <option value="MACHINE_SETUP">Machine Setup</option>
+        </select>
+        <p class="text-xs text-slate-500 mt-1">What is this plan inspecting?</p>
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Target Code <span class="text-red-500">*</span></label>
+        <input type="text" name="target_code" id="target_code" required list="target_code_suggestions"
+               placeholder="e.g. D-2024-0123 or PROF-6063-T5"
+               class="block w-full rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-200 shadow-sm focus:border-primary-500 focus:ring-1 focus:ring-primary-500 text-sm py-2 px-3" />
+        <datalist id="target_code_suggestions">
+          {% for d in dies %}<option value="{{ d.die_code }}">Die — {{ d.profile_code or 'no profile' }}</option>{% endfor %}
+          {% for b in billets %}<option value="{{ b.billet_code }}">Billet — {{ b.alloy or '-' }}</option>{% endfor %}
+          {% for p in profile_codes %}<option value="{{ p }}">Profile shape</option>{% endfor %}
+        </datalist>
+        <p class="text-xs text-slate-500 mt-1">Die code / billet code / profile code / bundle id / process stage / machine id.</p>
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Operation Step</label>
+        <select name="operation_step" class="block w-full rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-200 shadow-sm focus:border-primary-500 focus:ring-1 focus:ring-primary-500 text-sm py-2 px-3">
+          <option value="">-- General (applies across steps) --</option>
+          <optgroup label="Tool shop">
+            <option>INWARD</option>
+            <option>DIE_INSPECTION</option>
+            <option>DIE_TEST</option>
+            <option>NITRIDING</option>
+          </optgroup>
+          <optgroup label="Process line">
+            <option>HLS</option>
+            <option>PRESSING</option>
+            <option>QUENCHING</option>
+            <option>PULLING</option>
+            <option>STRETCHING</option>
+            <option>FINAL_CUT</option>
+            <option>DIE_OVEN</option>
+          </optgroup>
+          <optgroup label="End-of-line">
+            <option>FINAL_INSPECTION</option>
+            <option>PACKING</option>
+            <option>DISPATCH</option>
+          </optgroup>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <div class="bg-white dark:bg-slate-800 rounded-lg shadow overflow-hidden mt-4">
+    <div class="px-6 py-4 border-b border-slate-200 dark:border-slate-700">
+      <h2 class="text-sm font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">AQL Sampling</h2>
+    </div>
+    <div class="p-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div>
+        <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">AQL Level</label>
+        <select name="aql_level" class="block w-full rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-200 shadow-sm focus:border-primary-500 focus:ring-1 focus:ring-primary-500 text-sm py-2 px-3">
+          <option>0.65</option>
+          <option>1.0</option>
+          <option selected>2.5</option>
+          <option>4.0</option>
+          <option>6.5</option>
+        </select>
+        <p class="text-xs text-slate-500 mt-1">ISO 2859-1 inspection level.</p>
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Sample Size</label>
+        <input type="number" name="sample_size" value="80" min="1" class="block w-full rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-200 shadow-sm focus:border-primary-500 focus:ring-1 focus:ring-primary-500 text-sm py-2 px-3" />
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Accept Limit</label>
+        <input type="number" name="accept_limit" value="2" min="0" class="block w-full rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-200 shadow-sm focus:border-primary-500 focus:ring-1 focus:ring-primary-500 text-sm py-2 px-3" />
+        <p class="text-xs text-slate-500 mt-1">Max nonconforming units to accept.</p>
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Reject Limit</label>
+        <input type="number" name="reject_limit" value="3" min="1" class="block w-full rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-200 shadow-sm focus:border-primary-500 focus:ring-1 focus:ring-primary-500 text-sm py-2 px-3" />
+        <p class="text-xs text-slate-500 mt-1">Min nonconforming units to reject the lot.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="flex gap-3 mt-6">
+    <button type="submit" class="inline-flex items-center px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-lg shadow-sm">Save Plan</button>
+    <a href="{{ url_for('quality_ext.inspection_plans') }}" class="inline-flex items-center px-4 py-2 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 text-sm font-medium rounded-lg shadow-sm">Cancel</a>
+  </div>
+</form>
+{% endblock %}

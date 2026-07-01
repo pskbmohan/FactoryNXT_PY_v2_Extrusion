@@ -1,0 +1,85 @@
+{% extends "layout.html" %}
+{% block title %}Station Management{% endblock %}
+
+{% block content %}
+<!-- Header -->
+<div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
+  <div>
+    <h1 class="text-2xl font-bold text-slate-900">Station Management</h1>
+    <p class="text-sm text-slate-500 mt-1">Configure and manage workstations used in production routing.</p>
+  </div>
+  <div class="flex gap-3 mt-4 sm:mt-0">
+    <a href="{{ url_for('stations.summary') }}"
+       class="inline-flex items-center justify-center px-4 py-2 bg-white border border-slate-300 text-slate-700 text-sm font-medium rounded-lg shadow-sm hover:bg-slate-50 transition-colors">
+      <svg class="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+      </svg>
+      Operational Dashboard
+    </a>
+    <a href="{{ url_for('stations.create') }}"
+       class="inline-flex items-center justify-center px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-lg shadow-sm transition-colors">
+      <svg class="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+      </svg>
+      Create Station
+    </a>
+  </div>
+</div>
+
+<!-- Data Table -->
+<div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+  <div class="overflow-x-auto">
+    <table class="w-full text-left text-sm">
+      <thead class="bg-slate-50 text-slate-600 uppercase tracking-wider text-xs font-semibold border-b border-slate-200">
+        <tr>
+          <th class="px-6 py-3">Code</th>
+          <th class="px-6 py-3">Station Name</th>
+          <th class="px-6 py-3">Description</th>
+          <th class="px-6 py-3 text-center">Status</th>
+          <th class="px-6 py-3 text-right">Actions</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-slate-100">
+        {% for station in stations %}
+        <tr class="hover:bg-slate-50 transition-colors">
+          <td class="px-6 py-4 font-mono text-xs font-semibold text-primary-600">{{ station.code }}</td>
+          <td class="px-6 py-4 font-medium text-slate-900">{{ station.name }}</td>
+          <td class="px-6 py-4 text-slate-600 text-sm truncate max-w-xs" title="{{ station.description }}">{{ station.description or '-' }}</td>
+          <td class="px-6 py-4 text-center">
+            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+              {% if station.is_active %}bg-green-100 text-green-800
+              {% else %}bg-slate-100 text-slate-600{% endif %}">
+              {{ 'Active' if station.is_active else 'Inactive' }}
+            </span>
+          </td>
+          <td class="px-6 py-4 text-right">
+            <div class="flex items-center justify-end gap-2">
+              <a href="{{ url_for('stations.edit', station_id=station.id) }}"
+                 class="inline-flex items-center px-3 py-1.5 bg-white border border-slate-300 text-slate-700 text-xs font-medium rounded-md shadow-sm hover:bg-slate-50 transition-colors">
+                Edit
+              </a>
+              <form method="post" action="{{ url_for('stations.delete', station_id=station.id) }}" class="inline" onsubmit="return confirm('Are you sure you want to delete this station? This cannot be undone if it has historical data.');">
+                <button type="submit"
+                        class="inline-flex items-center px-3 py-1.5 bg-white border border-red-300 text-red-700 text-xs font-medium rounded-md shadow-sm hover:bg-red-50 transition-colors">
+                  Delete
+                </button>
+              </form>
+            </div>
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="5" class="px-6 py-12 text-center">
+            <svg class="mx-auto h-12 w-12 text-slate-400 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+            </svg>
+            <p class="text-sm font-medium text-slate-900">No stations configured.</p>
+            <p class="text-xs text-slate-500 mt-1">Click "Create Station" to add your first workstation.</p>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,80 @@
+{% extends "layout.html" %}
+{% block title %}Cutting{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+  <div class="flex items-center justify-between">
+    <div>
+      <h1 class="text-2xl font-bold text-slate-900 dark:text-slate-50">Cutting (Flying Saw)</h1>
+      <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Auto-length cut and segregation</p>
+    </div>
+  </div>
+
+  <!-- Auto-length display -->
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+    <div class="bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800 rounded-lg shadow p-6">
+      <div class="text-xs font-semibold uppercase tracking-wider text-indigo-700 dark:text-indigo-400">Target Length</div>
+      <div class="text-4xl font-bold text-indigo-900 dark:text-indigo-100 mt-2">{{ target_length_m or '-' }} <span class="text-xl font-semibold text-indigo-600 dark:text-indigo-400">m</span></div>
+    </div>
+    <div class="bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-lg shadow p-6">
+      <div class="text-xs font-semibold uppercase tracking-wider text-emerald-700 dark:text-emerald-400">Cuts Completed</div>
+      <div class="text-4xl font-bold text-emerald-900 dark:text-emerald-100 mt-2">{{ cuts_count or 0 }}</div>
+    </div>
+    <div class="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg shadow p-6">
+      <div class="text-xs font-semibold uppercase tracking-wider text-amber-700 dark:text-amber-400">Segregated Ends</div>
+      <div class="text-4xl font-bold text-amber-900 dark:text-amber-100 mt-2">{{ segregated_count or 0 }}</div>
+      <div class="text-xs text-amber-600 dark:text-amber-300 mt-1">front-end, back-end, mid-profile</div>
+    </div>
+  </div>
+
+  <!-- Cut records -->
+  <div class="bg-white dark:bg-slate-800 rounded-lg shadow overflow-hidden">
+    <div class="px-6 py-4 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between">
+      <h2 class="text-lg font-semibold text-slate-900 dark:text-slate-50">Recent Cuts</h2>
+      <div class="flex gap-2">
+        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-emerald-100 dark:bg-emerald-900/30 text-emerald-800 dark:text-emerald-300">KEEP</span>
+        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300">SCRAP</span>
+      </div>
+    </div>
+    <div class="overflow-x-auto">
+      <table class="w-full text-sm text-left">
+        <thead class="bg-slate-50 dark:bg-slate-700/50 text-slate-600 dark:text-slate-400 uppercase tracking-wider text-xs font-semibold border-b border-slate-200 dark:border-slate-700">
+          <tr>
+            <th class="px-6 py-3">Cut #</th>
+            <th class="px-6 py-3">Run ID</th>
+            <th class="px-6 py-3">Length (m)</th>
+            <th class="px-6 py-3">Actual (m)</th>
+            <th class="px-6 py-3">Deviation (mm)</th>
+            <th class="px-6 py-3">Segregation</th>
+            <th class="px-6 py-3">At</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-100 dark:divide-slate-700">
+          {% for cut in cuts or [] %}
+          <tr class="hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
+            <td class="px-6 py-3 font-mono font-medium text-slate-900 dark:text-slate-50">{{ cut.cut_number }}</td>
+            <td class="px-6 py-3 text-slate-600 dark:text-slate-400 font-mono">{{ cut.run_id }}</td>
+            <td class="px-6 py-3 text-slate-600 dark:text-slate-400">{{ cut.target_length_m }}</td>
+            <td class="px-6 py-3 text-slate-600 dark:text-slate-400">{{ cut.actual_length_m }}</td>
+            <td class="px-6 py-3 {% if (cut.deviation_mm or 0)|abs > 2 %}text-red-600 dark:text-red-400 font-semibold{% else %}text-slate-600 dark:text-slate-400{% endif %}">{{ '%+.1f'|format(cut.deviation_mm or 0) }}</td>
+            <td class="px-6 py-3">
+              <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium
+                {% if cut.segregation == 'SCRAP' %}bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300
+                {% elif cut.segregation == 'SECONDARY' %}bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-300
+                {% else %}bg-emerald-100 dark:bg-emerald-900/30 text-emerald-800 dark:text-emerald-300{% endif %}">
+                {{ cut.segregation }}
+              </span>
+            </td>
+            <td class="px-6 py-3 text-slate-600 dark:text-slate-400">{{ cut.cut_at.strftime('%H:%M:%S') if cut.cut_at else '' }}</td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="7" class="px-6 py-8 text-center text-slate-500 dark:text-slate-400"><p class="text-sm">No cuts recorded.</p></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

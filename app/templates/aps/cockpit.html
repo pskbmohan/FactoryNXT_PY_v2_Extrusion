@@ -1,0 +1,269 @@
+{% extends "layout.html" %}
+{% block title %}APS · Planning Cockpit{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+
+  {# ── Header ─────────────────────────────────────────────────────────── #}
+  <div class="flex items-start justify-between flex-wrap gap-3">
+    <div>
+      <h1 class="text-2xl font-bold text-slate-900 dark:text-slate-50 flex items-center gap-2">
+        <svg class="w-7 h-7 text-primary-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2" />
+        </svg>
+        Advanced Planning System
+      </h1>
+      <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">
+        Finite-capacity production schedule · machine · die · billet · shift calendar
+        {% if version %}
+          <span class="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300">
+            Active: {{ version.name }}
+          </span>
+        {% endif %}
+      </p>
+    </div>
+    <div class="flex items-center gap-2 flex-wrap">
+      <a href="{{ url_for('planning.orders') }}"
+         class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-800 dark:text-slate-200 text-sm font-medium rounded-lg shadow-sm">
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg>
+        Customer Orders
+      </a>
+      <a href="{{ url_for('aps.scheduler') }}"
+         class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-lg shadow-sm">
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+        Open Scheduler
+      </a>
+      <button id="btn-auto-schedule"
+              class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-lg shadow-sm">
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+        Auto-Schedule
+      </button>
+      <button id="btn-replan"
+              class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white text-sm font-medium rounded-lg shadow-sm">
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+        Replan
+      </button>
+    </div>
+  </div>
+
+  {# ── KPI cards ──────────────────────────────────────────────────────── #}
+  <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+    <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-4">
+      <div class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">Entries Planned</div>
+      <div class="mt-1 text-2xl font-bold text-slate-900 dark:text-slate-50">{{ kpis.entries_total }}</div>
+      <div class="mt-1 text-xs text-slate-400 dark:text-slate-500">across all machines</div>
+    </div>
+    <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-4">
+      <div class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">Utilization</div>
+      <div class="mt-1 text-2xl font-bold text-slate-900 dark:text-slate-50">{{ kpis.utilization_pct }}%</div>
+      <div class="mt-1 text-xs text-slate-400 dark:text-slate-500">of capacity in horizon</div>
+    </div>
+    <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-4">
+      <div class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">Feasible</div>
+      <div class="mt-1 text-2xl font-bold text-emerald-600 dark:text-emerald-400">{{ kpis.feasible }}</div>
+      <div class="mt-1 text-xs text-slate-400 dark:text-slate-500">ready for release</div>
+    </div>
+    <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-4">
+      <div class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">Infeasible</div>
+      <div class="mt-1 text-2xl font-bold text-red-600 dark:text-red-400">{{ kpis.infeasible }}</div>
+      <div class="mt-1 text-xs text-slate-400 dark:text-slate-500">needs planner action</div>
+    </div>
+    <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-4">
+      <div class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">Due-Date at Risk</div>
+      <div class="mt-1 text-2xl font-bold text-amber-600 dark:text-amber-400">{{ kpis.due_at_risk }}</div>
+      <div class="mt-1 text-xs text-slate-400 dark:text-slate-500">scheduled after due</div>
+    </div>
+    <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-4">
+      <div class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">Unscheduled WOs</div>
+      <div class="mt-1 text-2xl font-bold text-slate-900 dark:text-slate-50">{{ unscheduled_count }}</div>
+      <div class="mt-1 text-xs text-slate-400 dark:text-slate-500">pending scheduling</div>
+    </div>
+  </div>
+
+  {# ── Main grid: shortages + machine load + alerts ───────────────────── #}
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+    {# Left column: shortages #}
+    <div class="lg:col-span-1 bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
+      <div class="px-5 py-3.5 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between">
+        <h2 class="text-sm font-semibold text-slate-900 dark:text-slate-50">Shortages &amp; Constraints</h2>
+        <span class="text-xs text-slate-500 dark:text-slate-400">{{ shortages.total }} items</span>
+      </div>
+      <div class="max-h-96 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-700">
+        {% set all_shortages = (shortages.die_shortages + shortages.billet_shortages + shortages.machine_issues + shortages.other) %}
+        {% if all_shortages %}
+          {% for c in all_shortages[:30] %}
+          <div class="px-5 py-3 flex items-start gap-3">
+            <span class="mt-0.5 shrink-0 w-2 h-2 rounded-full
+                  {% if c.severity == 'CRITICAL' %}bg-red-500
+                  {% elif c.severity == 'WARNING' %}bg-amber-500
+                  {% else %}bg-slate-400{% endif %}"></span>
+            <div class="flex-1 min-w-0">
+              <div class="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">{{ c.reason_code }}</div>
+              <div class="text-sm text-slate-800 dark:text-slate-200 mt-0.5">{{ c.message }}</div>
+            </div>
+          </div>
+          {% endfor %}
+        {% else %}
+          <div class="px-5 py-8 text-center">
+            <svg class="w-8 h-8 mx-auto text-emerald-500 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M5 13l4 4L19 7"/></svg>
+            <p class="text-sm text-slate-600 dark:text-slate-400">No constraint violations</p>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+
+    {# Middle column: per-machine load #}
+    <div class="lg:col-span-1 bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
+      <div class="px-5 py-3.5 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between">
+        <h2 class="text-sm font-semibold text-slate-900 dark:text-slate-50">Per-Machine Load (min)</h2>
+        <a href="{{ url_for('planning.availability') }}" class="text-xs text-primary-600 hover:underline">Machine status →</a>
+      </div>
+      <div class="max-h-96 overflow-y-auto">
+        {% if kpis.per_machine_stats %}
+          {% for s in kpis.per_machine_stats %}
+          <div class="px-5 py-2.5">
+            <div class="flex items-center justify-between text-sm">
+              <span class="text-slate-700 dark:text-slate-300 font-medium">{{ s.name }}</span>
+              <span class="text-slate-500 dark:text-slate-400 font-mono text-xs">{{ s.min }} min</span>
+            </div>
+            <div class="mt-1 h-2 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
+              <div class="h-full rounded-full
+                    {% if kpis.max_machine_load > 0 and s.min / kpis.max_machine_load > 0.9 %}bg-red-500
+                    {% elif kpis.max_machine_load > 0 and s.min / kpis.max_machine_load > 0.7 %}bg-amber-500
+                    {% else %}bg-emerald-500{% endif %}"
+                   style="width: {{ ((s.min / kpis.max_machine_load) * 100) if kpis.max_machine_load > 0 else 0 }}%"></div>
+            </div>
+          </div>
+          {% endfor %}
+        {% else %}
+          <div class="px-5 py-12 text-center text-sm text-slate-500 dark:text-slate-400">
+            No load data yet. Run auto-schedule.
+          </div>
+        {% endif %}
+      </div>
+    </div>
+
+    {# Right column: at-risk machines + recent events #}
+    <div class="lg:col-span-1 bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
+      <div class="px-5 py-3.5 border-b border-slate-200 dark:border-slate-700">
+        <h2 class="text-sm font-semibold text-slate-900 dark:text-slate-50">At-Risk Machines</h2>
+      </div>
+      <div class="p-5">
+        {% if at_risk_machines %}
+          <div class="flex flex-wrap gap-2 mb-4">
+            {% for m in at_risk_machines %}
+            <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300">
+              {{ m }}
+            </span>
+            {% endfor %}
+          </div>
+        {% else %}
+          <p class="text-xs text-slate-500 dark:text-slate-400 mb-4">No machines currently flagged.</p>
+        {% endif %}
+        <h3 class="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400 mb-2">Recent Constraint Events</h3>
+        <div class="space-y-2">
+          {% for log in recent_logs[:6] %}
+          <div class="flex items-start gap-2 text-xs text-slate-600 dark:text-slate-300">
+            <span class="mt-1 w-1.5 h-1.5 shrink-0 rounded-full
+                  {% if log.severity == 'CRITICAL' %}bg-red-500
+                  {% elif log.severity == 'WARNING' %}bg-amber-500
+                  {% else %}bg-slate-400{% endif %}"></span>
+            <div>
+              <span class="font-mono text-slate-400">{{ log.created_at.strftime('%Y-%m-%d %H:%M') if log.created_at else '' }}</span>
+              <span class="font-semibold text-slate-700 dark:text-slate-200 ml-1">{{ log.reason_code }}</span>
+            </div>
+          </div>
+          {% else %}
+          <p class="text-xs text-slate-500 dark:text-slate-400">No events yet.</p>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  {# ── Quick actions row ──────────────────────────────────────────────── #}
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+    <a href="{{ url_for('planning.stock') }}"
+       class="group bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-5 flex items-center justify-between hover:border-primary-400 dark:hover:border-primary-500 transition-colors">
+      <div>
+        <div class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400 mb-1">Stock Status</div>
+        <div class="text-lg font-semibold text-slate-900 dark:text-slate-50">Dies · Billets · Materials</div>
+        <div class="text-xs text-slate-500 dark:text-slate-400 mt-1">Check availability before scheduling</div>
+      </div>
+      <svg class="w-6 h-6 text-slate-400 group-hover:text-primary-500 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5l7 7-7 7"/></svg>
+    </a>
+    <a href="{{ url_for('planning.shortages') }}"
+       class="group bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-5 flex items-center justify-between hover:border-primary-400 dark:hover:border-primary-500 transition-colors">
+      <div>
+        <div class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400 mb-1">Legacy Shortages</div>
+        <div class="text-lg font-semibold text-slate-900 dark:text-slate-50">Projected Die / Billet Gaps</div>
+        <div class="text-xs text-slate-500 dark:text-slate-400 mt-1">Demand vs supply summary view</div>
+      </div>
+      <svg class="w-6 h-6 text-slate-400 group-hover:text-primary-500 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5l7 7-7 7"/></svg>
+    </a>
+    <a href="{{ url_for('planning.plan_vs_actual') }}"
+       class="group bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-5 flex items-center justify-between hover:border-primary-400 dark:hover:border-primary-500 transition-colors">
+      <div>
+        <div class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400 mb-1">Plan vs Actual</div>
+        <div class="text-lg font-semibold text-slate-900 dark:text-slate-50">Release &amp; Achievement</div>
+        <div class="text-xs text-slate-500 dark:text-slate-400 mt-1">Per-machine schedule variance</div>
+      </div>
+      <svg class="w-6 h-6 text-slate-400 group-hover:text-primary-500 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5l7 7-7 7"/></svg>
+    </a>
+  </div>
+
+</div>
+
+{# ── Scripts ──────────────────────────────────────────────────────────── #}
+<script>
+(function(){
+  function flash(msg, tone) {
+    tone = tone || "ok";
+    const el = document.createElement("div");
+    const color = tone === "ok" ? "bg-emerald-600" : tone === "warn" ? "bg-amber-500" : "bg-red-600";
+    el.className = "fixed bottom-6 right-6 z-[100] px-4 py-2.5 rounded-lg shadow-lg text-white text-sm font-medium " + color;
+    el.textContent = msg;
+    document.body.appendChild(el);
+    setTimeout(() => { el.style.opacity = "0"; el.style.transition = "opacity .4s"; }, 2400);
+    setTimeout(() => el.remove(), 2900);
+  }
+  function post(url, body) {
+    return fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Accept: "application/json" },
+      body: body ? JSON.stringify(body) : "{}",
+    }).then(r => r.json());
+  }
+  const btnAuto = document.getElementById("btn-auto-schedule");
+  const btnReplan = document.getElementById("btn-replan");
+  if (btnAuto) btnAuto.addEventListener("click", () => {
+    btnAuto.disabled = true;
+    btnAuto.textContent = "Scheduling…";
+    post("{{ url_for('aps.api_auto_schedule') }}", {}).then(r => {
+      flash("Auto-schedule finished: " + (r.placed || 0) + " placed, "
+            + (r.constraint_logs || 0) + " constraint logs", r.ok ? "ok" : "err");
+      setTimeout(() => location.reload(), 1500);
+    }).catch(() => {
+      flash("Auto-schedule failed", "err");
+      btnAuto.disabled = false;
+      btnAuto.textContent = "Auto-Schedule";
+    });
+  });
+  if (btnReplan) btnReplan.addEventListener("click", () => {
+    btnReplan.disabled = true;
+    btnReplan.textContent = "Replanning…";
+    post("{{ url_for('aps.api_replan') }}", { preserve_locked: true }).then(r => {
+      flash("Replan finished: " + (r.placed || 0) + " placed, "
+            + (r.preserved_locked || 0) + " locked preserved", r.ok ? "ok" : "err");
+      setTimeout(() => location.reload(), 1500);
+    }).catch(() => {
+      flash("Replan failed", "err");
+      btnReplan.disabled = false;
+      btnReplan.textContent = "Replan";
+    });
+  });
+})();
+</script>
+{% endblock %}

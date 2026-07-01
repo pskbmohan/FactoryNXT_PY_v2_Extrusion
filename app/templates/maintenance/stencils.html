@@ -1,0 +1,63 @@
+{% extends "layout.html" %}
+{% block title %}Stencils{% endblock %}
+
+{% block content %}
+<div class="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+  <div>
+    <h1 class="text-2xl font-bold text-slate-900">Stencils</h1>
+    <p class="text-sm text-slate-500 mt-1">Manage PCB printing stencils and their lifecycle.</p>
+  </div>
+  <a href="{{ url_for('maintenance.stencil_new') }}" class="inline-flex items-center px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-lg shadow-sm">
+    + New Stencil
+  </a>
+</div>
+
+<div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+  <div class="overflow-x-auto">
+    <table class="w-full text-left text-sm">
+      <thead class="bg-slate-50 text-slate-600 uppercase tracking-wider text-xs font-semibold border-b border-slate-200">
+        <tr>
+          <th class="px-6 py-3">Code</th>
+          <th class="px-6 py-3">Part#</th>
+          <th class="px-6 py-3">Manufacturer</th>
+          <th class="px-6 py-3">Prints</th>
+          <th class="px-6 py-3">Limit</th>
+          <th class="px-6 py-3">Since Clean</th>
+          <th class="px-6 py-3">Status</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-slate-100">
+        {% for s in records %}
+        <tr class="hover:bg-slate-50 transition-colors">
+          <td class="px-6 py-4 font-mono text-xs font-medium text-slate-900">{{ s.stencil_code }}</td>
+          <td class="px-6 py-4 text-slate-700">{{ s.part_number }}</td>
+          <td class="px-6 py-4 text-slate-700">{{ s.manufacturer }}</td>
+          <td class="px-6 py-4 text-slate-700 font-mono">{{ s.print_count }}</td>
+          <td class="px-6 py-4 text-slate-700 font-mono">{{ s.print_count_limit }}</td>
+          <td class="px-6 py-4 text-slate-700 font-mono">{{ s.prints_since_last_clean }}</td>
+          <td class="px-6 py-4">
+            {% if s.status == 'active' %}
+              <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">Active</span>
+            {% elif s.status == 'scrapped' %}
+              <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">Scrapped</span>
+            {% else %}
+              <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-700">Inactive</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="7" class="px-6 py-12 text-center">
+            <svg class="mx-auto h-12 w-12 text-slate-400 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z" />
+            </svg>
+            <p class="text-sm font-medium text-slate-900">No stencils found.</p>
+            <p class="text-xs text-slate-500 mt-1">Register a new stencil to get started.</p>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

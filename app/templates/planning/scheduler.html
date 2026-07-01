@@ -1,0 +1,133 @@
+{% extends "layout.html" %}
+{% block title %}Scheduler (Gantt){% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+  <div class="flex items-center justify-between">
+    <div>
+      <h1 class="text-2xl font-bold text-slate-900 dark:text-slate-50">Production Scheduler</h1>
+      <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Gantt view of scheduled work orders</p>
+    </div>
+    <div class="flex items-center gap-2">
+        <a href="{{ url_for('planning.orders') }}" class="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-lg shadow-sm">
+          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+          </svg>
+          Create Work Order
+        </a>
+        <form method="post" action="{{ url_for('planning.optimize') }}" class="inline">
+          <button type="submit" class="inline-flex items-center gap-2 px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-lg shadow-sm">
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456z" />
+            </svg>
+            Optimize Schedule
+          </button>
+        </form>
+      </div>
+  </div>
+
+  <!-- Filters -->
+  <form method="get" class="bg-white dark:bg-slate-800 rounded-lg shadow p-4 grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+    <div>
+      <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Line</label>
+      <select name="line" class="block w-full rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-200 shadow-sm focus:border-primary-500 focus:ring-1 focus:ring-primary-500 text-sm py-2 px-3">
+        <option value="">All</option>
+        {% for l in lines or [] %}
+        <option value="{{ l.id }}" {% if l.id|string == selected_line|string %}selected{% endif %}>{{ l.name }} ({{ l.status }})</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div>
+      <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">From</label>
+      <input type="date" name="from_date" value="{{ selected_from or '' }}" class="block w-full rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-200 shadow-sm focus:border-primary-500 focus:ring-1 focus:ring-primary-500 text-sm py-2 px-3" />
+    </div>
+    <div>
+      <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">To</label>
+      <input type="date" name="to_date" value="{{ selected_to or '' }}" class="block w-full rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-200 shadow-sm focus:border-primary-500 focus:ring-1 focus:ring-primary-500 text-sm py-2 px-3" />
+    </div>
+    <div>
+      <button type="submit" class="w-full inline-flex items-center justify-center px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-lg shadow-sm">Filter</button>
+    </div>
+  </form>
+
+  <!-- Gantt Chart Placeholder -->
+  <div class="bg-white dark:bg-slate-800 rounded-lg shadow overflow-hidden">
+    <div class="px-6 py-4 border-b border-slate-200 dark:border-slate-700">
+      <h3 class="text-sm font-semibold text-slate-900 dark:text-slate-50">Schedule Timeline</h3>
+    </div>
+    <div class="p-6">
+      <div class="relative h-96 w-full bg-slate-50 dark:bg-slate-700/50 rounded-lg border border-slate-200 dark:border-slate-600 flex items-center justify-center overflow-hidden">
+        <svg class="absolute inset-0 w-full h-full pointer-events-none" preserveAspectRatio="none" viewBox="0 0 1200 400">
+          <!-- Grid lines -->
+          {% for x in range(0, 1201, 100) %}
+          <line x1="{{ x }}" y1="0" x2="{{ x }}" y2="400" stroke="#cbd5e1" stroke-width="0.5" opacity="0.3"/>
+          {% endfor %}
+          {% for y in range(0, 401, 50) %}
+          <line x1="0" y1="{{ y }}" x2="1200" y2="{{ y }}" stroke="#cbd5e1" stroke-width="0.5" opacity="0.3"/>
+          {% endfor %}
+          <!-- Sample bars for scheduled jobs -->
+          {% for entry in (entries or [])[:5] %}
+          <rect x="{{ entry.bar_x or 50 }}" y="{{ entry.bar_y or 50 }}" width="{{ entry.bar_w or 100 }}" height="30" fill="#4f46e5" opacity="0.7" rx="4"/>
+          <text x="{{ (entry.bar_x or 50) + 5 }}" y="{{ (entry.bar_y or 50) + 20 }}" fill="white" font-size="10" font-weight="500">{{ entry.order_number or 'WO' }}</text>
+          {% endfor %}
+        </svg>
+        {% if not entries %}
+        <div class="absolute inset-0 z-10 flex items-center justify-center bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm">
+          <div class="text-center p-4 rounded-lg border border-slate-200 dark:border-slate-700 shadow-sm">
+            <svg class="w-10 h-10 text-slate-400 dark:text-slate-500 mx-auto mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
+            </svg>
+            <p class="text-sm text-slate-700 dark:text-slate-300 font-medium">No schedule entries yet</p>
+            <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Create a work order or run the optimizer to populate the Gantt chart.</p>
+          </div>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Schedule Table -->
+  <div class="bg-white dark:bg-slate-800 rounded-lg shadow overflow-x-auto">
+    <table class="w-full text-sm text-left">
+      <thead class="bg-slate-50 dark:bg-slate-700/50 text-slate-600 dark:text-slate-400 uppercase tracking-wider text-xs font-semibold border-b border-slate-200 dark:border-slate-700">
+        <tr>
+          <th class="px-6 py-3">WO #</th>
+          <th class="px-6 py-3">Order</th>
+          <th class="px-6 py-3">Profile</th>
+          <th class="px-6 py-3">Machine</th>
+          <th class="px-6 py-3">Start</th>
+          <th class="px-6 py-3">End</th>
+          <th class="px-6 py-3">Status</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-slate-100 dark:divide-slate-700">
+        {% for entry in entries or [] %}
+        <tr class="hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
+          <td class="px-6 py-3 font-medium text-slate-900 dark:text-slate-50">{{ entry.work_order_number }}</td>
+          <td class="px-6 py-3 text-slate-600 dark:text-slate-400">{{ entry.order_number }}</td>
+          <td class="px-6 py-3 text-slate-600 dark:text-slate-400 font-mono text-xs">{{ entry.profile_code }}</td>
+          <td class="px-6 py-3 text-slate-600 dark:text-slate-400">{{ entry.machine_name or 'Unassigned' }}</td>
+          <td class="px-6 py-3 text-slate-600 dark:text-slate-400">{{ entry.scheduled_start }}</td>
+          <td class="px-6 py-3 text-slate-600 dark:text-slate-400">{{ entry.scheduled_end }}</td>
+          <td class="px-6 py-3">
+            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium
+              {% if entry.status == 'RELEASED' %}bg-emerald-100 dark:bg-emerald-900/30 text-emerald-800 dark:text-emerald-300
+              {% elif entry.status == 'IN_PROGRESS' %}bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300
+              {% elif entry.status == 'DELAYED' %}bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300
+              {% else %}bg-slate-100 dark:bg-slate-700 text-slate-800 dark:text-slate-200{% endif %}">
+              {{ entry.status }}
+            </span>
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="7" class="px-6 py-8 text-center text-slate-500 dark:text-slate-400">
+            <p class="text-sm">No schedule entries match the filter.</p>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,75 @@
+{% extends "layout.html" %}
+{% block title %}Quench Temperature Trend{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+  <div class="flex items-center justify-between">
+    <div>
+      <div class="flex items-center gap-3">
+        <a href="{{ url_for('process_line.quenching') }}" class="text-sm text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200">&larr; Quenching</a>
+        <h1 class="text-2xl font-bold text-slate-900 dark:text-slate-50">Run {{ run_id }}</h1>
+      </div>
+      <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Temperature trend over time</p>
+    </div>
+  </div>
+
+  <!-- Trend Chart -->
+  <div class="bg-white dark:bg-slate-800 rounded-lg shadow p-6">
+    <div class="relative h-96 w-full bg-slate-50 dark:bg-slate-700/50 rounded-lg border border-slate-200 dark:border-slate-600 overflow-hidden">
+      <svg class="absolute inset-0 w-full h-full" preserveAspectRatio="none" viewBox="0 0 1200 400">
+        <!-- Grid lines -->
+        {% for y in range(0, 401, 50) %}
+        <line x1="0" y1="{{ y }}" x2="1200" y2="{{ y }}" stroke="#cbd5e1" stroke-width="0.5" opacity="0.3"/>
+        {% endfor %}
+        <!-- Temperature line (placeholder) -->
+        {% if points %}
+        {% set px_points = [] %}
+        {% for pt in points %}
+        {% set _ = px_points.append((pt.x|default(loop.index0*(1200/points|length)), pt.y|default(200))) %}
+        {% endfor %}
+        <polyline
+          points="{% for x, y in px_points %}{{ x }},{{ y }} {% endfor %}"
+          stroke="#4f46e5"
+          stroke-width="2.5"
+          fill="none"
+          stroke-linejoin="round"
+        />
+        <polygon
+          points="{% for x, y in px_points %}{{ x }},{{ y }} {% endfor %}1200,400 0,400"
+          fill="#4f46e5"
+          fill-opacity="0.08"
+        />
+        {% else %}
+        <text x="600" y="200" text-anchor="middle" fill="#64748b" font-size="14">No data points recorded</text>
+        {% endif %}
+      </svg>
+    </div>
+    <div class="mt-4 flex justify-between text-xs text-slate-500 dark:text-slate-400">
+      <span>Time 0</span>
+      <span>Entry: {{ record.entry_temp or '-' }}°C</span>
+      <span>Exit: {{ record.exit_temp or '-' }}°C</span>
+      <span>End</span>
+    </div>
+  </div>
+
+  <!-- Summary -->
+  <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+    <div class="bg-white dark:bg-slate-800 rounded-lg shadow p-4">
+      <div class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Quench Type</div>
+      <div class="text-sm font-bold text-slate-900 dark:text-slate-50 mt-2">{{ record.quench_type or '-' }}</div>
+    </div>
+    <div class="bg-white dark:bg-slate-800 rounded-lg shadow p-4">
+      <div class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Entry Temp</div>
+      <div class="text-2xl font-bold text-red-600 dark:text-red-400 mt-2">{{ record.entry_temp or '-' }}°C</div>
+    </div>
+    <div class="bg-white dark:bg-slate-800 rounded-lg shadow p-4">
+      <div class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Exit Temp</div>
+      <div class="text-2xl font-bold text-emerald-600 dark:text-emerald-400 mt-2">{{ record.exit_temp or '-' }}°C</div>
+    </div>
+    <div class="bg-white dark:bg-slate-800 rounded-lg shadow p-4">
+      <div class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Duration</div>
+      <div class="text-2xl font-bold text-slate-900 dark:text-slate-50 mt-2">{{ record.duration_s or '-' }}s</div>
+    </div>
+  </div>
+</div>
+{% endblock %}

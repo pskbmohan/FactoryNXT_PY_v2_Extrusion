@@ -1,0 +1,48 @@
+{% extends "layout.html" %}
+{% block title %}New Containment Report{% endblock %}
+{% block content %}
+<div class="mb-6">
+  <h2 class="text-2xl font-bold text-slate-900">New Containment Report</h2>
+  <p class="text-sm text-slate-500">Log immediate actions to isolate quality issues.</p>
+</div>
+<form class="max-w-3xl space-y-4" method="post">
+  <div>
+    <label class="block text-sm font-medium text-slate-700 mb-1">Related NCR</label>
+    <div class="relative">
+      <select name="ncr_id" class="appearance-none block w-full rounded-lg border-slate-300 shadow-sm focus:border-primary-500 focus:ring-1 focus:ring-primary-500 text-sm py-2 px-3 pr-10">
+        <option value="">-- None --</option>
+        {% for ncr in ncrs %}<option value="{{ ncr.id }}">{{ ncr.ncr_number }} - {{ ncr.title }}</option>{% endfor %}
+      </select>
+      <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-slate-500">
+        <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+      </div>
+    </div>
+  </div>
+  <div>
+    <label class="block text-sm font-medium text-slate-700 mb-1">Title</label>
+    <input type="text" name="title" required class="block w-full rounded-lg border-slate-300 shadow-sm focus:border-primary-500 focus:ring-1 focus:ring-primary-500 text-sm py-2 px-3" />
+  </div>
+  <div>
+    <label class="block text-sm font-medium text-slate-700 mb-1">Immediate Action</label>
+    <textarea name="immediate_action" rows="3" required class="block w-full rounded-lg border-slate-300 shadow-sm focus:border-primary-500 focus:ring-1 focus:ring-primary-500 text-sm py-2 px-3"></textarea>
+  </div>
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+    <div>
+      <label class="block text-sm font-medium text-slate-700 mb-1">Affected Qty</label>
+      <input type="number" name="affected_qty" value="0" class="block w-full rounded-lg border-slate-300 shadow-sm focus:border-primary-500 focus:ring-1 focus:ring-primary-500 text-sm py-2 px-3" />
+    </div>
+    <div>
+      <label class="block text-sm font-medium text-slate-700 mb-1">Containment Method</label>
+      <input type="text" name="containment_method" class="block w-full rounded-lg border-slate-300 shadow-sm focus:border-primary-500 focus:ring-1 focus:ring-primary-500 text-sm py-2 px-3" />
+    </div>
+    <div>
+      <label class="block text-sm font-medium text-slate-700 mb-1">Responsible</label>
+      <input type="text" name="responsible" class="block w-full rounded-lg border-slate-300 shadow-sm focus:border-primary-500 focus:ring-1 focus:ring-primary-500 text-sm py-2 px-3" />
+    </div>
+  </div>
+  <div class="flex gap-3 pt-2">
+    <button class="inline-flex items-center px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-lg shadow-sm" type="submit">Create Report</button>
+    <a class="inline-flex items-center px-4 py-2 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 text-sm font-medium rounded-lg shadow-sm" href="{{ url_for('quality.containment_list') }}">Cancel</a>
+  </div>
+</form>
+{% endblock %}

@@ -1,0 +1,44 @@
+{% extends "layout.html" %}
+{% block title %}CAPA Management{% endblock %}
+{% block content %}
+<div class="mb-6">
+  <h2 class="text-2xl font-bold text-slate-900">CAPA Management</h2>
+  <p class="text-sm text-slate-500">Track Corrective and Preventive Actions.</p>
+</div>
+<div class="flex gap-2 mb-6 border-b border-slate-200">
+  <a href="{{ url_for('quality.capas', status='all') }}" class="px-4 py-2 text-sm font-medium border-b-2 {% if status == 'all' %}border-primary-600 text-primary-600{% else %}border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300{% endif %}">All</a>
+  {% for s in ['open','in_progress','verification','closed'] %}
+  <a href="{{ url_for('quality.capas', status=s) }}" class="px-4 py-2 text-sm font-medium border-b-2 {% if status == s %}border-primary-600 text-primary-600{% else %}border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300{% endif %}">{{ s|capitalize }}</a>
+  {% endfor %}
+</div>
+<div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-x-auto">
+  <table class="w-full text-left text-sm">
+    <thead class="bg-slate-50 text-slate-600 uppercase tracking-wider text-xs font-semibold border-b border-slate-200">
+      <tr>
+        <th class="py-3 px-4">CAPA #</th>
+        <th class="py-3 px-4">Type</th>
+        <th class="py-3 px-4">Title</th>
+        <th class="py-3 px-4">Status</th>
+        <th class="py-3 px-4">Due Date</th>
+        <th class="py-3 px-4">Owner</th>
+        <th class="py-3 px-4">Created</th>
+      </tr>
+    </thead>
+    <tbody class="divide-y divide-slate-100">
+      {% for c in capas %}
+      <tr>
+        <td class="py-3 px-4 font-medium">{{ c.capa_number }}</td>
+        <td class="py-3 px-4">{{ c.type }}</td>
+        <td class="py-3 px-4">{{ c.title }}</td>
+        <td class="py-3 px-4">
+          <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {% if c.status == 'closed' %}bg-green-100 text-green-800{% elif c.status == 'open' %}bg-red-100 text-red-800{% else %}bg-blue-100 text-blue-800{% endif %}">{{ c.status|capitalize }}</span>
+        </td>
+        <td class="py-3 px-4 text-slate-600">{{ c.due_date or '-' }}</td>
+        <td class="py-3 px-4">{{ c.owner_id or '-' }}</td>
+        <td class="py-3 px-4 text-slate-600 text-xs">{{ c.created_at }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

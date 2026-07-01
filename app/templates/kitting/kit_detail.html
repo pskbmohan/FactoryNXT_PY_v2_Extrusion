@@ -1,0 +1,52 @@
+{% extends 'layout.html' %}
+{% block title %}Kit Detail{% endblock %}
+{% block content %}
+<div class="mb-6">
+  <h1 class="text-2xl font-bold text-slate-900">Kit Detail</h1>
+  <p class="text-sm text-slate-500">Work Order: {{ kit.work_order.order_number if kit.work_order else 'N/A' }}</p>
+</div>
+<div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6 mb-6">
+  <dl class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4 text-sm">
+    <div><dt class="text-slate-500">Status</dt><dd class="font-medium text-slate-900">{{ kit.status }}</dd></div>
+    <div><dt class="text-slate-500">Picked By</dt><dd class="font-medium text-slate-900">{{ kit.picked_by or '-' }}</dd></div>
+    <div><dt class="text-slate-500">Verified By</dt><dd class="font-medium text-slate-900">{{ kit.verified_by or '-' }}</dd></div>
+    <div><dt class="text-slate-500">Created</dt><dd class="font-medium text-slate-900">{{ kit.created_at.strftime('%Y-%m-%d %H:%M') if kit.created_at else '-' }}</dd></div>
+  </dl>
+</div>
+
+<h3 class="text-lg font-semibold text-slate-900 mb-4">Kit Lines</h3>
+{% if kit.kit_lines %}
+<div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-x-auto mb-6">
+  <table class="w-full text-left text-sm">
+    <thead class="bg-slate-50 text-slate-600 uppercase tracking-wider text-xs font-semibold border-b border-slate-200">
+      <tr>
+        <th class="py-3 px-4">#</th>
+        <th class="py-3 px-4">Part#</th>
+        <th class="py-3 px-4">Qty Required</th>
+        <th class="py-3 px-4">Qty Picked</th>
+        <th class="py-3 px-4">Status</th>
+      </tr>
+    </thead>
+    <tbody class="divide-y divide-slate-100">
+      {% for line in kit.kit_lines %}
+      <tr>
+        <td class="py-3 px-4">{{ loop.index }}</td>
+        <td class="py-3 px-4 font-medium">{{ line.part_number }}</td>
+        <td class="py-3 px-4">{{ line.qty_required }}</td>
+        <td class="py-3 px-4">{{ line.qty_picked }}</td>
+        <td class="py-3 px-4">
+          <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {% if line.status == 'picked' %}bg-green-100 text-green-800{% else %}bg-yellow-100 text-yellow-800{% endif %}">{{ line.status }}</span>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div class="bg-white rounded-xl border border-slate-200 shadow-sm p-8 mb-6 text-center">
+  <svg class="h-10 w-10 text-slate-400 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>
+  <p class="text-sm font-medium text-slate-900">No kit lines defined.</p>
+</div>
+{% endif %}
+<a href="{{ url_for('kitting.index') }}" class="inline-flex items-center px-4 py-2 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 text-sm font-medium rounded-lg shadow-sm">Back</a>
+{% endblock %}

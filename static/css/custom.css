@@ -1,0 +1,71 @@
+/* ==========================================================================
+   Custom CSS Overrides (Minimal)
+
+   Note: The UI has been refactored to use native Tailwind CSS utility
+   classes directly in the Jinja templates. This file is kept for any
+   highly specific, non-standard visual tweaks that Tailwind cannot
+   easily address, or for third-party library integrations.
+   ========================================================================== */
+
+/* Smooth scrolling for the whole app */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Custom scrollbar for webkit browsers to match the dark sidebar theme */
+#sidebar::-webkit-scrollbar {
+  width: 4px;
+}
+#sidebar::-webkit-scrollbar-track {
+  background: transparent;
+}
+#sidebar::-webkit-scrollbar-thumb {
+  background: #334155;
+  border-radius: 2px;
+}
+#sidebar::-webkit-scrollbar-thumb:hover {
+  background: #475569;
+}
+
+/* ==========================================================================
+   Modern Dropdown & Date/Time Input Enhancements
+   ========================================================================== */
+
+/* Ensure select elements have a consistent, modern chevron across browsers */
+select {
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%2364748b' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+  background-position: right 0.5rem center;
+  background-repeat: no-repeat;
+  background-size: 1.5em 1.5em;
+  /* Ensure native arrow is hidden */
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+}
+
+/* Improve datetime-local input appearance */
+input[type="datetime-local"] {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+}
+
+/* Style the calendar/clock icon in webkit browsers to match the theme */
+input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+  background: transparent;
+  bottom: 0;
+  color: transparent;
+  cursor: pointer;
+  height: auto;
+  left: 0;
+  position: absolute;
+  right: 0;
+  top: 0;
+  width: auto;
+}
+
+/* Ensure placeholder-like text in date inputs looks good */
+input[type="datetime-local"]:invalid {
+  color: #94a3b8; /* slate-400 */
+}
+

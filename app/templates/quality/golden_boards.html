@@ -1,0 +1,49 @@
+{% extends 'layout.html' %}
+{% block title %}Golden Boards{% endblock %}
+{% block content %}
+<div class="mb-6">
+  <h1 class="text-2xl font-bold text-slate-900">Golden Boards</h1>
+  <p class="text-sm text-slate-500">Reference boards for inspection calibration.</p>
+</div>
+<div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-x-auto">
+  <table class="w-full text-left text-sm">
+    <thead class="bg-slate-50 text-slate-600 uppercase tracking-wider text-xs font-semibold border-b border-slate-200">
+      <tr>
+        <th class="py-3 px-4">Part#</th>
+        <th class="py-3 px-4">Serial#</th>
+        <th class="py-3 px-4">Machine</th>
+        <th class="py-3 px-4">Limit File</th>
+        <th class="py-3 px-4">Active</th>
+        <th class="py-3 px-4">Created</th>
+      </tr>
+    </thead>
+    <tbody class="divide-y divide-slate-100">
+      {% for g in records %}
+      <tr>
+        <td class="py-3 px-4 font-medium">{{ g.part_number }}</td>
+        <td class="py-3 px-4">{{ g.serial_number }}</td>
+        <td class="py-3 px-4 text-slate-600">{{ g.machine_id }}</td>
+        <td class="py-3 px-4 text-slate-600 max-w-xs truncate">{{ g.limit_file_path or '-' }}</td>
+        <td class="py-3 px-4">
+          {% if g.is_active %}
+            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">Yes</span>
+          {% else %}
+            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-800">No</span>
+          {% endif %}
+        </td>
+        <td class="py-3 px-4 text-slate-600 text-xs">{{ g.created_at.strftime('%Y-%m-%d') if g.created_at else '-' }}</td>
+      </tr>
+      {% else %}
+      <tr>
+        <td colspan="6" class="py-8 text-center">
+          <div class="flex flex-col items-center">
+            <svg class="h-10 w-10 text-slate-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            <p class="text-sm font-medium text-slate-900">No golden boards.</p>
+          </div>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

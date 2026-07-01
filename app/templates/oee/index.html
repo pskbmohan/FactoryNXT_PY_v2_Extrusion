@@ -1,0 +1,97 @@
+{% extends 'layout.html' %}
+{% block title %}OEE Dashboard{% endblock %}
+{% block content %}
+<div class="space-y-6">
+  <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
+    <div class="mb-4">
+      <h2 class="text-2xl font-bold text-slate-900">Active SMT Lines</h2>
+      <p class="text-sm text-slate-500 mt-1">Current status of Surface Mount Technology lines.</p>
+    </div>
+    <div class="overflow-x-auto">
+      <table class="w-full text-left text-sm">
+        <thead class="bg-slate-50 text-slate-600 uppercase tracking-wider text-xs font-semibold border-b border-slate-200">
+          <tr>
+            <th class="px-4 py-3">Name</th>
+            <th class="px-4 py-3">Code</th>
+            <th class="px-4 py-3">Status</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-100">
+          {% for line in lines %}
+          <tr class="hover:bg-slate-50 transition-colors">
+            <td class="px-4 py-3 font-medium text-slate-900">{{ line.name }}</td>
+            <td class="px-4 py-3 text-slate-700 font-mono">{{ line.code }}</td>
+            <td class="px-4 py-3">
+              {% if line.is_active %}
+              <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800">Active</span>
+              {% else %}
+              <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-800">Inactive</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="3" class="px-4 py-12 text-center">
+              <div class="flex flex-col items-center justify-center">
+                <svg class="h-12 w-12 text-slate-400 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
+                <p class="text-sm font-medium text-slate-900">No active lines</p>
+                <p class="text-xs text-slate-500 mt-1">SMT line data will appear here once configured.</p>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
+    <div class="mb-4">
+      <h2 class="text-2xl font-bold text-slate-900">Recent OEE Snapshots</h2>
+      <p class="text-sm text-slate-500 mt-1">Latest Overall Equipment Effectiveness metrics.</p>
+    </div>
+    <div class="overflow-x-auto">
+      <table class="w-full text-left text-sm">
+        <thead class="bg-slate-50 text-slate-600 uppercase tracking-wider text-xs font-semibold border-b border-slate-200">
+          <tr>
+            <th class="px-4 py-3">Date</th>
+            <th class="px-4 py-3">Shift</th>
+            <th class="px-4 py-3 text-right">OEE %</th>
+            <th class="px-4 py-3 text-right">A %</th>
+            <th class="px-4 py-3 text-right">P %</th>
+            <th class="px-4 py-3 text-right">Q %</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-100">
+          {% for s in snapshots %}
+          <tr class="hover:bg-slate-50 transition-colors">
+            <td class="px-4 py-3 text-slate-700">{{ s.shift_date }}</td>
+            <td class="px-4 py-3 text-slate-700">{{ s.shift_name }}</td>
+            <td class="px-4 py-3 text-right font-semibold text-slate-900">{{ '%.1f'|format((s.oee or 0)*100) }}%</td>
+            <td class="px-4 py-3 text-right text-slate-700">{{ '%.1f'|format((s.availability or 0)*100) }}%</td>
+            <td class="px-4 py-3 text-right text-slate-700">{{ '%.1f'|format((s.performance or 0)*100) }}%</td>
+            <td class="px-4 py-3 text-right text-slate-700">{{ '%.1f'|format((s.quality or 0)*100) }}%</td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="6" class="px-4 py-12 text-center">
+              <div class="flex flex-col items-center justify-center">
+                <svg class="h-12 w-12 text-slate-400 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
+                <p class="text-sm font-medium text-slate-900">No snapshots yet</p>
+                <p class="text-xs text-slate-500 mt-1">OEE data will populate here as shifts are completed.</p>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="flex flex-wrap gap-3">
+    <a href="{{ url_for('oee.smt_lines') }}" class="inline-flex items-center px-4 py-2 bg-white hover:bg-slate-50 text-slate-700 text-sm font-medium rounded-lg border border-slate-300 shadow-sm">Manage SMT Lines</a>
+    <a href="{{ url_for('oee.snapshots') }}" class="inline-flex items-center px-4 py-2 bg-white hover:bg-slate-50 text-slate-700 text-sm font-medium rounded-lg border border-slate-300 shadow-sm">All Snapshots</a>
+    <a href="{{ url_for('oee.downtime') }}" class="inline-flex items-center px-4 py-2 bg-white hover:bg-slate-50 text-slate-700 text-sm font-medium rounded-lg border border-slate-300 shadow-sm">Downtime Events</a>
+  </div>
+</div>
+{% endblock %}

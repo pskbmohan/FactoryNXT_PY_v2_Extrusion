@@ -1,0 +1,60 @@
+{% extends 'layout.html' %}
+{% block title %}Test Results{% endblock %}
+{% block content %}
+<div class="mb-6">
+  <h1 class="text-2xl font-bold text-slate-900">Test Results</h1>
+  <p class="text-sm text-slate-500">Filter and review automated test outcomes.</p>
+</div>
+<form method="get" class="mb-6 flex gap-3 items-end max-w-lg">
+  <div class="flex-1">
+    <label class="block text-sm font-medium text-slate-700 mb-1">Work Order</label>
+    <div class="relative">
+      <select name="wo_id" class="appearance-none block w-full rounded-lg border-slate-300 shadow-sm focus:border-primary-500 focus:ring-1 focus:ring-primary-500 text-sm py-2 px-3 pr-10">
+        <option value="">All WOs</option>
+        {% for wo in work_orders %}<option value="{{ wo.id }}" {% if selected_wo==wo.id %}selected{% endif %}>{{ wo.order_number }}</option>{% endfor %}
+      </select>
+      <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-slate-500">
+        <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+      </div>
+    </div>
+  </div>
+  <button class="inline-flex items-center px-4 py-2 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 text-sm font-medium rounded-lg shadow-sm">Filter</button>
+</form>
+<div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-x-auto">
+  <table class="w-full text-left text-sm">
+    <thead class="bg-slate-50 text-slate-600 uppercase tracking-wider text-xs font-semibold border-b border-slate-200">
+      <tr>
+        <th class="py-3 px-4">Board</th>
+        <th class="py-3 px-4">WO</th>
+        <th class="py-3 px-4">Machine</th>
+        <th class="py-3 px-4">Test Type</th>
+        <th class="py-3 px-4">Result</th>
+        <th class="py-3 px-4">Tested At</th>
+      </tr>
+    </thead>
+    <tbody class="divide-y divide-slate-100">
+      {% for r in records %}
+      <tr>
+        <td class="py-3 px-4 font-medium">{{ r.board_id }}</td>
+        <td class="py-3 px-4">{{ r.wo_id }}</td>
+        <td class="py-3 px-4 text-slate-600">{{ r.machine_id }}</td>
+        <td class="py-3 px-4">{{ r.test_type }}</td>
+        <td class="py-3 px-4">
+          <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {% if r.overall_result == 'PASS' %}bg-green-100 text-green-800{% else %}bg-red-100 text-red-800{% endif %}">{{ r.overall_result }}</span>
+        </td>
+        <td class="py-3 px-4 text-slate-600 text-xs">{{ r.tested_at.strftime('%Y-%m-%d %H:%M') if r.tested_at else '-' }}</td>
+      </tr>
+      {% else %}
+      <tr>
+        <td colspan="6" class="py-8 text-center">
+          <div class="flex flex-col items-center">
+            <svg class="h-10 w-10 text-slate-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>
+            <p class="text-sm font-medium text-slate-900">No test results.</p>
+          </div>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

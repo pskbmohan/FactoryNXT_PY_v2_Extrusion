@@ -1,0 +1,62 @@
+{% extends "layout.html" %}
+{% block title %}Die Tests{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+  <div class="flex items-center justify-between">
+    <div>
+      <h1 class="text-2xl font-bold text-slate-900 dark:text-slate-50">Die Tests</h1>
+      <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Trial press and performance test records</p>
+    </div>
+    <a href="{{ url_for('tool_shop.die_list') }}" class="inline-flex items-center px-3 py-1.5 text-sm font-medium rounded-md bg-primary-600 text-white hover:bg-primary-700">&larr; Back to Dies</a>
+  </div>
+
+  <div class="bg-white dark:bg-slate-800 rounded-lg shadow overflow-hidden">
+    <div class="overflow-x-auto">
+      <table class="w-full text-sm text-left">
+        <thead class="bg-slate-50 dark:bg-slate-700/50 text-slate-600 dark:text-slate-400 uppercase tracking-wider text-xs font-semibold border-b border-slate-200 dark:border-slate-700">
+          <tr>
+            <th class="px-6 py-3">Die Code</th>
+            <th class="px-6 py-3">Profile</th>
+            <th class="px-6 py-3">Test Date</th>
+            <th class="px-6 py-3">Tester</th>
+            <th class="px-6 py-3">Press Force</th>
+            <th class="px-6 py-3">Temp (°C)</th>
+            <th class="px-6 py-3">Profile Quality</th>
+            <th class="px-6 py-3">Result</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-100 dark:divide-slate-700">
+          {% for test in tests or [] %}
+          <tr class="hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
+            <td class="px-6 py-3 font-medium text-slate-900 dark:text-slate-50">
+              <a href="{{ url_for('tool_shop.die_detail', id=test.die_id) }}" class="hover:text-primary-600 dark:hover:text-primary-400">{{ test.die.die_code if test.die else '-' }}</a>
+            </td>
+            <td class="px-6 py-3 text-slate-600 dark:text-slate-400">{{ test.die.profile_code if test.die else '-' }}</td>
+            <td class="px-6 py-3 text-slate-600 dark:text-slate-400">{{ test.test_date.strftime('%Y-%m-%d') if test.test_date else '' }}</td>
+            <td class="px-6 py-3 text-slate-600 dark:text-slate-400">{{ test.tester or '-' }}</td>
+            <td class="px-6 py-3 text-slate-600 dark:text-slate-400">{{ '%.1f'|format(test.press_force) if test.press_force else '-' }}</td>
+            <td class="px-6 py-3 text-slate-600 dark:text-slate-400">{{ '%.1f'|format(test.temperature) if test.temperature else '-' }}</td>
+            <td class="px-6 py-3 text-slate-600 dark:text-slate-400">{{ test.profile_quality or '-' }}</td>
+            <td class="px-6 py-3">
+              <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium
+                {% if test.result == 'PASS' %}bg-emerald-100 dark:bg-emerald-900/30 text-emerald-800 dark:text-emerald-300
+                {% elif test.result == 'FAIL' %}bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300
+                {% else %}bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-300{% endif %}">
+                {{ test.result or 'PENDING' }}
+              </span>
+            </td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="8" class="px-6 py-12 text-center text-slate-500 dark:text-slate-400">
+              <p class="text-sm">No tests recorded.</p>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

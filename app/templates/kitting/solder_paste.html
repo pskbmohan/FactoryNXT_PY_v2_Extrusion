@@ -1,0 +1,49 @@
+{% extends 'layout.html' %}
+{% block title %}Solder Paste Lots{% endblock %}
+{% block content %}
+<div class="mb-6 flex items-center justify-between">
+  <div>
+    <h1 class="text-2xl font-bold text-slate-900">Solder Paste Lots</h1>
+    <p class="text-sm text-slate-500">Track solder paste inventory and floor life.</p>
+  </div>
+  <a href="{{ url_for('kitting.paste_new') }}" class="inline-flex items-center px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-lg shadow-sm">+ New Lot</a>
+</div>
+<div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-x-auto">
+  <table class="w-full text-left text-sm">
+    <thead class="bg-slate-50 text-slate-600 uppercase tracking-wider text-xs font-semibold border-b border-slate-200">
+      <tr>
+        <th class="py-3 px-4">Lot#</th>
+        <th class="py-3 px-4">Manufacturer</th>
+        <th class="py-3 px-4">Part#</th>
+        <th class="py-3 px-4">Qty (g)</th>
+        <th class="py-3 px-4">Expiry</th>
+        <th class="py-3 px-4">Floor Life (hrs)</th>
+        <th class="py-3 px-4">Status</th>
+      </tr>
+    </thead>
+    <tbody class="divide-y divide-slate-100">
+      {% for lot in lots %}
+      <tr>
+        <td class="py-3 px-4 font-medium">{{ lot.lot_number }}</td>
+        <td class="py-3 px-4">{{ lot.manufacturer }}</td>
+        <td class="py-3 px-4">{{ lot.part_number }}</td>
+        <td class="py-3 px-4">{{ lot.quantity_g }}</td>
+        <td class="py-3 px-4 text-slate-600">{{ lot.expiry_date }}</td>
+        <td class="py-3 px-4">{{ lot.floor_life_hours }}</td>
+        <td class="py-3 px-4"><span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">{{ lot.status }}</span></td>
+      </tr>
+      {% else %}
+      <tr>
+        <td colspan="7" class="py-8 text-center">
+          <div class="flex flex-col items-center">
+            <svg class="h-10 w-10 text-slate-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"></path></svg>
+            <p class="text-sm font-medium text-slate-900">No lots.</p>
+            <p class="text-xs text-slate-500">Register a new solder paste lot to get started.</p>
+          </div>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

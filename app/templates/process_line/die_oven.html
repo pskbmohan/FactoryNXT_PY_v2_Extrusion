@@ -1,0 +1,74 @@
+{% extends "layout.html" %}
+{% block title %}Die Oven{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+  <div class="flex items-center justify-between">
+    <div>
+      <h1 class="text-2xl font-bold text-slate-900 dark:text-slate-50">Die Oven</h1>
+      <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Pre-heat die before pressing</p>
+    </div>
+  </div>
+
+  <!-- Current State -->
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+    <div class="bg-white dark:bg-slate-800 rounded-lg shadow p-4">
+      <div class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Set Temp</div>
+      <div class="text-3xl font-bold text-red-600 dark:text-red-400 mt-2">{{ setpoint_temp or '-' }}<span class="text-sm font-semibold text-slate-500 dark:text-slate-400"> °C</span></div>
+    </div>
+    <div class="bg-white dark:bg-slate-800 rounded-lg shadow p-4">
+      <div class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Actual Temp</div>
+      <div class="text-3xl font-bold text-emerald-600 dark:text-emerald-400 mt-2">{{ actual_temp or '-' }}<span class="text-sm font-semibold text-slate-500 dark:text-slate-400"> °C</span></div>
+    </div>
+    <div class="bg-white dark:bg-slate-800 rounded-lg shadow p-4">
+      <div class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Soak Time Used</div>
+      <div class="text-3xl font-bold text-indigo-600 dark:text-indigo-400 mt-2">{{ soak_time_min or 0 }}<span class="text-sm font-semibold text-slate-500 dark:text-slate-400"> / {{ target_soak_min or '-' }} min</span></div>
+    </div>
+  </div>
+
+  <!-- Oven Records -->
+  <div class="bg-white dark:bg-slate-800 rounded-lg shadow overflow-hidden">
+    <div class="px-6 py-4 border-b border-slate-200 dark:border-slate-700">
+      <h2 class="text-lg font-semibold text-slate-900 dark:text-slate-50">Oven Records</h2>
+    </div>
+    <div class="overflow-x-auto">
+      <table class="w-full text-sm text-left">
+        <thead class="bg-slate-50 dark:bg-slate-700/50 text-slate-600 dark:text-slate-400 uppercase tracking-wider text-xs font-semibold border-b border-slate-200 dark:border-slate-700">
+          <tr>
+            <th class="px-6 py-3">Die Code</th>
+            <th class="px-6 py-3">Set Temp (°C)</th>
+            <th class="px-6 py-3">Actual Temp (°C)</th>
+            <th class="px-6 py-3">Soak Target</th>
+            <th class="px-6 py-3">Soak Used</th>
+            <th class="px-6 py-3">Result</th>
+            <th class="px-6 py-3">Recorded At</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-100 dark:divide-slate-700">
+          {% for rec in records or [] %}
+          <tr class="hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
+            <td class="px-6 py-3 font-medium text-slate-900 dark:text-slate-50">{{ rec.die_code }}</td>
+            <td class="px-6 py-3 text-slate-600 dark:text-slate-400">{{ rec.setpoint_temp }}</td>
+            <td class="px-6 py-3 text-slate-600 dark:text-slate-400">{{ rec.actual_temp }}</td>
+            <td class="px-6 py-3 text-slate-600 dark:text-slate-400">{{ rec.target_soak_min }}</td>
+            <td class="px-6 py-3 text-slate-600 dark:text-slate-400">{{ rec.soak_time_used_min }}</td>
+            <td class="px-6 py-3">
+              <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium
+                {% if rec.reached_target %}bg-emerald-100 dark:bg-emerald-900/30 text-emerald-800 dark:text-emerald-300
+                {% else %}bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300{% endif %}">
+                {{ 'REACHED TARGET' if rec.reached_target else 'NOT REACHED' }}
+              </span>
+            </td>
+            <td class="px-6 py-3 text-slate-600 dark:text-slate-400">{{ rec.recorded_at.strftime('%Y-%m-%d %H:%M') if rec.recorded_at else '' }}</td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="7" class="px-6 py-8 text-center text-slate-500 dark:text-slate-400"><p class="text-sm">No oven records.</p></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

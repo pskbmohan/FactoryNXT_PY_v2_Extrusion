@@ -1,0 +1,63 @@
+{% extends "layout.html" %}
+{% block title %}Electronic Signatures{% endblock %}
+
+{% block content %}
+<div class="mb-6">
+  <h1 class="text-2xl font-bold text-slate-900">Electronic Signatures</h1>
+  <p class="text-sm text-slate-500 mt-1">Audit trail of electronic signatures for compliance.</p>
+</div>
+
+<form method="get" class="bg-white rounded-xl border border-slate-200 p-4 mb-6 shadow-sm">
+  <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+    <div class="md:col-span-3">
+      <label for="type" class="block text-sm font-medium text-slate-700 mb-1.5">Record Type</label>
+      <input type="text" name="type" id="type" value="{{ record_type }}"
+             class="block w-full rounded-lg border-slate-300 shadow-sm focus:border-primary-500 focus:ring-1 focus:ring-primary-500 text-sm py-2 px-3" />
+    </div>
+    <div class="md:col-span-1">
+      <button type="submit" class="w-full inline-flex items-center justify-center px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-lg shadow-sm">
+        Filter
+      </button>
+    </div>
+  </div>
+</form>
+
+<div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+  <div class="overflow-x-auto">
+    <table class="w-full text-left text-sm">
+      <thead class="bg-slate-50 text-slate-600 uppercase tracking-wider text-xs font-semibold border-b border-slate-200">
+        <tr>
+          <th class="px-6 py-3">Time</th>
+          <th class="px-6 py-3">User</th>
+          <th class="px-6 py-3">Record Type</th>
+          <th class="px-6 py-3">Record ID</th>
+          <th class="px-6 py-3">Action</th>
+          <th class="px-6 py-3">Signature Hash</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-slate-100">
+        {% for s in sigs %}
+        <tr class="hover:bg-slate-50 transition-colors">
+          <td class="px-6 py-4 text-slate-500 text-xs">{{ s.signed_at }}</td>
+          <td class="px-6 py-4 font-mono text-xs font-medium text-slate-900">{{ s.user_id }}</td>
+          <td class="px-6 py-4 text-slate-700">{{ s.record_type }}</td>
+          <td class="px-6 py-4 text-slate-700">{{ s.record_id }}</td>
+          <td class="px-6 py-4 text-slate-700">{{ s.action }}</td>
+          <td class="px-6 py-4 font-mono text-xs text-slate-500 break-all">{{ s.signature_hash }}</td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="6" class="px-6 py-12 text-center">
+            <svg class="mx-auto h-12 w-12 text-slate-400 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            <p class="text-sm font-medium text-slate-900">No signatures found.</p>
+            <p class="text-xs text-slate-500 mt-1">Try adjusting your search filters.</p>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

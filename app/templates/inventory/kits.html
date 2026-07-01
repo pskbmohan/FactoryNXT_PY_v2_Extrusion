@@ -1,0 +1,78 @@
+{% extends "layout.html" %}
+{% block title %}Kits{% endblock %}
+
+{% block content %}
+<!-- Header -->
+<div class="mb-6">
+  <h1 class="text-2xl font-bold text-slate-900">Kitting Status</h1>
+  <p class="text-sm text-slate-500 mt-1">Track the preparation and issuance of production kits.</p>
+</div>
+
+<!-- Modern Tab Navigation -->
+<div class="mb-6 border-b border-slate-200">
+  <nav class="-mb-px flex space-x-6 overflow-x-auto" aria-label="Tabs">
+    <a href="{{ url_for('inventory.kits', status='all') }}"
+       class="whitespace-nowrap border-b-2 py-3 px-1 text-sm font-medium transition-colors
+              {% if status_filter == 'all' %}border-primary-500 text-primary-600
+              {% else %}border-transparent text-slate-500 hover:border-slate-300 hover:text-slate-700{% endif %}">
+      All
+    </a>
+    {% for s in ['pending','kitting','kitted','issued','returned','closed'] %}
+    <a href="{{ url_for('inventory.kits', status=s) }}"
+       class="whitespace-nowrap border-b-2 py-3 px-1 text-sm font-medium transition-colors capitalize
+              {% if status_filter == s %}border-primary-500 text-primary-600
+              {% else %}border-transparent text-slate-500 hover:border-slate-300 hover:text-slate-700{% endif %}">
+      {{ s|capitalize }}
+    </a>
+    {% endfor %}
+  </nav>
+</div>
+
+<!-- Data Table -->
+<div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+  <div class="overflow-x-auto">
+    <table class="w-full text-left text-sm">
+      <thead class="bg-slate-50 text-slate-600 uppercase tracking-wider text-xs font-semibold border-b border-slate-200">
+        <tr>
+          <th class="px-6 py-3">WO Number</th>
+          <th class="px-6 py-3">Part</th>
+          <th class="px-6 py-3">Status</th>
+          <th class="px-6 py-3">Picked By</th>
+          <th class="px-6 py-3">Verified By</th>
+          <th class="px-6 py-3">Updated</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-slate-100">
+        {% for kit in kits %}
+        <tr class="hover:bg-slate-50 transition-colors">
+          <td class="px-6 py-4 font-mono text-xs font-medium text-slate-900">{{ kit.work_order.order_number }}</td>
+          <td class="px-6 py-4 text-slate-700">{{ kit.work_order.part_number }}</td>
+          <td class="px-6 py-4">
+            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+              {% if kit.status == 'kitted' or kit.status == 'issued' %}bg-green-100 text-green-800
+              {% elif kit.status == 'kitting' %}bg-blue-100 text-blue-800
+              {% elif kit.status == 'returned' or kit.status == 'closed' %}bg-slate-100 text-slate-700
+              {% else %}bg-amber-100 text-amber-800{% endif %}">
+              {{ kit.status|capitalize }}
+            </span>
+          </td>
+          <td class="px-6 py-4 text-slate-600">{{ kit.picked_by or '-' }}</td>
+          <td class="px-6 py-4 text-slate-600">{{ kit.verified_by or '-' }}</td>
+          <td class="px-6 py-4 text-slate-500 text-xs">{{ kit.updated_at.strftime('%Y-%m-%d %H:%M') if kit.updated_at else '-' }}</td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="6" class="px-6 py-12 text-center">
+            <svg class="mx-auto h-12 w-12 text-slate-400 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+            </svg>
+            <p class="text-sm font-medium text-slate-900">No kits found.</p>
+            <p class="text-xs text-slate-500 mt-1">Check back later or adjust your status filter.</p>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,60 @@
+{% extends "layout.html" %}
+{% block title %}Plan vs Actual{% endblock %}
+{% block content %}
+<div class="bg-white rounded-xl border border-slate-200 shadow-sm">
+  <div class="px-6 py-5 border-b border-slate-200">
+    <h2 class="text-2xl font-bold text-slate-900">Plan vs Actual</h2>
+    <p class="text-sm text-slate-500 mt-1">Track production output against scheduled targets.</p>
+  </div>
+
+  <div class="overflow-x-auto">
+    <table class="w-full text-left text-sm">
+      <thead class="bg-slate-50 text-slate-600 uppercase tracking-wider text-xs font-semibold border-b border-slate-200">
+        <tr>
+          <th class="px-6 py-3">Line</th>
+          <th class="px-6 py-3">Date</th>
+          <th class="px-6 py-3">Planned Qty</th>
+          <th class="px-6 py-3">Actual Qty</th>
+          <th class="px-6 py-3">Achievement %</th>
+          <th class="px-6 py-3">Status</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-slate-100">
+        {% for r in rows %}
+        {% set pct = ((r.actual_qty / r.planned_qty * 100)|round(1)) if r.planned_qty and r.actual_qty else '-' %}
+        <tr class="hover:bg-slate-50 transition-colors">
+          <td class="px-6 py-4 whitespace-nowrap text-slate-900">{{ r.line }}</td>
+          <td class="px-6 py-4 whitespace-nowrap text-slate-600">{{ r.scheduled_date.strftime('%Y-%m-%d') }}</td>
+          <td class="px-6 py-4 whitespace-nowrap font-medium text-slate-900">{{ r.planned_qty }}</td>
+          <td class="px-6 py-4 whitespace-nowrap font-medium text-slate-900">{{ r.actual_qty or '-' }}</td>
+          <td class="px-6 py-4 whitespace-nowrap">
+            {% if pct != '-' %}
+              {% if pct < 80 %}
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">{{ pct }}%</span>
+              {% elif pct >= 100 %}
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">{{ pct }}%</span>
+              {% else %}
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800">{{ pct }}%</span>
+              {% endif %}
+            {% else %}
+              <span class="text-slate-400">-</span>
+            {% endif %}
+          </td>
+          <td class="px-6 py-4 whitespace-nowrap text-slate-600 capitalize">{{ r.status }}</td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="6" class="px-6 py-12 text-center">
+            <svg class="mx-auto h-12 w-12 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+            </svg>
+            <h3 class="mt-4 text-sm font-medium text-slate-900">No data available</h3>
+            <p class="mt-1 text-xs text-slate-500">There are no plan vs actual records to display at this time.</p>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

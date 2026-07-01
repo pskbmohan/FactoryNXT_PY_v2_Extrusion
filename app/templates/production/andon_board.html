@@ -1,0 +1,76 @@
+{% extends "layout.html" %}
+{% block title %}Andon Board{% endblock %}
+{% block content %}
+<div class="mb-6">
+  <h2 class="text-2xl font-bold text-slate-900">Andon Board</h2>
+  <p class="text-sm text-slate-500">Real-time production alerts and downtime events.</p>
+</div>
+{% if active %}
+<div class="mb-6 bg-red-50 border border-red-200 rounded-lg p-4">
+  <div class="flex items-center">
+    <svg class="h-5 w-5 text-red-400 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+    <div>
+      <h3 class="text-sm font-medium text-red-800">{{ active|length }} Active Alert(s)</h3>
+      <ul class="mt-1 text-xs text-red-700 list-disc list-inside">
+        {% for e in active %}<li>{{ e.line }} - {{ e.event_type }}: {{ e.message }}</li>{% endfor %}
+      </ul>
+    </div>
+  </div>
+</div>
+{% else %}
+<div class="mb-6 bg-green-50 border border-green-200 rounded-lg p-4 flex items-center">
+  <svg class="h-5 w-5 text-green-400 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+  <p class="text-sm font-medium text-green-800">All lines running normally.</p>
+</div>
+{% endif %}
+<div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-x-auto">
+  <table class="w-full text-left text-sm">
+    <thead class="bg-slate-50 text-slate-600 uppercase tracking-wider text-xs font-semibold border-b border-slate-200">
+      <tr>
+        <th class="py-3 px-4">Line</th>
+        <th class="py-3 px-4">Type</th>
+        <th class="py-3 px-4">Message</th>
+        <th class="py-3 px-4">Severity</th>
+        <th class="py-3 px-4">Status</th>
+        <th class="py-3 px-4">Triggered</th>
+        <th class="py-3 px-4">Resolved</th>
+        <th class="py-3 px-4 text-right">Action</th>
+      </tr>
+    </thead>
+    <tbody class="divide-y divide-slate-100">
+      {% for e in events %}
+      <tr class="{% if e.severity=='critical' and e.status=='active' %}bg-red-50{% elif e.severity=='warning' %}bg-yellow-50{% endif %}">
+        <td class="py-3 px-4 font-medium">{{ e.line }}</td>
+        <td class="py-3 px-4">{{ e.event_type }}</td>
+        <td class="py-3 px-4">{{ e.message }}</td>
+        <td class="py-3 px-4">
+          <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {% if e.severity == 'critical' %}bg-red-100 text-red-800{% elif e.severity == 'warning' %}bg-yellow-100 text-yellow-800{% else %}bg-slate-100 text-slate-800{% endif %}">{{ e.severity }}</span>
+        </td>
+        <td class="py-3 px-4">
+          <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {% if e.status == 'active' %}bg-blue-100 text-blue-800{% else %}bg-green-100 text-green-800{% endif %}">{{ e.status }}</span>
+        </td>
+        <td class="py-3 px-4 text-slate-600 text-xs">{{ e.triggered_at.strftime('%Y-%m-%d %H:%M') }}</td>
+        <td class="py-3 px-4 text-slate-600 text-xs">{{ e.resolved_at.strftime('%Y-%m-%d %H:%M') if e.resolved_at else '-' }}</td>
+        <td class="py-3 px-4 text-right">
+          {% if e.status == 'active' %}
+          <form method="post" action="{{ url_for('production.andon_resolve', id=e.id) }}" style="display:inline">
+            <input type="hidden" name="resolved_by" value="operator" />
+            <button class="inline-flex items-center px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white text-xs font-medium rounded-md shadow-sm" type="submit">Resolve</button>
+          </form>
+          {% endif %}
+        </td>
+      </tr>
+      {% else %}
+      <tr>
+        <td colspan="8" class="py-8 text-center">
+          <div class="flex flex-col items-center">
+            <svg class="h-10 w-10 text-slate-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg>
+            <p class="text-sm font-medium text-slate-900">No Andon events.</p>
+          </div>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

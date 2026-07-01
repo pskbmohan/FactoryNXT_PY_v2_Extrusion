@@ -1,0 +1,86 @@
+{% extends "layout.html" %}
+{% block title %}Process Line Floor Overview{% endblock %}
+
+{% block content %}
+{% set ns = namespace(running=0) %}
+{% for st in [billet_status, hls_status, pressing_status, quenching_status, puller_status, cutting_status, stretching_status, final_cut_status, die_oven_status] %}
+  {% if st and st.state == 'RUNNING' %}{% set ns.running = ns.running + 1 %}{% endif %}
+{% endfor %}
+{% set alert_count = alerts_count if alerts_count is defined else 0 %}
+{% set match_pct = setpoint_match_pct if setpoint_match_pct is defined else '—' %}
+
+<div class="kpi-hero mb-6">
+  <div class="kpi-card">
+    <div class="kpi-label">Running Stations</div>
+    <div class="kpi-value">{{ ns.running }} / 9</div>
+  </div>
+  <div class="kpi-card">
+    <div class="kpi-label">Active Alerts</div>
+    <div class="kpi-value">{{ alert_count }}</div>
+  </div>
+  <div class="kpi-card">
+    <div class="kpi-label">Setpoint Match</div>
+    <div class="kpi-value">{{ match_pct }}%</div>
+  </div>
+</div>
+
+<div>
+<div class="space-y-6">
+  <div class="flex items-center justify-between">
+    <div>
+      <h1 class="text-2xl font-bold text-slate-900 dark:text-slate-50">Process Line Floor</h1>
+      <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Live status of each station on the extrusion line</p>
+    </div>
+  </div>
+
+  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+    {% set stations = [
+      ('Billet Inspection', 'process_line.billet_inspection', billet_status, 'M20 7l-8-4-8 4m16 0l-8 4m8-4v10'),
+      ('Heating / HLS', 'process_line.hls', hls_status, 'M15.362 5.214A8.252 8.252 0 0112 21 8.25 8.25 0 016.038 7.048'),
+      ('Pressing', 'process_line.pressing', pressing_status, 'M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.772 59.772 0 013.27 20.876L5.999 12zm0 0h7.5'),
+      ('Quenching', 'process_line.quenching', quenching_status, 'M12 3v2.25m6.364.386l-1.591 1.591M21 12h-2.25m-.386 6.364l-1.591-1.591M12 18.75V21'),
+      ('Puller', 'process_line.puller', puller_status, 'M3 4.5h14.25M3 9h9.75M3 13.5h9.75m4.5-4.5v12m0 0l-3.75-3.75M17.25 21L21 17.25'),
+      ('Cutting', 'process_line.cutting', cutting_status, 'M14.7 8.348L7.922 15.126a3 3 0 01-4.243-4.243l6.777-6.777a6 6 0 018.485 8.486L11.586 20'),
+      ('Stretching', 'process_line.stretching', stretching_status, 'M3.75 3.75v4.5m0-4.5h4.5m-4.5 0L9 9M3.75 20.25v-4.5m0 4.5h4.5m-4.5 0L9 15'),
+      ('Final Cut', 'process_line.final_cut', final_cut_status, 'M7.5 9.75l-3 3 3 3M16.5 9.75l3 3-3 3M3.75 12h16.5'),
+      ('Die Oven', 'process_line.die_oven', die_oven_status, 'M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.24 17 7.25 17.71 8.5 18 10 18 12c0 2.5-1 4.5-2.5 6')
+    ] %}
+
+    {% for label, endpoint, status, icon_path in stations %}
+    <a href="{{ url_for(endpoint) }}" class="bg-white dark:bg-slate-800 rounded-lg shadow p-4 hover:shadow-md transition-shadow border border-slate-200 dark:border-slate-700">
+      <div class="flex items-center justify-between mb-3">
+        <h3 class="text-sm font-semibold text-slate-900 dark:text-slate-50">{{ label }}</h3>
+        <svg class="w-5 h-5 text-slate-400 dark:text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+          <path stroke-linecap="round" stroke-linejoin="round" d="{{ icon_path }}" />
+        </svg>
+      </div>
+      <div class="flex items-center gap-2">
+        {% set st = (status and status.get('state')) or 'IDLE' %}
+        <span class="w-2.5 h-2.5 rounded-full
+          {% if st == 'RUNNING' %}bg-emerald-500
+          {% elif st == 'DOWN' %}bg-red-500
+          {% elif st == 'SETUP' %}bg-amber-500
+          {% else %}bg-slate-400{% endif %}"></span>
+        <span class="text-sm font-medium
+          {% if st == 'RUNNING' %}text-emerald-700 dark:text-emerald-400
+          {% elif st == 'DOWN' %}text-red-700 dark:text-red-400
+          {% elif st == 'SETUP' %}text-amber-700 dark:text-amber-400
+          {% else %}text-slate-700 dark:text-slate-300{% endif %}">
+          {{ st }}
+        </span>
+      </div>
+      {% if status %}
+      <div class="mt-2 text-xs text-slate-500 dark:text-slate-400 space-y-0.5">
+        {% if status.current_run %}
+        <div>Run: <span class="font-mono">{{ status.current_run }}</span></div>
+        {% endif %}
+        {% if status.last_event %}
+        <div>Last: {{ status.last_event }}</div>
+        {% endif %}
+      </div>
+      {% endif %}
+    </a>
+    {% endfor %}
+  </div>
+</div>
+</div>{% endblock %}

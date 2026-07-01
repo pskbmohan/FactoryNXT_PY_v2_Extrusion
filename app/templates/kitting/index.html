@@ -1,0 +1,55 @@
+{% extends 'layout.html' %}
+{% block title %}Kitting{% endblock %}
+{% block content %}
+<div class="mb-6 flex items-center justify-between">
+  <div>
+    <h1 class="text-2xl font-bold text-slate-900">Kitting</h1>
+    <p class="text-sm text-slate-500">Manage component kits for work orders.</p>
+  </div>
+  <a href="{{ url_for('kitting.kit_new') }}" class="inline-flex items-center px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-lg shadow-sm">+ New Kit</a>
+</div>
+<div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-x-auto mb-6">
+  <table class="w-full text-left text-sm">
+    <thead class="bg-slate-50 text-slate-600 uppercase tracking-wider text-xs font-semibold border-b border-slate-200">
+      <tr>
+        <th class="py-3 px-4">WO#</th>
+        <th class="py-3 px-4">Status</th>
+        <th class="py-3 px-4">Picked By</th>
+        <th class="py-3 px-4">Verified By</th>
+        <th class="py-3 px-4">Created</th>
+        <th class="py-3 px-4 text-right">Actions</th>
+      </tr>
+    </thead>
+    <tbody class="divide-y divide-slate-100">
+      {% for kit in kits %}
+      <tr>
+        <td class="py-3 px-4 font-medium">{{ kit.work_order.order_number if kit.work_order }}</td>
+        <td class="py-3 px-4">
+          <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {% if kit.status == 'complete' %}bg-green-100 text-green-800{% elif kit.status == 'picking' %}bg-yellow-100 text-yellow-800{% else %}bg-slate-100 text-slate-800{% endif %}">{{ kit.status }}</span>
+        </td>
+        <td class="py-3 px-4">{{ kit.picked_by or '-' }}</td>
+        <td class="py-3 px-4">{{ kit.verified_by or '-' }}</td>
+        <td class="py-3 px-4 text-slate-600">{{ kit.created_at.strftime('%Y-%m-%d') if kit.created_at else '-' }}</td>
+        <td class="py-3 px-4 text-right">
+          <a href="{{ url_for('kitting.kit_detail', kit_id=kit.id) }}" class="inline-flex items-center px-3 py-1.5 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 text-xs font-medium rounded-md shadow-sm">View</a>
+        </td>
+      </tr>
+      {% else %}
+      <tr>
+        <td colspan="6" class="py-8 text-center">
+          <div class="flex flex-col items-center">
+            <svg class="h-10 w-10 text-slate-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path></svg>
+            <p class="text-sm font-medium text-slate-900">No kits.</p>
+            <p class="text-xs text-slate-500">Create a new kit to get started.</p>
+          </div>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+<div class="flex gap-3">
+  <a href="{{ url_for('kitting.feeder_reels') }}" class="inline-flex items-center px-4 py-2 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 text-sm font-medium rounded-lg shadow-sm">Feeder Reels</a>
+  <a href="{{ url_for('kitting.solder_paste') }}" class="inline-flex items-center px-4 py-2 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 text-sm font-medium rounded-lg shadow-sm">Solder Paste</a>
+</div>
+{% endblock %}

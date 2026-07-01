@@ -1,0 +1,20 @@
+{% extends 'layout.html' %}
+{% block title %}Genealogy & Traceability{% endblock %}
+{% block content %}
+<div class="mb-6">
+  <h1 class="text-2xl font-bold text-slate-900">Genealogy</h1>
+  <p class="text-sm text-slate-500">Trace extrusion history — from billet allocation to final bundle — and rework records.</p>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+  <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
+    <h3 class="text-lg font-semibold text-slate-900 mb-2">Extrusion Unit Trace</h3>
+    <p class="text-sm text-slate-600 mb-4">Search production history by billet code, die code, alloy, or work order.</p>
+    <a href="{{ url_for('genealogy.search') }}" class="inline-flex items-center px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-lg shadow-sm">Trace a Unit</a>
+  </div>
+  <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
+    <h3 class="text-lg font-semibold text-slate-900 mb-2">Rework Records</h3>
+    <p class="text-sm text-slate-600 mb-4">View and log rework and repair entries.</p>
+    <a href="{{ url_for('genealogy.repairs') }}" class="inline-flex items-center px-4 py-2 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 text-sm font-medium rounded-lg shadow-sm">View Rework</a>
+  </div>
+</div>
+{% endblock %}

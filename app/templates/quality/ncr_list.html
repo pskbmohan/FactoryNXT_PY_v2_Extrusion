@@ -1,0 +1,105 @@
+{% extends "layout.html" %}
+{% block title %}NCR List{% endblock %}
+
+{% block content %}
+<!-- Header & Actions -->
+<div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
+  <div>
+    <h1 class="text-2xl font-bold text-slate-900">Non-Conformance Reports</h1>
+    <p class="text-sm text-slate-500 mt-1">Track, manage, and resolve quality deviations.</p>
+  </div>
+  <a href="{{ url_for('quality.ncr_new') }}"
+     class="mt-4 sm:mt-0 inline-flex items-center justify-center px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-lg shadow-sm transition-colors">
+    <svg class="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+    </svg>
+    New NCR
+  </a>
+</div>
+
+<!-- Filter Card -->
+<div class="bg-white rounded-xl border border-slate-200 p-4 mb-6 shadow-sm">
+  <div class="flex items-center gap-3">
+    <label for="status-filter" class="text-sm font-medium text-slate-700 whitespace-nowrap">Filter by status:</label>
+    <div class="relative w-full sm:w-64">
+      <select id="status-filter" onchange="location.href='?status='+this.value"
+              class="block w-full appearance-none rounded-lg border-slate-300 bg-white py-2 pl-3 pr-10 text-sm text-slate-900 shadow-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500 transition-colors">
+        <option value="">All Statuses</option>
+        {% for s in ['open','in_progress','closed','on_hold'] %}
+        <option value="{{ s }}" {% if status==s %}selected{% endif %}>{{ s|capitalize }}</option>
+        {% endfor %}
+      </select>
+      <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-slate-500">
+        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+        </svg>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Data Table -->
+<div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+  <div class="overflow-x-auto">
+    <table class="w-full text-left text-sm">
+      <thead class="bg-slate-50 text-slate-600 uppercase tracking-wider text-xs font-semibold border-b border-slate-200">
+        <tr>
+          <th class="px-6 py-3">NCR #</th>
+          <th class="px-6 py-3">Title</th>
+          <th class="px-6 py-3">Part</th>
+          <th class="px-6 py-3">Severity</th>
+          <th class="px-6 py-3">Status</th>
+          <th class="px-6 py-3">Detected By</th>
+          <th class="px-6 py-3">Created</th>
+          <th class="px-6 py-3 text-right">Action</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-slate-100">
+        {% for r in records %}
+        <tr class="{% if r.severity == 'critical' %}bg-red-50/50 hover:bg-red-50{% elif r.severity == 'major' %}bg-amber-50/50 hover:bg-amber-50{% else %}hover:bg-slate-50{% endif %} transition-colors">
+          <td class="px-6 py-4 font-mono text-xs font-medium text-slate-900">{{ r.ncr_number }}</td>
+          <td class="px-6 py-4 font-medium text-slate-900">{{ r.title }}</td>
+          <td class="px-6 py-4 text-slate-600">{{ r.part_number or '-' }}</td>
+          <td class="px-6 py-4">
+            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+              {% if r.severity == 'critical' %}bg-red-100 text-red-800
+              {% elif r.severity == 'major' %}bg-amber-100 text-amber-800
+              {% else %}bg-slate-100 text-slate-700{% endif %}">
+              {{ r.severity|capitalize }}
+            </span>
+          </td>
+          <td class="px-6 py-4">
+            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+              {% if r.status == 'open' %}bg-blue-100 text-blue-800
+              {% elif r.status == 'in_progress' %}bg-indigo-100 text-indigo-800
+              {% elif r.status == 'on_hold' %}bg-yellow-100 text-yellow-800
+              {% elif r.status == 'closed' %}bg-green-100 text-green-800
+              {% else %}bg-slate-100 text-slate-700{% endif %}">
+              {{ r.status|capitalize }}
+            </span>
+          </td>
+          <td class="px-6 py-4 text-slate-600">{{ r.detected_by or '-' }}</td>
+          <td class="px-6 py-4 text-slate-500">{{ r.created_at.strftime('%Y-%m-%d') }}</td>
+          <td class="px-6 py-4 text-right">
+            <a href="{{ url_for('quality.ncr_detail', id=r.id) }}"
+               class="inline-flex items-center px-3 py-1.5 bg-primary-600 hover:bg-primary-700 text-white text-xs font-medium rounded-md shadow-sm transition-colors">
+              View Details
+            </a>
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="8" class="px-6 py-12 text-center">
+            <svg class="mx-auto h-12 w-12 text-slate-400 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            <p class="text-sm font-medium text-slate-900">No NCRs found.</p>
+            <p class="text-xs text-slate-500 mt-1">All quality records are clear, or adjust your filter.</p>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

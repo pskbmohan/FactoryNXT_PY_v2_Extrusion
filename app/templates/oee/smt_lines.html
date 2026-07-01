@@ -1,0 +1,54 @@
+{% extends 'layout.html' %}
+{% block title %}SMT Lines{% endblock %}
+{% block content %}
+<div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
+  <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-6 gap-4">
+    <div>
+      <h2 class="text-2xl font-bold text-slate-900">SMT Lines</h2>
+      <p class="text-sm text-slate-500 mt-1">Manage surface mount technology production lines.</p>
+    </div>
+    <a href="{{ url_for('oee.smt_line_new') }}" class="inline-flex items-center px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-lg shadow-sm">+ New Line</a>
+  </div>
+
+  <div class="overflow-x-auto">
+    <table class="w-full text-left text-sm">
+      <thead class="bg-slate-50 text-slate-600 uppercase tracking-wider text-xs font-semibold border-b border-slate-200">
+        <tr>
+          <th class="px-4 py-3">Code</th>
+          <th class="px-4 py-3">Name</th>
+          <th class="px-4 py-3">Plant</th>
+          <th class="px-4 py-3">Active</th>
+          <th class="px-4 py-3">Created</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-slate-100">
+        {% for line in lines %}
+        <tr class="hover:bg-slate-50 transition-colors">
+          <td class="px-4 py-3 font-medium text-slate-900 font-mono">{{ line.code }}</td>
+          <td class="px-4 py-3 text-slate-700">{{ line.name }}</td>
+          <td class="px-4 py-3 text-slate-700">{{ line.plant_id }}</td>
+          <td class="px-4 py-3">
+            {% if line.is_active %}
+            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800">Yes</span>
+            {% else %}
+            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-800">No</span>
+            {% endif %}
+          </td>
+          <td class="px-4 py-3 text-slate-700">{{ line.created_at.strftime('%Y-%m-%d') if line.created_at }}</td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="5" class="px-4 py-12 text-center">
+            <div class="flex flex-col items-center justify-center">
+              <svg class="h-12 w-12 text-slate-400 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
+              <p class="text-sm font-medium text-slate-900">No SMT lines defined</p>
+              <p class="text-xs text-slate-500 mt-1">Get started by creating a new SMT line.</p>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,87 @@
+{% extends "layout.html" %}
+{% block title %}Solder Paste Lots{% endblock %}
+
+{% block content %}
+<!-- Header -->
+<div class="mb-6">
+  <h1 class="text-2xl font-bold text-slate-900">Solder Paste Lots</h1>
+  <p class="text-sm text-slate-500 mt-1">Manage solder paste inventory, shelf life, and floor time.</p>
+</div>
+
+<!-- Modern Tab Navigation -->
+<div class="mb-6 border-b border-slate-200">
+  <nav class="-mb-px flex space-x-6 overflow-x-auto" aria-label="Tabs">
+    <a href="{{ url_for('inventory.solder_paste', status='all') }}"
+       class="whitespace-nowrap border-b-2 py-3 px-1 text-sm font-medium transition-colors
+              {% if status_filter == 'all' %}border-primary-500 text-primary-600
+              {% else %}border-transparent text-slate-500 hover:border-slate-300 hover:text-slate-700{% endif %}">
+      All
+    </a>
+    {% for s in ['sealed','open','expired','discarded'] %}
+    <a href="{{ url_for('inventory.solder_paste', status=s) }}"
+       class="whitespace-nowrap border-b-2 py-3 px-1 text-sm font-medium transition-colors capitalize
+              {% if status_filter == s %}border-primary-500 text-primary-600
+              {% else %}border-transparent text-slate-500 hover:border-slate-300 hover:text-slate-700{% endif %}">
+      {{ s|capitalize }}
+    </a>
+    {% endfor %}
+  </nav>
+</div>
+
+<!-- Data Table -->
+<div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+  <div class="overflow-x-auto">
+    <table class="w-full text-left text-sm">
+      <thead class="bg-slate-50 text-slate-600 uppercase tracking-wider text-xs font-semibold border-b border-slate-200">
+        <tr>
+          <th class="px-6 py-3">Lot Number</th>
+          <th class="px-6 py-3">Manufacturer</th>
+          <th class="px-6 py-3">Part</th>
+          <th class="px-6 py-3 text-right">Qty (g)</th>
+          <th class="px-6 py-3">Expiry</th>
+          <th class="px-6 py-3">Opened At</th>
+          <th class="px-6 py-3 text-right">Floor Life (h)</th>
+          <th class="px-6 py-3">Discard By</th>
+          <th class="px-6 py-3">Status</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-slate-100">
+        {% for lot in lots %}
+        <tr class="
+            {% if lot.status in ['expired','discarded'] %}bg-red-50/50 hover:bg-red-50
+            {% else %}hover:bg-slate-50{% endif %} transition-colors">
+          <td class="px-6 py-4 font-mono text-xs font-medium text-slate-900">{{ lot.lot_number }}</td>
+          <td class="px-6 py-4 text-slate-700">{{ lot.manufacturer }}</td>
+          <td class="px-6 py-4 text-slate-600">{{ lot.part_number }}</td>
+          <td class="px-6 py-4 text-right font-medium text-slate-900">{{ lot.quantity_g }}</td>
+          <td class="px-6 py-4 text-slate-700 text-xs">{{ lot.expiry_date.strftime('%Y-%m-%d') if lot.expiry_date else '-' }}</td>
+          <td class="px-6 py-4 text-slate-600 text-xs">{{ lot.opened_at.strftime('%Y-%m-%d %H:%M') if lot.opened_at else '-' }}</td>
+          <td class="px-6 py-4 text-right font-mono text-xs text-slate-700">{{ lot.floor_life_hours or '-' }}</td>
+          <td class="px-6 py-4 text-slate-600 text-xs">{{ lot.must_discard_by.strftime('%Y-%m-%d') if lot.must_discard_by else '-' }}</td>
+          <td class="px-6 py-4">
+            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+              {% if lot.status == 'sealed' %}bg-green-100 text-green-800
+              {% elif lot.status == 'open' %}bg-blue-100 text-blue-800
+              {% elif lot.status == 'expired' %}bg-red-100 text-red-800
+              {% elif lot.status == 'discarded' %}bg-slate-200 text-slate-700
+              {% else %}bg-slate-100 text-slate-700{% endif %}">
+              {{ lot.status|capitalize }}
+            </span>
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="9" class="px-6 py-12 text-center">
+            <svg class="mx-auto h-12 w-12 text-slate-400 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+            </svg>
+            <p class="text-sm font-medium text-slate-900">No solder paste lots found.</p>
+            <p class="text-xs text-slate-500 mt-1">Adjust your status filter to see more results.</p>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

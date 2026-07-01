@@ -1,0 +1,133 @@
+{% extends "layout.html" %}
+{% block title %}Production Floor - FactoryNXT{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+  <!-- Header -->
+  <div class="flex items-center justify-between">
+    <div>
+      <h1 class="text-2xl font-bold text-slate-900 dark:text-slate-50">Production Floor Display</h1>
+      <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Real-time Andon and line performance metrics</p>
+    </div>
+    <div class="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400 bg-white dark:bg-slate-800 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 shadow-sm">
+      <span class="relative flex h-2.5 w-2.5">
+        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+        <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+      </span>
+      <span class="font-medium text-slate-700 dark:text-slate-300">Live</span>
+    </div>
+  </div>
+
+  <!-- Main Content Grid -->
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+    <!-- Left: Output & Progress (Spans 2 cols) -->
+    <div class="lg:col-span-2 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-6 shadow-sm">
+      <div class="flex items-center justify-between mb-6">
+        <div>
+          <h2 class="text-sm font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Assembly Line 04</h2>
+          <span class="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-medium bg-indigo-100 dark:bg-indigo-900/30 text-indigo-800 dark:text-indigo-300 mt-2">
+            WO #8842
+          </span>
+        </div>
+      </div>
+
+      <div class="flex items-baseline gap-4 mb-4">
+        <span class="text-6xl font-bold text-slate-900 dark:text-slate-50">1,142</span>
+        <span class="text-4xl font-light text-slate-400 dark:text-slate-500">/</span>
+        <span class="text-4xl font-bold text-slate-300 dark:text-slate-600">1,250</span>
+      </div>
+
+      <div class="relative w-full h-4 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden mb-3">
+        <div class="absolute top-0 left-0 h-full bg-indigo-600 dark:bg-indigo-500 rounded-full transition-all duration-500" style="width: 91.4%"></div>
+      </div>
+
+      <div class="flex items-center justify-between text-sm">
+        <span class="text-slate-500 dark:text-slate-400 font-medium">91.4% on pace</span>
+        <span class="text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1">
+          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18" /></svg>
+          +3.1% vs yesterday
+        </span>
+      </div>
+    </div>
+
+    <!-- Right: Machine State Summary -->
+    <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-6 shadow-sm">
+      <h3 class="text-sm font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-4">Machine State</h3>
+      <div class="space-y-3">
+        <!-- Running -->
+        <div class="flex items-center justify-between p-3 rounded-lg border border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-900/20">
+          <div class="flex items-center gap-3">
+            <span class="relative flex h-3 w-3">
+              <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+              <span class="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
+            </span>
+            <span class="text-sm font-semibold text-slate-700 dark:text-slate-300">RUNNING</span>
+          </div>
+          <div class="flex items-baseline gap-1">
+            <span class="text-2xl font-bold text-emerald-600 dark:text-emerald-400">12</span>
+            <span class="text-xs text-slate-500 dark:text-slate-400 font-medium">of 14</span>
+          </div>
+        </div>
+
+        <!-- Setup -->
+        <div class="flex items-center justify-between p-3 rounded-lg border border-indigo-200 dark:border-indigo-800 bg-indigo-50 dark:bg-indigo-900/20">
+          <div class="flex items-center gap-3">
+            <span class="inline-flex rounded-full h-3 w-3 bg-indigo-500"></span>
+            <span class="text-sm font-semibold text-slate-700 dark:text-slate-300">SETUP</span>
+          </div>
+          <span class="text-2xl font-bold text-indigo-600 dark:text-indigo-400">1</span>
+        </div>
+
+        <!-- Faulted -->
+        <div class="flex items-center justify-between p-3 rounded-lg border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20">
+          <div class="flex items-center gap-3">
+            <span class="inline-flex rounded-full h-3 w-3 bg-red-500"></span>
+            <span class="text-sm font-semibold text-slate-700 dark:text-slate-300">FAULTED</span>
+          </div>
+          <span class="text-2xl font-bold text-red-600 dark:text-red-400">1</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bottom Stats Row -->
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+    <!-- Cycle Time -->
+    <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-5 shadow-sm">
+      <span class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Cycle Time</span>
+      <div class="flex items-end justify-between mt-3">
+        <span class="text-3xl font-bold text-slate-900 dark:text-slate-50">45.2s</span>
+        <span class="text-sm font-semibold text-emerald-600 dark:text-emerald-400 flex items-center gap-1 mb-1">
+          <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3" /></svg>
+          1.3s
+        </span>
+      </div>
+    </div>
+
+    <!-- MTTR -->
+    <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-5 shadow-sm">
+      <span class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">MTTR</span>
+      <div class="flex items-end justify-between mt-3">
+        <span class="text-3xl font-bold text-slate-900 dark:text-slate-50">14.2m</span>
+        <span class="text-sm font-semibold text-emerald-600 dark:text-emerald-400 flex items-center gap-1 mb-1">
+          <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3" /></svg>
+          2m
+        </span>
+      </div>
+    </div>
+
+    <!-- Quality Rate -->
+    <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-5 shadow-sm">
+      <span class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Quality Rate</span>
+      <div class="flex items-end justify-between mt-3">
+        <span class="text-3xl font-bold text-emerald-600 dark:text-emerald-400">99.7%</span>
+        <span class="text-sm font-semibold text-emerald-600 dark:text-emerald-400 flex items-center gap-1 mb-1">
+          <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18" /></svg>
+          0.2%
+        </span>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

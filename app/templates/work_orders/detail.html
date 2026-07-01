@@ -1,0 +1,85 @@
+{% extends "layout.html" %}
+{% block title %}Work Order {{ work_order.order_number }}{% endblock %}
+{% block content %}
+<div class="mb-6 flex items-center justify-between">
+  <div>
+    <h2 class="text-2xl font-bold text-slate-900">Order #{{ work_order.order_number }}</h2>
+    <p class="text-sm text-slate-500">Detailed operational traveler & specification.</p>
+  </div>
+  <a class="inline-flex items-center px-4 py-2 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 text-sm font-medium rounded-lg shadow-sm" href="{{ url_for('work_orders.list_create_work_orders') }}">Back to List</a>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+  <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
+    <h3 class="text-md font-semibold text-slate-900 mb-4 pb-2 border-b border-slate-200">Basic Information</h3>
+    <dl class="space-y-3 text-sm">
+      <div><dt class="text-slate-500 inline">Part Number:</dt><dd class="font-medium text-slate-900 inline ml-2">{{ work_order.part_number }}</dd></div>
+      <div><dt class="text-slate-500 inline">Target Quantity:</dt><dd class="font-medium text-slate-900 inline ml-2">{{ work_order.quantity }}</dd></div>
+      <div><dt class="text-slate-500 inline">Priority:</dt><dd class="font-medium text-slate-900 inline ml-2">{{ work_order.priority or 'Normal' }}</dd></div>
+      <div><dt class="text-slate-500 inline">Due Date:</dt><dd class="font-medium text-slate-900 inline ml-2">{{ work_order.due_date or '—' }}</dd></div>
+      <div><dt class="text-slate-500 inline">Status:</dt><dd class="font-medium text-slate-900 inline ml-2">{{ work_order.status }}</dd></div>
+      {% if work_order.description %}
+      <div><dt class="text-slate-500 inline">Description:</dt><dd class="font-medium text-slate-900 inline ml-2">{{ work_order.description }}</dd></div>
+      {% endif %}
+    </dl>
+  </div>
+
+  <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
+    <h3 class="text-md font-semibold text-slate-900 mb-4 pb-2 border-b border-slate-200">Bill of Materials (BOM)</h3>
+    {% if bom_items|length == 0 %}
+    <p class="text-sm text-slate-500">No items registered.</p>
+    {% else %}
+    <div class="overflow-x-auto">
+      <table class="w-full text-left text-sm">
+        <thead class="bg-slate-50 text-slate-600 uppercase tracking-wider text-xs font-semibold border-b border-slate-200">
+          <tr>
+            <th>Component Part</th>
+            <th class="text-right">Qty/Unit</th>
+            <th>Rev</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-100">
+          {% for item in bom_items %}
+          <tr>
+            <td class="py-2 px-3">{{ item.component_part_number }}</td>
+            <td class="py-2 px-3 text-right">{{ item.quantity_per_unit }}</td>
+            <td class="py-2 px-3">{{ item.revision or 'A' }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
+  <h3 class="text-md font-semibold text-slate-900 mb-4 pb-2 border-b border-slate-200">Routing Sequence & Instructions</h3>
+  {% if routing_steps|length == 0 %}
+  <p class="text-sm text-slate-500">No operations sequence defined.</p>
+  {% else %}
+  <div class="overflow-x-auto">
+    <table class="w-full text-left text-sm">
+      <thead class="bg-slate-50 text-slate-600 uppercase tracking-wider text-xs font-semibold border-b border-slate-200">
+        <tr>
+          <th class="text-center">Seq</th>
+          <th>Operation Name</th>
+          <th>Workstation</th>
+          <th class="text-right">Cycle Time</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-slate-100">
+        {% for step in routing_steps %}
+        <tr>
+          <td class="py-2 px-3 text-center">{{ step.operation_sequence }}</td>
+          <td class="py-2 px-3 font-medium">{{ step.operation_name }}</td>
+          <td class="py-2 px-3 text-slate-600">{{ step.workstation_type or 'Standard' }}</td>
+          <td class="py-2 px-3 text-right">{{ step.standard_cycle_time_sec }} Seconds</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

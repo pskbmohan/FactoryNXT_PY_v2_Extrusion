@@ -1,0 +1,124 @@
+{% extends "layout.html" %}
+{% block title %}New Work Order{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+  <!-- Header -->
+  <div class="mb-6">
+    <h1 class="text-2xl font-bold text-slate-900">New Work Order</h1>
+    <p class="text-sm text-slate-500 mt-1">Create a new production work order for the floor.</p>
+  </div>
+
+  <!-- Form Card -->
+  <form method="post" class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+    <div class="p-6 space-y-6">
+
+      <!-- Section 1: Basic Info -->
+      <div>
+        <h3 class="text-sm font-semibold text-slate-900 uppercase tracking-wide mb-4 pb-2 border-b border-slate-100">Basic Information</h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+          <div>
+            <label for="wo_number" class="block text-sm font-medium text-slate-700 mb-1.5">WO Number <span class="text-red-500">*</span></label>
+            <input type="text" name="wo_number" id="wo_number" required
+                   class="block w-full rounded-lg border-slate-300 shadow-sm focus:border-primary-500 focus:ring-primary-500/20 text-sm py-2 px-3 transition-colors"
+                   placeholder="e.g., WO-2024-001" />
+          </div>
+          <div>
+            <label for="part_number" class="block text-sm font-medium text-slate-700 mb-1.5">Part Number <span class="text-red-500">*</span></label>
+            <input type="text" name="part_number" id="part_number" required
+                   class="block w-full rounded-lg border-slate-300 shadow-sm focus:border-primary-500 focus:ring-primary-500/20 text-sm py-2 px-3 transition-colors"
+                   placeholder="e.g., PN-8842-A" />
+          </div>
+        </div>
+        <div class="mt-5">
+          <label for="description" class="block text-sm font-medium text-slate-700 mb-1.5">Description</label>
+          <input type="text" name="description" id="description"
+                 class="block w-full rounded-lg border-slate-300 shadow-sm focus:border-primary-500 focus:ring-primary-500/20 text-sm py-2 px-3 transition-colors"
+                 placeholder="Brief description of the work order" />
+        </div>
+      </div>
+
+      <!-- Section 2: Production Details -->
+      <div>
+        <h3 class="text-sm font-semibold text-slate-900 uppercase tracking-wide mb-4 pb-2 border-b border-slate-100">Production Details</h3>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+          <div>
+            <label for="quantity" class="block text-sm font-medium text-slate-700 mb-1.5">Quantity <span class="text-red-500">*</span></label>
+            <input type="number" name="quantity" id="quantity" value="1" min="1" required
+                   class="block w-full rounded-lg border-slate-300 shadow-sm focus:border-primary-500 focus:ring-primary-500/20 text-sm py-2 px-3 transition-colors" />
+          </div>
+          <div>
+            <label for="line" class="block text-sm font-medium text-slate-700 mb-1.5">Production Line</label>
+            <input type="text" name="line" id="line"
+                   class="block w-full rounded-lg border-slate-300 shadow-sm focus:border-primary-500 focus:ring-primary-500/20 text-sm py-2 px-3 transition-colors"
+                   placeholder="e.g., SMT-Line-1" />
+          </div>
+          <div>
+            <label for="priority" class="block text-sm font-medium text-slate-700 mb-1.5">Priority</label>
+            <div class="relative">
+              <select name="priority" id="priority"
+                      class="block w-full appearance-none rounded-lg border-slate-300 bg-white py-2 pl-3 pr-10 text-sm text-slate-900 shadow-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500 transition-colors">
+                {% for p in ['low','normal','high','urgent'] %}
+                <option value="{{ p }}" {% if p == 'normal' %}selected{% endif %}>{{ p|capitalize }}</option>
+                {% endfor %}
+              </select>
+              <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-slate-500">
+                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                </svg>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Section 3: Schedule -->
+      <div>
+        <h3 class="text-sm font-semibold text-slate-900 uppercase tracking-wide mb-4 pb-2 border-b border-slate-100">Schedule</h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+          <div>
+            <label for="scheduled_start" class="block text-sm font-medium text-slate-700 mb-1.5">Scheduled Start</label>
+            <div class="relative">
+              <input type="datetime-local" name="scheduled_start" id="scheduled_start"
+                     class="block w-full rounded-lg border-slate-300 bg-white py-2 pl-3 pr-10 text-sm text-slate-900 shadow-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500 transition-colors [color-scheme:light]" />
+              <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-slate-400">
+                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+              </div>
+            </div>
+          </div>
+          <div>
+            <label for="scheduled_end" class="block text-sm font-medium text-slate-700 mb-1.5">Scheduled End</label>
+            <div class="relative">
+              <input type="datetime-local" name="scheduled_end" id="scheduled_end"
+                     class="block w-full rounded-lg border-slate-300 bg-white py-2 pl-3 pr-10 text-sm text-slate-900 shadow-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500 transition-colors [color-scheme:light]" />
+              <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-slate-400">
+                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Form Actions -->
+    <div class="px-6 py-4 bg-slate-50 border-t border-slate-200 flex items-center justify-end gap-3">
+      <a href="{{ url_for('production.work_order_list') }}"
+         class="inline-flex items-center px-4 py-2 bg-white border border-slate-300 text-slate-700 text-sm font-medium rounded-lg shadow-sm hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-primary-500/20 transition-colors">
+        Cancel
+      </a>
+      <button type="submit"
+              class="inline-flex items-center px-4 py-2 bg-primary-600 text-white text-sm font-medium rounded-lg shadow-sm hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500/20 transition-colors">
+        <svg class="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+        </svg>
+        Create Work Order
+      </button>
+    </div>
+  </form>
+</div>
+{% endblock %}

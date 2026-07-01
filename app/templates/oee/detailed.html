@@ -1,0 +1,191 @@
+{% extends "layout.html" %}
+{% block title %}OEE Analytics - FactoryNXT{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+  <!-- Header -->
+  <div class="flex items-center justify-between">
+    <div>
+      <h1 class="text-2xl font-bold text-slate-900 dark:text-slate-50">OEE Analytics</h1>
+      <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Plant-wide Overall Equipment Effectiveness dashboard</p>
+    </div>
+    <div class="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400 bg-white dark:bg-slate-800 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 shadow-sm">
+      <svg class="w-4 h-4 text-slate-400 dark:text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+      </svg>
+      <span class="font-medium text-slate-700 dark:text-slate-300">Last 7 days</span>
+    </div>
+  </div>
+
+  <!-- Top Row: Overall OEE & Three Pillars -->
+  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+    <!-- Overall OEE -->
+    <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-6 shadow-sm hover:shadow-md transition-shadow">
+      <span class="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Overall OEE</span>
+      <div class="flex items-baseline gap-2 mt-4">
+        <span class="text-5xl font-bold text-slate-900 dark:text-slate-50">{{ avg_oee }}</span>
+        <span class="text-2xl font-semibold text-emerald-500 dark:text-emerald-400">%</span>
+      </div>
+      <p class="text-xs text-emerald-600 dark:text-emerald-400 font-medium mt-3 flex items-center gap-1">
+        <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18" /></svg>
+        +4.2% vs last month
+      </p>
+    </div>
+
+    <!-- Availability -->
+    <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-6 shadow-sm hover:shadow-md transition-shadow">
+      <span class="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Availability</span>
+      <div class="mt-4">
+        <span class="text-3xl font-bold text-slate-900 dark:text-slate-50">{{ avg_avail }}%</span>
+      </div>
+      <div class="w-full bg-slate-100 dark:bg-slate-700 rounded-full h-1.5 mt-4">
+        <div class="bg-emerald-500 dark:bg-emerald-500 h-1.5 rounded-full transition-all duration-500" style="width: {{ avg_avail }}%"></div>
+      </div>
+    </div>
+
+    <!-- Performance -->
+    <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-6 shadow-sm hover:shadow-md transition-shadow">
+      <span class="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Performance</span>
+      <div class="mt-4">
+        <span class="text-3xl font-bold text-slate-900 dark:text-slate-50">{{ avg_perf }}%</span>
+      </div>
+      <div class="w-full bg-slate-100 dark:bg-slate-700 rounded-full h-1.5 mt-4">
+        <div class="bg-sky-500 dark:bg-sky-500 h-1.5 rounded-full transition-all duration-500" style="width: {{ avg_perf }}%"></div>
+      </div>
+    </div>
+
+    <!-- Quality -->
+    <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-6 shadow-sm hover:shadow-md transition-shadow">
+      <span class="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Quality</span>
+      <div class="mt-4">
+        <span class="text-3xl font-bold text-emerald-600 dark:text-emerald-400">{{ avg_qual }}%</span>
+      </div>
+      <div class="w-full bg-slate-100 dark:bg-slate-700 rounded-full h-1.5 mt-4">
+        <div class="bg-cyan-500 dark:bg-cyan-500 h-1.5 rounded-full transition-all duration-500" style="width: {{ avg_qual }}%"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Middle Row: Pareto Chart & Side Metrics -->
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <!-- Downtime Pareto Chart -->
+    <div class="lg:col-span-2 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-6 shadow-sm">
+      <h3 class="text-sm font-semibold text-slate-900 dark:text-slate-50 mb-4">Downtime Pareto — Top Reasons</h3>
+
+      <div class="space-y-4">
+        <!-- Reason 1 -->
+        <div class="relative">
+          <div class="flex items-center justify-between text-sm mb-1">
+            <span class="font-medium text-slate-700 dark:text-slate-300">Material shortage</span>
+            <span class="font-semibold text-slate-900 dark:text-slate-50">48h</span>
+          </div>
+          <div class="w-full bg-slate-100 dark:bg-slate-700 rounded-md h-5 overflow-hidden">
+            <div class="bg-red-500/80 dark:bg-red-500/70 h-5 rounded-md flex items-center justify-end pr-2" style="width: 84%">
+            </div>
+          </div>
+        </div>
+
+        <!-- Reason 2 -->
+        <div class="relative">
+          <div class="flex items-center justify-between text-sm mb-1">
+            <span class="font-medium text-slate-700 dark:text-slate-300">Tool change</span>
+            <span class="font-semibold text-slate-900 dark:text-slate-50">33h</span>
+          </div>
+          <div class="w-full bg-slate-100 dark:bg-slate-700 rounded-md h-5 overflow-hidden">
+            <div class="bg-red-500/60 dark:bg-red-500/50 h-5 rounded-md flex items-center justify-end pr-2" style="width: 64%">
+            </div>
+          </div>
+        </div>
+
+        <!-- Reason 3 -->
+        <div class="relative">
+          <div class="flex items-center justify-between text-sm mb-1">
+            <span class="font-medium text-slate-700 dark:text-slate-300">Setup/changeover</span>
+            <span class="font-semibold text-slate-900 dark:text-slate-50">22h</span>
+          </div>
+          <div class="w-full bg-slate-100 dark:bg-slate-700 rounded-md h-5 overflow-hidden">
+            <div class="bg-red-500/40 dark:bg-red-500/30 h-5 rounded-md flex items-center justify-end pr-2" style="width: 38%">
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Side Metrics -->
+    <div class="space-y-4">
+      <!-- MTBF -->
+      <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-5 shadow-sm">
+        <span class="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">MTBF</span>
+        <div class="flex items-baseline gap-2 mt-2">
+          <span class="text-3xl font-bold text-slate-900 dark:text-slate-50">142</span>
+          <span class="text-sm text-slate-500 dark:text-slate-400">hrs</span>
+        </div>
+      </div>
+
+      <!-- MTTR -->
+      <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-5 shadow-sm">
+        <span class="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">MTTR</span>
+        <div class="flex items-baseline gap-2 mt-2">
+          <span class="text-3xl font-bold text-amber-500 dark:text-amber-400">14</span>
+          <span class="text-sm text-slate-500 dark:text-slate-400">min</span>
+        </div>
+      </div>
+
+      <!-- Total Downtime -->
+      <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-5 shadow-sm">
+        <span class="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Total Downtime</span>
+        <div class="flex items-baseline gap-2 mt-2">
+          <span class="text-3xl font-bold text-slate-900 dark:text-slate-50">{{ total_downtime_hrs }}</span>
+          <span class="text-sm text-slate-500 dark:text-slate-400">hours</span>
+        </div>
+        <p class="text-xs text-emerald-600 dark:text-emerald-400 font-semibold mt-2 flex items-center gap-1">
+          <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3" /></svg>
+          22% vs last week
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bottom Row: Raw Snapshot Data Table (Optional but useful) -->
+  <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
+    <div class="px-6 py-4 border-b border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-700/50 flex items-center justify-between">
+      <h2 class="text-lg font-semibold text-slate-900 dark:text-slate-50">Recent OEE Snapshots</h2>
+      <a href="{{ url_for('oee.snapshots') }}" class="text-xs text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 font-medium">View all &rarr;</a>
+    </div>
+    <div class="overflow-x-auto">
+      <table class="w-full text-left text-sm">
+        <thead class="bg-slate-50 dark:bg-slate-700/50 text-slate-600 dark:text-slate-400 uppercase tracking-wider text-xs font-semibold border-b border-slate-200 dark:border-slate-700">
+          <tr>
+            <th class="px-6 py-3">Date / Shift</th>
+            <th class="px-6 py-3">Line</th>
+            <th class="px-6 py-3 text-right">Availability</th>
+            <th class="px-6 py-3 text-right">Performance</th>
+            <th class="px-6 py-3 text-right">Quality</th>
+            <th class="px-6 py-3 text-right">OEE</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-100 dark:divide-slate-700">
+          {% for snap in snapshots %}
+          <tr class="hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
+            <td class="px-6 py-3 font-medium text-slate-900 dark:text-slate-50">{{ snap.shift_date.strftime('%Y-%m-%d') if snap.shift_date else 'N/A' }} <span class="text-slate-500 dark:text-slate-400 text-xs">({{ snap.shift_name }})</span></td>
+            <td class="px-6 py-3 text-slate-700 dark:text-slate-300">{{ snap.smt_line.name if snap.smt_line else 'N/A' }}</td>
+            <td class="px-6 py-3 text-right text-slate-700 dark:text-slate-300">{{ (snap.availability or 0) | round(1) }}%</td>
+            <td class="px-6 py-3 text-right text-slate-700 dark:text-slate-300">{{ (snap.performance or 0) | round(1) }}%</td>
+            <td class="px-6 py-3 text-right text-slate-700 dark:text-slate-300">{{ (snap.quality or 0) | round(1) }}%</td>
+            <td class="px-6 py-3 text-right font-bold {% if snap.oee and snap.oee >= 85 %}text-emerald-600 dark:text-emerald-400{% elif snap.oee and snap.oee >= 75 %}text-amber-600 dark:text-amber-400{% else %}text-red-600 dark:text-red-400{% endif %}">
+              {{ (snap.oee or 0) | round(1) }}%
+            </td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="6" class="px-6 py-8 text-center text-slate-500 dark:text-slate-400">
+              <p class="text-sm">No snapshot data available yet.</p>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

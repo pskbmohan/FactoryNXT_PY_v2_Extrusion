@@ -1,0 +1,69 @@
+{% extends 'layout.html' %}
+{% block title %}New Schedule Entry{% endblock %}
+{% block content %}
+<div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6 max-w-2xl mx-auto">
+  <div class="mb-6">
+    <h2 class="text-2xl font-bold text-slate-900">New Schedule Entry</h2>
+    <p class="text-sm text-slate-500 mt-1">Create a new production schedule assignment.</p>
+  </div>
+
+  <form method="post" class="space-y-4">
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div>
+        <label class="block text-sm font-medium text-slate-700 mb-1">Plant ID</label>
+        <input type="text" name="plant_id" class="block w-full rounded-lg border-slate-300 shadow-sm focus:border-primary-500 focus:ring-1 focus:ring-primary-500 text-sm py-2 px-3" required>
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-slate-700 mb-1">Sequence Order</label>
+        <input type="number" name="sequence_order" class="block w-full rounded-lg border-slate-300 shadow-sm focus:border-primary-500 focus:ring-1 focus:ring-primary-500 text-sm py-2 px-3">
+      </div>
+    </div>
+
+    <div>
+      <label class="block text-sm font-medium text-slate-700 mb-1">Work Order</label>
+      <div class="relative">
+        <select name="wo_id" class="block w-full rounded-lg border-slate-300 shadow-sm focus:border-primary-500 focus:ring-1 focus:ring-primary-500 text-sm py-2 px-3 appearance-none bg-white" required>
+          {% for wo in work_orders %}<option value="{{ wo.id }}">{{ wo.order_number }} - {{ wo.part_number }}</option>{% endfor %}
+        </select>
+        <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-slate-500">
+          <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <label class="block text-sm font-medium text-slate-700 mb-1">SMT Line</label>
+      <div class="relative">
+        <select name="smt_line_id" class="block w-full rounded-lg border-slate-300 shadow-sm focus:border-primary-500 focus:ring-1 focus:ring-primary-500 text-sm py-2 px-3 appearance-none bg-white">
+          <option value="">None</option>
+          {% for l in lines %}<option value="{{ l.id }}">{{ l.name }}</option>{% endfor %}
+        </select>
+        <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-slate-500">
+          <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div>
+        <label class="block text-sm font-medium text-slate-700 mb-1">Scheduled Start</label>
+        <input type="datetime-local" name="scheduled_start" class="block w-full rounded-lg border-slate-300 shadow-sm focus:border-primary-500 focus:ring-1 focus:ring-primary-500 text-sm py-2 px-3" required>
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-slate-700 mb-1">Scheduled End</label>
+        <input type="datetime-local" name="scheduled_end" class="block w-full rounded-lg border-slate-300 shadow-sm focus:border-primary-500 focus:ring-1 focus:ring-primary-500 text-sm py-2 px-3" required>
+      </div>
+    </div>
+
+    <div class="flex items-center pt-2">
+      <input type="checkbox" class="h-4 w-4 rounded border-slate-300 text-primary-600 focus:ring-primary-500" name="is_locked" id="locked">
+      <label class="ml-2 block text-sm font-medium text-slate-700" for="locked">Locked</label>
+    </div>
+
+    <div class="flex items-center gap-3 pt-4 border-t border-slate-200">
+      <button type="submit" class="inline-flex items-center px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-lg shadow-sm">Save</button>
+      <a href="{{ url_for('scheduling.index') }}" class="inline-flex items-center px-4 py-2 bg-white hover:bg-slate-50 text-slate-700 text-sm font-medium rounded-lg border border-slate-300 shadow-sm">Cancel</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

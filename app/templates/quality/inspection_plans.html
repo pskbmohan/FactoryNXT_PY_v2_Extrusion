@@ -1,0 +1,69 @@
+{% extends 'layout.html' %}
+{% block title %}Inspection Plans{% endblock %}
+{% block content %}
+<div class="mb-6 flex items-center justify-between">
+  <div>
+    <h1 class="text-2xl font-bold text-slate-900 dark:text-slate-50">Inspection Plans</h1>
+    <p class="text-sm text-slate-500 dark:text-slate-400">
+      AQL sampling plans for dies, billets, profiles, bundles, process stages, and machine setups.
+    </p>
+  </div>
+  <a href="{{ url_for('quality_ext.inspection_plan_new') }}" class="inline-flex items-center px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-lg shadow-sm">+ New Plan</a>
+</div>
+<div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-x-auto">
+  <table class="w-full text-left text-sm">
+    <thead class="bg-slate-50 dark:bg-slate-700/50 text-slate-600 dark:text-slate-400 uppercase tracking-wider text-xs font-semibold border-b border-slate-200 dark:border-slate-700">
+      <tr>
+        <th class="py-3 px-4">Target</th>
+        <th class="py-3 px-4">Code</th>
+        <th class="py-3 px-4">Operation Step</th>
+        <th class="py-3 px-4">AQL</th>
+        <th class="py-3 px-4">Sample Size</th>
+        <th class="py-3 px-4">Accept</th>
+        <th class="py-3 px-4">Reject</th>
+      </tr>
+    </thead>
+    <tbody class="divide-y divide-slate-100 dark:divide-slate-700">
+      {% for p in records %}
+      <tr>
+        <td class="py-3 px-4">
+          {% if p.target_type %}
+          <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium
+            {% if p.target_type == 'DIE' %}bg-indigo-100 dark:bg-indigo-900/30 text-indigo-800 dark:text-indigo-300
+            {% elif p.target_type == 'BILLET' %}bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-300
+            {% elif p.target_type == 'PROFILE' %}bg-emerald-100 dark:bg-emerald-900/30 text-emerald-800 dark:text-emerald-300
+            {% elif p.target_type == 'BUNDLE' %}bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-300
+            {% elif p.target_type == 'PROCESS_STAGE' %}bg-sky-100 dark:bg-sky-900/30 text-sky-800 dark:text-sky-300
+            {% else %}bg-slate-100 dark:bg-slate-700 text-slate-800 dark:text-slate-200{% endif %}">
+            {{ p.target_type }}
+          </span>
+          {% else %}
+          <span class="text-slate-400 dark:text-slate-500" title="Legacy plan">{{ p.part_number or '-' }}</span>
+          {% endif %}
+        </td>
+        <td class="py-3 px-4 font-medium text-slate-900 dark:text-slate-50 font-mono">
+          {{ p.target_code or p.part_number or '-' }}
+        </td>
+        <td class="py-3 px-4 text-slate-600 dark:text-slate-400">{{ p.operation_step or p.operation_name or '-' }}</td>
+        <td class="py-3 px-4">{{ p.aql_level }}</td>
+        <td class="py-3 px-4">{{ p.sample_size }}</td>
+        <td class="py-3 px-4 text-emerald-600 dark:text-emerald-400 font-medium">{{ p.accept_limit }}</td>
+        <td class="py-3 px-4 text-red-600 dark:text-red-400 font-medium">{{ p.reject_limit }}</td>
+      </tr>
+      {% else %}
+      <tr>
+        <td colspan="7" class="py-8 text-center">
+          <div class="flex flex-col items-center">
+            <svg class="h-10 w-10 text-slate-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>
+            <p class="text-sm font-medium text-slate-900 dark:text-slate-50">No inspection plans.</p>
+            <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">
+              Use <a href="{{ url_for('quality_ext.inspection_plan_new') }}" class="text-primary-600 hover:underline">+ New Plan</a> to define AQL sampling for a die, billet, profile, or operation.
+            </p>
+          </div>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

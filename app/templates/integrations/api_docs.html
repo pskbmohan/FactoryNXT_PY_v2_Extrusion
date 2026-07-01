@@ -1,0 +1,147 @@
+{% extends "layout.html" %}
+{% block title %}API Documentation{% endblock %}
+
+{% block content %}
+<!-- Header -->
+<div class="mb-6">
+  <h1 class="text-2xl font-bold text-slate-900">API Documentation & Keys</h1>
+  <p class="text-sm text-slate-500 mt-1">Manage API access and review available endpoints.</p>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+  <!-- Left Column: Generate Key & Active Keys -->
+  <div class="space-y-6">
+    <!-- Generate API Key Form -->
+    <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
+      <h3 class="text-lg font-semibold text-slate-900 mb-4">Generate API Key</h3>
+      <form class="space-y-4" method="post" action="{{ url_for('integrations.api_key_generate') }}">
+        <div>
+          <label for="key_name" class="block text-sm font-medium text-slate-700 mb-1.5">Key Name</label>
+          <input type="text" name="name" id="key_name" required
+                 class="block w-full rounded-lg border-slate-300 shadow-sm focus:border-primary-500 focus:ring-1 focus:ring-primary-500 text-sm py-2 px-3 transition-colors"
+                 placeholder="e.g., External ERP Reader" />
+        </div>
+        <div>
+          <label for="scope" class="block text-sm font-medium text-slate-700 mb-1.5">Scope</label>
+          <div class="relative">
+            <select name="scope" id="scope"
+                    class="block w-full appearance-none rounded-lg border-slate-300 bg-white py-2 pl-3 pr-10 text-sm text-slate-900 shadow-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500 transition-colors">
+              <option value="read">read</option>
+              <option value="write">write</option>
+              <option value="admin">admin</option>
+            </select>
+            <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-slate-500">
+              <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+              </svg>
+            </div>
+          </div>
+        </div>
+        <button class="inline-flex items-center px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-lg shadow-sm transition-colors" type="submit">
+          <svg class="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+          </svg>
+          Generate
+        </button>
+      </form>
+    </div>
+
+    <!-- Active Keys Table -->
+    <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+      <div class="px-6 py-4 border-b border-slate-200 bg-slate-50/50">
+        <h3 class="text-base font-semibold text-slate-900">Active Keys</h3>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="w-full text-left text-sm">
+          <thead class="bg-slate-50 text-slate-600 uppercase tracking-wider text-xs font-semibold border-b border-slate-200">
+            <tr>
+              <th class="px-6 py-3">Name</th>
+              <th class="px-6 py-3">Scope</th>
+              <th class="px-6 py-3">Key</th>
+              <th class="px-6 py-3 text-right">Action</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100">
+            {% for key in keys %}
+            <tr class="{% if not key.is_active %}bg-red-50/50{% else %}hover:bg-slate-50{% endif %} transition-colors">
+              <td class="px-6 py-4 font-medium text-slate-900">{{ key.name }}</td>
+              <td class="px-6 py-4">
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-700 uppercase">{{ key.scope }}</span>
+              </td>
+              <td class="px-6 py-4">
+                <code class="text-xs bg-slate-100 px-2 py-1 rounded font-mono text-slate-700">{{ key.key_value[:12] }}...</code>
+              </td>
+              <td class="px-6 py-4 text-right">
+                {% if key.is_active %}
+                <form method="post" action="{{ url_for('integrations.api_key_revoke', id=key.id) }}" class="inline">
+                  <button class="inline-flex items-center px-3 py-1.5 bg-white border border-red-300 text-red-700 text-xs font-medium rounded-md shadow-sm hover:bg-red-50 transition-colors" type="submit">Revoke</button>
+                </form>
+                {% else %}
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-200 text-slate-600">Revoked</span>
+                {% endif %}
+              </td>
+            </tr>
+            {% else %}
+            <tr>
+              <td colspan="4" class="px-6 py-8 text-center">
+                <p class="text-xs text-slate-500">No keys generated yet.</p>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Right Column: Available Endpoints -->
+  <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+    <div class="px-6 py-4 border-b border-slate-200 bg-slate-50/50">
+      <h3 class="text-base font-semibold text-slate-900">Available Endpoints</h3>
+    </div>
+    <div class="overflow-x-auto">
+      <table class="w-full text-left text-sm">
+        <thead class="bg-slate-50 text-slate-600 uppercase tracking-wider text-xs font-semibold border-b border-slate-200">
+          <tr>
+            <th class="px-6 py-3">Method</th>
+            <th class="px-6 py-3">Endpoint</th>
+            <th class="px-6 py-3">Description</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-100">
+          <tr class="hover:bg-slate-50 transition-colors">
+            <td class="px-6 py-4"><span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">GET</span></td>
+            <td class="px-6 py-4 font-mono text-xs text-slate-700">/api/status</td>
+            <td class="px-6 py-4 text-slate-600 text-sm">System status</td>
+          </tr>
+          <tr class="hover:bg-slate-50 transition-colors">
+            <td class="px-6 py-4"><span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">GET</span></td>
+            <td class="px-6 py-4 font-mono text-xs text-slate-700">/api/work-orders</td>
+            <td class="px-6 py-4 text-slate-600 text-sm">List work orders</td>
+          </tr>
+          <tr class="hover:bg-slate-50 transition-colors">
+            <td class="px-6 py-4"><span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">POST</span></td>
+            <td class="px-6 py-4 font-mono text-xs text-slate-700">/api/work-orders</td>
+            <td class="px-6 py-4 text-slate-600 text-sm">Create work order</td>
+          </tr>
+          <tr class="hover:bg-slate-50 transition-colors">
+            <td class="px-6 py-4"><span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">GET</span></td>
+            <td class="px-6 py-4 font-mono text-xs text-slate-700">/api/inventory</td>
+            <td class="px-6 py-4 text-slate-600 text-sm">Inventory list</td>
+          </tr>
+          <tr class="hover:bg-slate-50 transition-colors">
+            <td class="px-6 py-4"><span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">GET</span></td>
+            <td class="px-6 py-4 font-mono text-xs text-slate-700">/api/ncr</td>
+            <td class="px-6 py-4 text-slate-600 text-sm">NCR list</td>
+          </tr>
+          <tr class="hover:bg-slate-50 transition-colors">
+            <td class="px-6 py-4"><span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">GET</span></td>
+            <td class="px-6 py-4 font-mono text-xs text-slate-700">/api/oee</td>
+            <td class="px-6 py-4 text-slate-600 text-sm">OEE data</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

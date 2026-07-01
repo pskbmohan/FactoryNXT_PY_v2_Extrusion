@@ -1,0 +1,83 @@
+{% extends "layout.html" %}
+{% block title %}Projected Shortages{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+  <div class="flex items-center justify-between">
+    <div>
+      <h1 class="text-2xl font-bold text-slate-900 dark:text-slate-50">Projected Shortages</h1>
+      <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Die and billet deficits vs upcoming schedule</p>
+    </div>
+  </div>
+
+  <!-- Summary -->
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+    <div class="bg-white dark:bg-slate-800 rounded-lg shadow p-4">
+      <div class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Die Shortages</div>
+      <div class="text-3xl font-bold {% if (die_shortage_count or 0) > 0 %}text-red-600 dark:text-red-400{% else %}text-slate-900 dark:text-slate-50{% endif %} mt-2">{{ die_shortage_count or 0 }}</div>
+    </div>
+    <div class="bg-white dark:bg-slate-800 rounded-lg shadow p-4">
+      <div class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Billet Shortages</div>
+      <div class="text-3xl font-bold {% if (billet_shortage_count or 0) > 0 %}text-red-600 dark:text-red-400{% else %}text-slate-900 dark:text-slate-50{% endif %} mt-2">{{ billet_shortage_count or 0 }}</div>
+    </div>
+    <div class="bg-white dark:bg-slate-800 rounded-lg shadow p-4">
+      <div class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">At-Risk Orders</div>
+      <div class="text-3xl font-bold {% if (at_risk_orders or 0) > 0 %}text-amber-600 dark:text-amber-400{% else %}text-slate-900 dark:text-slate-50{% endif %} mt-2">{{ at_risk_orders or 0 }}</div>
+    </div>
+  </div>
+
+  <!-- Shortages List -->
+  <div class="bg-white dark:bg-slate-800 rounded-lg shadow overflow-hidden">
+    <div class="px-6 py-4 border-b border-slate-200 dark:border-slate-700">
+      <h2 class="text-lg font-semibold text-slate-900 dark:text-slate-50">Projected Items</h2>
+    </div>
+    <div class="overflow-x-auto">
+      <table class="w-full text-sm text-left">
+        <thead class="bg-slate-50 dark:bg-slate-700/50 text-slate-600 dark:text-slate-400 uppercase tracking-wider text-xs font-semibold border-b border-slate-200 dark:border-slate-700">
+          <tr>
+            <th class="px-6 py-3">Item</th>
+            <th class="px-6 py-3">Type</th>
+            <th class="px-6 py-3">Required</th>
+            <th class="px-6 py-3">Available</th>
+            <th class="px-6 py-3">Deficit</th>
+            <th class="px-6 py-3">Impact</th>
+            <th class="px-6 py-3">Severity</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-100 dark:divide-slate-700">
+          {% for item in shortages or [] %}
+          <tr class="hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors
+            {% if item.severity == 'CRITICAL' %}bg-red-50 dark:bg-red-900/10
+            {% elif item.severity == 'HIGH' %}bg-amber-50 dark:bg-amber-900/10{% endif %}">
+            <td class="px-6 py-3 font-medium text-slate-900 dark:text-slate-50">{{ item.item_code }}</td>
+            <td class="px-6 py-3 text-slate-600 dark:text-slate-400">{{ item.item_type }}</td>
+            <td class="px-6 py-3 text-slate-700 dark:text-slate-300">{{ item.required_qty }}</td>
+            <td class="px-6 py-3 text-slate-700 dark:text-slate-300">{{ item.available_qty }}</td>
+            <td class="px-6 py-3 font-semibold text-red-600 dark:text-red-400">{{ item.deficit }}</td>
+            <td class="px-6 py-3 text-slate-600 dark:text-slate-400 text-xs">{{ item.affected_orders }} order(s)</td>
+            <td class="px-6 py-3">
+              <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium
+                {% if item.severity == 'CRITICAL' %}bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300
+                {% elif item.severity == 'HIGH' %}bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-300
+                {% else %}bg-slate-100 dark:bg-slate-700 text-slate-800 dark:text-slate-200{% endif %}">
+                {{ item.severity }}
+              </span>
+            </td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="7" class="px-6 py-8 text-center text-slate-500 dark:text-slate-400">
+              <svg class="mx-auto h-12 w-12 text-emerald-400 dark:text-emerald-500 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <p class="text-sm font-medium text-emerald-700 dark:text-emerald-400">No projected shortages</p>
+              <p class="text-xs mt-1">Current stock covers scheduled demand.</p>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

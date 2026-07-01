@@ -1,0 +1,267 @@
+{% extends "layout.html" %}
+{% block title %}ERP Sync · {{ erp_config.name }}{% endblock %}
+
+{% block content %}
+<!-- Header -->
+<div class="mb-6">
+  <h1 class="text-2xl font-bold text-slate-900 dark:text-slate-100">ERP Sync</h1>
+  <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">
+    Synchronise the foundry floor with
+    <span class="font-semibold text-slate-700 dark:text-slate-200">{{ erp_config.name }}</span>
+    <span class="inline-flex items-center ml-1 px-1.5 py-0.5 rounded text-[10px] font-bold tracking-wide bg-indigo-100 text-indigo-700 dark:bg-indigo-900/60 dark:text-indigo-200">{{ erp_config.version }}</span>.
+  </p>
+</div>
+
+<!-- ERP Configuration card -->
+<div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm p-6 mb-6">
+  <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+    <div class="flex items-start gap-4">
+      <div class="flex-shrink-0 h-12 w-12 rounded-lg bg-indigo-50 dark:bg-indigo-900/40 flex items-center justify-center">
+        <svg class="h-6 w-6 text-indigo-600 dark:text-indigo-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4" />
+        </svg>
+      </div>
+      <div>
+        <div class="flex flex-wrap items-center gap-2">
+          <h2 class="text-lg font-semibold text-slate-900 dark:text-slate-100">{{ erp_config.name }}</h2>
+          <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-indigo-100 text-indigo-700 dark:bg-indigo-900/60 dark:text-indigo-200">{{ erp_config.version }}</span>
+        </div>
+        <dl class="mt-2 grid grid-cols-1 sm:grid-cols-3 gap-x-6 gap-y-1 text-sm">
+          <div>
+            <dt class="text-slate-500 dark:text-slate-400">Database</dt>
+            <dd class="font-medium text-slate-900 dark:text-slate-100">{{ erp_config.database }} <span class="text-slate-500 dark:text-slate-400 font-normal">· {{ erp_config.database_location }}</span></dd>
+          </div>
+          <div>
+            <dt class="text-slate-500 dark:text-slate-400">Connectivity</dt>
+            <dd class="font-medium text-slate-900 dark:text-slate-100">{{ erp_config.connection }}</dd>
+          </div>
+          <div>
+            <dt class="text-slate-500 dark:text-slate-400">Health</dt>
+            <dd class="flex items-center gap-2">
+              <span class="relative flex h-2.5 w-2.5">
+                <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+              </span>
+              <span class="font-medium text-emerald-700 dark:text-emerald-300">Connected</span>
+            </dd>
+          </div>
+        </dl>
+      </div>
+    </div>
+    <div class="flex flex-row lg:flex-col gap-2 lg:items-end">
+      <form method="post" action="{{ url_for('integrations.erp_reprocess') }}" class="inline">
+        <button type="submit"
+                class="inline-flex items-center gap-1.5 px-3 py-2 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 text-xs font-medium rounded-lg shadow-sm hover:bg-slate-50 dark:hover:bg-slate-600 transition-colors">
+          <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+          </svg>
+          Repost unposted records
+        </button>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Two-column: Sync entities + Production tables -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+
+  <!-- Sync entities (replaces old generic entity dropdown) -->
+  <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
+    <div class="px-6 py-4 border-b border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900/30">
+      <h3 class="text-base font-semibold text-slate-900 dark:text-slate-100">Sync Entities</h3>
+      <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Extrusion-focused data surfaces pulled from Lighthouse V15.</p>
+    </div>
+    <ul class="divide-y divide-slate-100 dark:divide-slate-700">
+      {% for entity in sync_entities %}
+      <li class="px-6 py-3 flex items-center justify-between gap-4 hover:bg-slate-50 dark:hover:bg-slate-700/40 transition-colors">
+        <div class="min-w-0">
+          <div class="flex items-center gap-2">
+            <span class="text-sm font-medium text-slate-900 dark:text-slate-100">{{ entity.label }}</span>
+            {% if entity.table and 'OUTBOUND' not in entity.table %}
+              <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-mono font-semibold bg-sky-100 text-sky-700 dark:bg-sky-900/50 dark:text-sky-200">{{ entity.table }}</span>
+            {% elif entity.table %}
+              <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-mono font-semibold bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-200">{{ entity.table }}</span>
+            {% endif %}
+          </div>
+          {% if entity.description %}
+            <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5 truncate">{{ entity.description }}</p>
+          {% endif %}
+        </div>
+        <span class="flex-shrink-0 inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold
+          {% if entity.value == 'all' %}bg-indigo-100 text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-200
+          {% elif 'OUTBOUND' in (entity.table or '') %}bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-200
+          {% else %}bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-200{% endif %}">
+          {% if entity.value == 'all' %}AGGREGATE
+          {% elif 'OUTBOUND' in (entity.table or '') %}OUTBOUND
+          {% else %}INBOUND{% endif %}
+        </span>
+      </li>
+      {% endfor %}
+    </ul>
+  </div>
+
+  <!-- Production Tables -->
+  <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
+    <div class="px-6 py-4 border-b border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900/30">
+      <h3 class="text-base font-semibold text-slate-900 dark:text-slate-100">Production Tables</h3>
+      <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Major Oracle tables powering order, item &amp; account flows.</p>
+    </div>
+    <ul class="divide-y divide-slate-100 dark:divide-slate-700">
+      {% for t in production_tables %}
+      <li class="px-6 py-3 flex items-center gap-3 hover:bg-slate-50 dark:hover:bg-slate-700/40 transition-colors">
+        <span class="flex-shrink-0 flex h-8 w-8 items-center justify-center rounded bg-slate-100 dark:bg-slate-700">
+          <svg class="h-4 w-4 text-slate-500 dark:text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M3 14h18M3 6h18M3 18h18" />
+          </svg>
+        </span>
+        <div class="min-w-0 flex-1">
+          <div class="text-sm font-mono font-semibold text-slate-900 dark:text-slate-100">{{ t.name }}</div>
+          <div class="text-xs text-slate-500 dark:text-slate-400">{{ t.description }}</div>
+        </div>
+      </li>
+      {% endfor %}
+      <li class="px-6 py-3 bg-slate-50/60 dark:bg-slate-900/40">
+        <p class="text-xs text-slate-500 dark:text-slate-400 italic">
+          …plus smaller supporting tables (rate masters, unit masters, godown masters, etc.) queried on demand.
+        </p>
+      </li>
+    </ul>
+  </div>
+</div>
+
+<!-- Sync Preview / Mock -->
+<div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden mb-6">
+  <div class="px-6 py-4 border-b border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900/30 flex items-center justify-between">
+    <div>
+      <h3 class="text-base font-semibold text-slate-900 dark:text-slate-100">Sync Preview</h3>
+      <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Mock metadata — pending records that would move on the next sync.</p>
+    </div>
+    <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wide bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-200">Preview</span>
+  </div>
+  <div class="overflow-x-auto">
+    <table class="w-full text-left text-sm">
+      <thead class="bg-slate-50 dark:bg-slate-900/50 text-slate-600 dark:text-slate-400 uppercase tracking-wider text-xs font-semibold border-b border-slate-200 dark:border-slate-700">
+        <tr>
+          <th class="px-6 py-3">Entity</th>
+          <th class="px-6 py-3">Oracle Table</th>
+          <th class="px-6 py-3">Direction</th>
+          <th class="px-6 py-3 text-right">Pending</th>
+          <th class="px-6 py-3">Last Sync (UTC)</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-slate-100 dark:divide-slate-700">
+        {% for row in mock_preview %}
+        <tr class="hover:bg-slate-50 dark:hover:bg-slate-700/40 transition-colors">
+          <td class="px-6 py-3 font-medium text-slate-900 dark:text-slate-100 text-sm">{{ row.entity }}</td>
+          <td class="px-6 py-3 font-mono text-xs text-slate-600 dark:text-slate-400">{{ row.table }}</td>
+          <td class="px-6 py-3">
+            {% if row.direction == 'INBOUND' %}
+              <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-sky-100 text-sky-700 dark:bg-sky-900/50 dark:text-sky-200">↓ IN</span>
+            {% else %}
+              <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-200">↑ OUT</span>
+            {% endif %}
+          </td>
+          <td class="px-6 py-3 text-right font-mono text-xs font-semibold
+            {% if row.pending > 5 %}text-amber-600 dark:text-amber-400
+            {% elif row.pending > 0 %}text-slate-700 dark:text-slate-300
+            {% else %}text-emerald-600 dark:text-emerald-400{% endif %}">
+            {{ row.pending }}
+          </td>
+          <td class="px-6 py-3 text-slate-500 dark:text-slate-400 text-xs font-mono">{{ row.last_sync }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Trigger Form (preserved) -->
+<div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm p-6 mb-6">
+  <h3 class="text-base font-semibold text-slate-900 dark:text-slate-100 mb-4">Trigger Manual Sync</h3>
+  <form class="space-y-4" method="post" action="{{ url_for('integrations.erp_trigger') }}">
+    <div class="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
+      <div class="md:col-span-4">
+        <label for="entity" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Entity</label>
+        <div class="relative">
+          <select name="entity" id="entity"
+                  class="block w-full appearance-none rounded-lg border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 py-2 pl-3 pr-10 text-sm text-slate-900 dark:text-slate-100 shadow-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500 transition-colors">
+            {% for entity in sync_entities %}
+              <option value="{{ entity.value }}">{{ entity.label }}{% if entity.table %} · {{ entity.table }}{% endif %}</option>
+            {% endfor %}
+          </select>
+          <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-slate-500 dark:text-slate-400">
+            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+            </svg>
+          </div>
+        </div>
+      </div>
+      <div class="md:col-span-6">
+        <label for="triggered_by" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Triggered By</label>
+        <input type="text" name="triggered_by" id="triggered_by" value="manual"
+               class="block w-full rounded-lg border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 shadow-sm focus:border-primary-500 focus:ring-1 focus:ring-primary-500 text-sm py-2 px-3 text-slate-900 dark:text-slate-100 transition-colors" />
+      </div>
+      <div class="md:col-span-2">
+        <button class="inline-flex items-center justify-center w-full px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-lg shadow-sm transition-colors" type="submit">
+          Trigger Sync
+        </button>
+      </div>
+    </div>
+  </form>
+</div>
+
+<!-- Sync Logs Table (preserved) -->
+<div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
+  <div class="px-6 py-4 border-b border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900/30">
+    <h3 class="text-base font-semibold text-slate-900 dark:text-slate-100">Sync Logs</h3>
+  </div>
+  <div class="overflow-x-auto">
+    <table class="w-full text-left text-sm">
+      <thead class="bg-slate-50 dark:bg-slate-900/50 text-slate-600 dark:text-slate-400 uppercase tracking-wider text-xs font-semibold border-b border-slate-200 dark:border-slate-700">
+        <tr>
+          <th class="px-6 py-3">ID</th>
+          <th class="px-6 py-3">Entity</th>
+          <th class="px-6 py-3">Status</th>
+          <th class="px-6 py-3 text-right">Records</th>
+          <th class="px-6 py-3">Triggered By</th>
+          <th class="px-6 py-3">Started</th>
+          <th class="px-6 py-3">Completed</th>
+          <th class="px-6 py-3">Error</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-slate-100 dark:divide-slate-700">
+        {% for log in logs %}
+        <tr class="{% if log.status == 'failed' %}bg-red-50/50 dark:bg-red-900/20 hover:bg-red-50 dark:hover:bg-red-900/30{% elif log.status == 'success' %}bg-green-50/50 dark:bg-emerald-900/20 hover:bg-green-50 dark:hover:bg-emerald-900/30{% else %}hover:bg-slate-50 dark:hover:bg-slate-700/40{% endif %} transition-colors">
+          <td class="px-6 py-4 font-mono text-xs text-slate-600 dark:text-slate-400">#{{ log.id }}</td>
+          <td class="px-6 py-4 font-medium text-slate-900 dark:text-slate-100 text-sm">{{ log.entity_type }}</td>
+          <td class="px-6 py-4">
+            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+              {% if log.status == 'failed' %}bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-200
+              {% elif log.status == 'success' %}bg-green-100 text-green-800 dark:bg-emerald-900/50 dark:text-emerald-200
+              {% else %}bg-amber-100 text-amber-800 dark:bg-amber-900/50 dark:text-amber-200{% endif %}">
+              {{ log.status|capitalize }}
+            </span>
+          </td>
+          <td class="px-6 py-4 text-right font-mono text-xs text-slate-700 dark:text-slate-300">{{ log.records_synced or '-' }}</td>
+          <td class="px-6 py-4 text-slate-600 dark:text-slate-400 text-sm">{{ log.triggered_by }}</td>
+          <td class="px-6 py-4 text-slate-500 dark:text-slate-400 text-xs">{{ log.started_at.strftime('%Y-%m-%d %H:%M') if log.started_at else '-' }}</td>
+          <td class="px-6 py-4 text-slate-500 dark:text-slate-400 text-xs">{{ log.completed_at.strftime('%Y-%m-%d %H:%M') if log.completed_at else '-' }}</td>
+          <td class="px-6 py-4 text-red-600 dark:text-red-400 text-xs font-mono truncate max-w-[150px]" title="{{ log.error_message }}">{{ log.error_message or '-' }}</td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="8" class="px-6 py-12 text-center">
+            <svg class="mx-auto h-12 w-12 text-slate-400 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+            <p class="text-sm font-medium text-slate-900 dark:text-slate-100">No sync logs yet.</p>
+            <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Trigger a sync to see logs here.</p>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

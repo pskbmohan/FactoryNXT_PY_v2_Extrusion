@@ -1,0 +1,86 @@
+{% extends "layout.html" %}
+{% block title %}Integration Hub{% endblock %}
+
+{% block content %}
+{% set ns = namespace(erp_active=0, plc_active=0) %}
+{% if integrations is defined and integrations %}
+  {% for intg in integrations %}
+    {% if intg.is_active and 'ERP' in (intg.name or '') %}{% set ns.erp_active = ns.erp_active + 1 %}{% endif %}
+    {% if intg.is_active and 'PLC' in (intg.name or '') %}{% set ns.plc_active = ns.plc_active + 1 %}{% endif %}
+  {% endfor %}
+{% endif %}
+
+<div class="kpi-hero mb-6">
+  <div class="kpi-card">
+    <div class="kpi-label">ERP Connectors</div>
+    <div class="kpi-value">{{ ns.erp_active }} active</div>
+  </div>
+  <div class="kpi-card">
+    <div class="kpi-label">PLC Connectors</div>
+    <div class="kpi-value">{{ ns.plc_active }} active</div>
+  </div>
+  <div class="kpi-card">
+    <div class="kpi-label">Failed Jobs (24h)</div>
+    <div class="kpi-value">{{ failed_jobs_24h if failed_jobs_24h is defined else '—' }}</div>
+  </div>
+</div>
+
+<div>
+<!-- Header -->
+<div class="mb-6">
+  <h1 class="text-2xl font-bold text-slate-900">Integration Hub</h1>
+  <p class="text-sm text-slate-500 mt-1">Manage external system integrations and connections.</p>
+</div>
+
+<!-- Data Table -->
+<div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+  <div class="overflow-x-auto">
+    <table class="w-full text-left text-sm">
+      <thead class="bg-slate-50 text-slate-600 uppercase tracking-wider text-xs font-semibold border-b border-slate-200">
+        <tr>
+          <th class="px-6 py-3">Name</th>
+          <th class="px-6 py-3">Type</th>
+          <th class="px-6 py-3">Status</th>
+          <th class="px-6 py-3">Last Sync</th>
+          <th class="px-6 py-3 text-right">Action</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-slate-100">
+        {% for intg in integrations %}
+        <tr class="hover:bg-slate-50 transition-colors">
+          <td class="px-6 py-4 font-medium text-slate-900">{{ intg.name }}</td>
+          <td class="px-6 py-4 text-slate-600 text-sm">{{ intg.integration_type }}</td>
+          <td class="px-6 py-4">
+            {% if intg.is_active %}
+              <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">Active</span>
+            {% else %}
+              <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-600">Inactive</span>
+            {% endif %}
+          </td>
+          <td class="px-6 py-4 text-slate-500 text-xs">{{ intg.last_synced_at.strftime('%Y-%m-%d %H:%M') if intg.last_synced_at else '-' }}</td>
+          <td class="px-6 py-4 text-right">
+            <form method="post" action="{{ url_for('integrations.toggle', id=intg.id) }}" class="inline">
+              {% if intg.is_active %}
+              <button class="inline-flex items-center px-3 py-1.5 bg-white border border-red-300 text-red-700 text-xs font-medium rounded-md shadow-sm hover:bg-red-50 transition-colors" type="submit">Disable</button>
+              {% else %}
+              <button class="inline-flex items-center px-3 py-1.5 bg-white border border-green-300 text-green-700 text-xs font-medium rounded-md shadow-sm hover:bg-green-50 transition-colors" type="submit">Enable</button>
+              {% endif %}
+            </form>
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="5" class="px-6 py-12 text-center">
+            <svg class="mx-auto h-12 w-12 text-slate-400 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+            </svg>
+            <p class="text-sm font-medium text-slate-900">No integrations configured.</p>
+            <p class="text-xs text-slate-500 mt-1">Configure a new integration to get started.</p>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+</div>{% endblock %}

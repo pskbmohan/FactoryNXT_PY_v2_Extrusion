@@ -1,0 +1,46 @@
+{% extends "layout.html" %}
+{% block title %}Plants{% endblock %}
+
+{% block content %}
+<!-- Header -->
+<div class="mb-6">
+  <h1 class="text-2xl font-bold text-slate-900">Plant Locations</h1>
+  <p class="text-sm text-slate-500 mt-1">Manage manufacturing facilities and their configurations.</p>
+</div>
+
+<!-- Data Table -->
+<div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+  <div class="overflow-x-auto">
+    <table class="w-full text-left text-sm">
+      <thead class="bg-slate-50 text-slate-600 uppercase tracking-wider text-xs font-semibold border-b border-slate-200">
+        <tr>
+          <th class="px-6 py-3">Plant Code</th>
+          <th class="px-6 py-3">Name</th>
+          <th class="px-6 py-3">Timezone</th>
+          <th class="px-6 py-3">Created At</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-slate-100">
+        {% for p in plants %}
+        <tr class="hover:bg-slate-50 transition-colors">
+          <td class="px-6 py-4 font-mono text-xs font-semibold text-primary-600">{{ p.code }}</td>
+          <td class="px-6 py-4 font-medium text-slate-900">{{ p.name }}</td>
+          <td class="px-6 py-4 text-slate-600 text-sm">{{ p.timezone }}</td>
+          <td class="px-6 py-4 text-slate-500 text-xs">{{ p.created_at.strftime('%Y-%m-%d %H:%M') if p.created_at else '-' }}</td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="4" class="px-6 py-12 text-center">
+            <svg class="mx-auto h-12 w-12 text-slate-400 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+            </svg>
+            <p class="text-sm font-medium text-slate-900">No plants configured.</p>
+            <p class="text-xs text-slate-500 mt-1">Add a new plant location to get started.</p>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

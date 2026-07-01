@@ -1,0 +1,227 @@
+{% extends "layout.html" %}
+{% block title %}Extrusion Unit Trace{% endblock %}
+
+{% block content %}
+<!-- Header & Search -->
+<div class="mb-6">
+  <h1 class="text-2xl font-bold text-slate-900">Extrusion Unit Trace</h1>
+  <p class="text-sm text-slate-500 mt-1">Look up the full production history of a unit by billet code, die code, alloy, work order, or profile serial.</p>
+</div>
+
+<div class="bg-white rounded-xl border border-slate-200 p-4 mb-6 shadow-sm">
+  <form method="get" class="flex flex-col gap-3">
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+      <div>
+        <label for="billet_code" class="block text-sm font-medium text-slate-700 mb-1.5">Billet Code</label>
+        <input type="text" name="billet_code" id="billet_code" value="{{ billet_code }}" placeholder="e.g., BLT-2601-003"
+               class="block w-full rounded-lg border-slate-300 shadow-sm focus:border-primary-500 focus:ring-1 focus:ring-primary-500 text-sm py-2 px-3 transition-colors" />
+      </div>
+      <div>
+        <label for="die_code" class="block text-sm font-medium text-slate-700 mb-1.5">Die Code</label>
+        <input type="text" name="die_code" id="die_code" value="{{ die_code }}" placeholder="e.g., DIE-410"
+               class="block w-full rounded-lg border-slate-300 shadow-sm focus:border-primary-500 focus:ring-1 focus:ring-primary-500 text-sm py-2 px-3 transition-colors" />
+      </div>
+      <div>
+        <label for="alloy" class="block text-sm font-medium text-slate-700 mb-1.5">Alloy</label>
+        <input type="text" name="alloy" id="alloy" value="{{ alloy }}" placeholder="e.g., 6063"
+               class="block w-full rounded-lg border-slate-300 shadow-sm focus:border-primary-500 focus:ring-1 focus:ring-primary-500 text-sm py-2 px-3 transition-colors" />
+      </div>
+      <div>
+        <label for="order_number" class="block text-sm font-medium text-slate-700 mb-1.5">Work Order</label>
+        <input type="text" name="order_number" id="order_number" value="{{ order_number }}" placeholder="e.g., WO-202601"
+               class="block w-full rounded-lg border-slate-300 shadow-sm focus:border-primary-500 focus:ring-1 focus:ring-primary-500 text-sm py-2 px-3 transition-colors" />
+      </div>
+    </div>
+    <details class="text-sm">
+      <summary class="cursor-pointer text-slate-500 hover:text-slate-700">Advanced: search by profile serial (legacy)</summary>
+      <div class="mt-3 flex flex-col sm:flex-row sm:items-end gap-3">
+        <div class="flex-1 max-w-md">
+          <label for="serial" class="block text-sm font-medium text-slate-700 mb-1.5">Profile Serial Number</label>
+          <input type="text" name="serial" id="serial" value="{{ serial }}" placeholder="e.g., BRD-20005-0"
+                 class="block w-full rounded-lg border-slate-300 shadow-sm focus:border-primary-500 focus:ring-1 focus:ring-primary-500 text-sm py-2 px-3 transition-colors" />
+        </div>
+      </div>
+    </details>
+    <div class="flex justify-end">
+      <button type="submit" class="inline-flex items-center justify-center px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-lg shadow-sm transition-colors h-[38px]">
+        <svg class="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+        </svg>
+        Search
+      </button>
+    </div>
+  </form>
+</div>
+
+{% if has_search and not board and not extrusion_unit %}
+<div class="mb-6 rounded-xl border border-amber-200 bg-amber-50 p-4 flex items-start gap-3">
+  <svg class="w-5 h-5 text-amber-600 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+  </svg>
+  <div class="text-sm text-amber-800">
+    <p class="font-medium">No unit found</p>
+    <p class="text-amber-700">No production unit matches the supplied identifiers.</p>
+  </div>
+</div>
+{% endif %}
+
+{% if extrusion_unit %}
+<!-- Extrusion Unit Summary -->
+<div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden mb-6">
+  <div class="px-6 py-4 border-b border-slate-200 bg-slate-50/50">
+    <h2 class="text-lg font-semibold text-slate-900 flex items-center gap-2">
+      <svg class="w-5 h-5 text-primary-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+      </svg>
+      {{ extrusion_unit.label }}: <span class="font-mono">{{ extrusion_unit.identifier }}</span>
+    </h2>
+  </div>
+  <div class="p-6">
+    <dl class="grid grid-cols-2 sm:grid-cols-4 gap-x-6 gap-y-4">
+      {% if extrusion_unit.alloy %}
+      <div>
+        <dt class="text-xs font-medium text-slate-500 uppercase tracking-wide">Alloy</dt>
+        <dd class="mt-1 text-sm font-medium text-slate-900">{{ extrusion_unit.alloy }}</dd>
+      </div>
+      {% endif %}
+      {% if extrusion_unit.die_code %}
+      <div>
+        <dt class="text-xs font-medium text-slate-500 uppercase tracking-wide">Die Code</dt>
+        <dd class="mt-1 text-sm font-medium text-slate-900">{{ extrusion_unit.die_code }}</dd>
+      </div>
+      {% endif %}
+      {% if extrusion_unit.billet %}
+      <div>
+        <dt class="text-xs font-medium text-slate-500 uppercase tracking-wide">Billet</dt>
+        <dd class="mt-1 text-sm font-medium text-slate-900">{{ extrusion_unit.billet }}</dd>
+      </div>
+      {% endif %}
+      {% if extrusion_unit.order_number %}
+      <div>
+        <dt class="text-xs font-medium text-slate-500 uppercase tracking-wide">Work Order</dt>
+        <dd class="mt-1 text-sm font-medium text-slate-900">{{ extrusion_unit.order_number }}</dd>
+      </div>
+      {% endif %}
+    </dl>
+  </div>
+</div>
+{% endif %}
+
+{% if board %}
+<!-- Profile / Board Summary (used when searching by serial) -->
+<div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden mb-6">
+  <div class="px-6 py-4 border-b border-slate-200 bg-slate-50/50">
+    <h2 class="text-lg font-semibold text-slate-900 flex items-center gap-2">
+      <svg class="w-5 h-5 text-primary-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+      </svg>
+      Profile: <span class="font-mono">{{ board.serial_number }}</span>
+    </h2>
+  </div>
+  <div class="p-6">
+    <dl class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
+      <div>
+        <dt class="text-xs font-medium text-slate-500 uppercase tracking-wide">Work Order</dt>
+        <dd class="mt-1 text-sm font-medium text-slate-900">{{ board.work_order.order_number if board.work_order else '-' }}</dd>
+      </div>
+      <div>
+        <dt class="text-xs font-medium text-slate-500 uppercase tracking-wide">Status</dt>
+        <dd class="mt-1">
+          <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+            {% if board.status == 'COMPLETED' %}bg-green-100 text-green-800
+            {% elif board.status == 'IN_PROGRESS' %}bg-blue-100 text-blue-800
+            {% else %}bg-slate-100 text-slate-700{% endif %}">
+            {{ board.status|replace('_', ' ')|capitalize }}
+          </span>
+        </dd>
+      </div>
+    </dl>
+  </div>
+</div>
+{% endif %}
+
+{% if board or extrusion_unit %}
+<!-- Genealogy Events -->
+<div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden mb-6">
+  <div class="px-6 py-4 border-b border-slate-200 bg-slate-50/50 flex items-center justify-between">
+    <h3 class="text-base font-semibold text-slate-900">Process Events</h3>
+    <span class="text-xs font-medium text-slate-500 bg-slate-100 px-2.5 py-1 rounded-full">{{ events|length }} Total</span>
+  </div>
+  <div class="overflow-x-auto">
+    <table class="w-full text-left text-sm">
+      <thead class="bg-slate-50 text-slate-600 uppercase tracking-wider text-xs font-semibold border-b border-slate-200">
+        <tr>
+          <th class="px-6 py-3">Stage</th>
+          <th class="px-6 py-3">Work Order</th>
+          <th class="px-6 py-3">Billet</th>
+          <th class="px-6 py-3">Die Code</th>
+          <th class="px-6 py-3">Alloy</th>
+          <th class="px-6 py-3">Machine</th>
+          <th class="px-6 py-3">Operator</th>
+          <th class="px-6 py-3">Occurred</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-slate-100">
+        {% for e in events %}
+        {% set ed = e.data or {} %}
+        <tr class="hover:bg-slate-50 transition-colors">
+          <td class="px-6 py-3">
+            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-700">
+              {{ e.event_type }}
+            </span>
+          </td>
+          <td class="px-6 py-3 text-slate-700 text-xs font-mono">{{ ed.get('order_number') or e.wo_id or '-' }}</td>
+          <td class="px-6 py-3 text-slate-700 text-xs font-mono">{{ ed.get('billet') or e.lot_number or '-' }}</td>
+          <td class="px-6 py-3 text-slate-600 text-xs font-mono">{{ ed.get('die_code') or e.reference_designator or '-' }}</td>
+          <td class="px-6 py-3 text-slate-600 text-xs font-mono">{{ ed.get('alloy') or e.part_number or '-' }}</td>
+          <td class="px-6 py-3 text-slate-700 text-xs">{{ e.machine_id or '-' }}</td>
+          <td class="px-6 py-3 text-slate-600 text-xs">{{ e.operator_id or '-' }}</td>
+          <td class="px-6 py-3 text-slate-500 text-xs">{{ e.occurred_at.strftime('%Y-%m-%d %H:%M') if e.occurred_at else '-' }}</td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="8" class="px-6 py-8 text-center text-slate-500 text-sm">No process events recorded for this unit.</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% if repairs %}
+<!-- Repairs (only shown for legacy profile-board units) -->
+<div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+  <div class="px-6 py-4 border-b border-slate-200 bg-slate-50/50 flex items-center justify-between">
+    <h3 class="text-base font-semibold text-slate-900">Rework History</h3>
+    <span class="text-xs font-medium text-slate-500 bg-slate-100 px-2.5 py-1 rounded-full">{{ repairs|length }} Total</span>
+  </div>
+  <div class="overflow-x-auto">
+    <table class="w-full text-left text-sm">
+      <thead class="bg-slate-50 text-slate-600 uppercase tracking-wider text-xs font-semibold border-b border-slate-200">
+        <tr>
+          <th class="px-6 py-3">Location / Die</th>
+          <th class="px-6 py-3">Removed Part</th>
+          <th class="px-6 py-3">Installed Part</th>
+          <th class="px-6 py-3">Reason</th>
+          <th class="px-6 py-3">Operator</th>
+          <th class="px-6 py-3">Repaired At</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-slate-100">
+        {% for r in repairs %}
+        <tr class="hover:bg-red-50/30 transition-colors">
+          <td class="px-6 py-3 font-mono text-xs font-medium text-slate-900">{{ r.reference_designator }}</td>
+          <td class="px-6 py-3 text-slate-600 text-xs font-mono">{{ r.removed_part_number or '-' }}</td>
+          <td class="px-6 py-3 text-slate-700 text-xs font-mono">{{ r.installed_part_number or '-' }}</td>
+          <td class="px-6 py-3 text-slate-600 text-xs">{{ r.reason_code or '-' }}</td>
+          <td class="px-6 py-3 text-slate-600 text-xs">{{ r.operator_id or '-' }}</td>
+          <td class="px-6 py-3 text-slate-500 text-xs">{{ r.repaired_at.strftime('%Y-%m-%d %H:%M') if r.repaired_at else '-' }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+{% endif %}
+{% endblock %}

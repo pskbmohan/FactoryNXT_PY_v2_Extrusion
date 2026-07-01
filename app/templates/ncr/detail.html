@@ -1,0 +1,54 @@
+{% extends "layout.html" %}
+{% block title %}NCR {{ ncr.id }}{% endblock %}
+{% block content %}
+<div class="mb-6 flex items-center justify-between">
+  <div>
+    <h2 class="text-2xl font-bold text-slate-900">NCR Discrepancy Ticket: #{{ ncr.id }}</h2>
+    <p class="text-sm text-slate-500">Individual non-conformance evaluation logs.</p>
+  </div>
+  <a class="inline-flex items-center px-4 py-2 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 text-sm font-medium rounded-lg shadow-sm" href="{{ url_for('ncr.list_ncrs') }}">Back to Quality</a>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+  <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
+    <h3 class="text-md font-semibold text-slate-900 mb-4 pb-2 border-b border-slate-200">Defect Information</h3>
+    <dl class="space-y-3 text-sm">
+      <div><dt class="text-slate-500 inline">Defect Code / ID:</dt><dd class="font-medium text-slate-900 inline ml-2">{{ ncr.defect_id or 'Manual' }}</dd></div>
+      <div><dt class="text-slate-500 inline">Work Order:</dt><dd class="font-medium text-slate-900 inline ml-2">{{ ncr.work_order.order_number if ncr.work_order else 'N/A' }}</dd></div>
+      <div><dt class="text-slate-500 inline">Detailed Description:</dt><dd class="font-medium text-slate-900 inline ml-2">{{ ncr.description }}</dd></div>
+      <div><dt class="text-slate-500 inline">Severity:</dt><dd class="font-medium text-slate-900 inline ml-2">{{ ncr.severity }}</dd></div>
+      <div><dt class="text-slate-500 inline">Status:</dt><dd class="font-medium text-slate-900 inline ml-2">{{ ncr.status }}</dd></div>
+      <div><dt class="text-slate-500 inline">Created At:</dt><dd class="font-medium text-slate-900 inline ml-2">{{ ncr.created_at }}</dd></div>
+      {% if ncr.resolved_at %}
+      <div><dt class="text-slate-500 inline">Resolved At:</dt><dd class="font-medium text-slate-900 inline ml-2">{{ ncr.resolved_at }}</dd></div>
+      {% endif %}
+    </dl>
+  </div>
+
+  <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
+    <h3 class="text-md font-semibold text-slate-900 mb-4 pb-2 border-b border-slate-200">Resolution Steps</h3>
+    <div class="overflow-x-auto">
+      <table class="w-full text-left text-sm">
+        <thead class="bg-slate-50 text-slate-600 uppercase tracking-wider text-xs font-semibold border-b border-slate-200">
+          <tr>
+            <th class="py-2 px-3">Step</th>
+            <th class="py-2 px-3">Action</th>
+            <th class="py-2 px-3">Completed By</th>
+            <th class="py-2 px-3">Date</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-100">
+          {% for step in resolution_steps %}
+          <tr>
+            <td class="py-2 px-3">{{ loop.index }}</td>
+            <td class="py-2 px-3">{{ step.action }}</td>
+            <td class="py-2 px-3 text-slate-600">{{ step.completed_by }}</td>
+            <td class="py-2 px-3 text-slate-600">{{ step.date }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

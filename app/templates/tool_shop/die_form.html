@@ -1,0 +1,57 @@
+{% extends "layout.html" %}
+{% block title %}New Die Inward{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+  <div class="flex items-center justify-between">
+    <div>
+      <h1 class="text-2xl font-bold text-slate-900 dark:text-slate-50">New Die Inward</h1>
+      <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Register a die received from store/supplier</p>
+    </div>
+    <a href="{{ url_for('tool_shop.die_list') }}" class="text-sm text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200">&larr; Back to list</a>
+  </div>
+
+  <form method="post" action="{{ url_for('tool_shop.die_new') }}" class="bg-white dark:bg-slate-800 rounded-lg shadow overflow-hidden">
+    <div class="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div>
+        <label for="die_code" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Die Code <span class="text-red-500">*</span></label>
+        <input type="text" id="die_code" name="die_code" required value="{{ form.die_code if form else '' }}"
+          class="block w-full rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-200 shadow-sm focus:border-primary-500 focus:ring-1 focus:ring-primary-500 text-sm py-2 px-3" />
+      </div>
+      <div>
+        <label for="profile_code" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Profile Code <span class="text-red-500">*</span></label>
+        <input type="text" id="profile_code" name="profile_code" required value="{{ form.profile_code if form else '' }}"
+          class="block w-full rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-200 shadow-sm focus:border-primary-500 focus:ring-1 focus:ring-primary-500 text-sm py-2 px-3" />
+      </div>
+      <div>
+        <label for="alloy" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Alloy <span class="text-red-500">*</span></label>
+        <select id="alloy" name="alloy" required class="block w-full rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-200 shadow-sm focus:border-primary-500 focus:ring-1 focus:ring-primary-500 text-sm py-2 px-3">
+          <option value="">Select alloy</option>
+          {% for a in ['6061','6063','6082','6005','6463','6101','Other'] %}
+          <option value="{{ a }}" {% if form and form.alloy == a %}selected{% endif %}>{{ a }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div>
+        <label for="supplier" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Supplier</label>
+        <input type="text" id="supplier" name="supplier" value="{{ form.supplier if form else '' }}"
+          class="block w-full rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-200 shadow-sm focus:border-primary-500 focus:ring-1 focus:ring-primary-500 text-sm py-2 px-3" />
+      </div>
+      <div>
+        <label for="location" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Storage Location</label>
+        <input type="text" id="location" name="location" value="{{ form.location if form else '' }}" placeholder="e.g. Rack A, Slot 12"
+          class="block w-full rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-200 shadow-sm focus:border-primary-500 focus:ring-1 focus:ring-primary-500 text-sm py-2 px-3" />
+      </div>
+      <div>
+        <label for="erp_asset_id" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">ERP Asset ID</label>
+        <input type="text" id="erp_asset_id" name="erp_asset_id" value="{{ form.erp_asset_id if form else '' }}"
+          class="block w-full rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-200 shadow-sm focus:border-primary-500 focus:ring-1 focus:ring-primary-500 text-sm py-2 px-3" />
+      </div>
+    </div>
+    <div class="px-6 py-4 bg-slate-50 dark:bg-slate-700/50 border-t border-slate-200 dark:border-slate-700 flex justify-end gap-3">
+      <a href="{{ url_for('tool_shop.die_list') }}" class="px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700">Cancel</a>
+      <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 rounded-lg shadow-sm">Register Die</button>
+    </div>
+  </form>
+</div>
+{% endblock %}

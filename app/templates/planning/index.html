@@ -1,0 +1,100 @@
+{% extends "layout.html" %}
+{% block title %}Planning & Scheduling Overview{% endblock %}
+
+{% block content %}
+<div class="kpi-hero mb-6">
+  <div class="kpi-card">
+    <div class="kpi-label">Orders Imported</div>
+    <div class="kpi-value">{{ total_orders or 0 }}</div>
+  </div>
+  <div class="kpi-card">
+    <div class="kpi-label">Schedule Risk</div>
+    <div class="kpi-value">{{ shortages_count or 0 }} <span style="font-size: 0.75rem; color: #64748b;">shortages</span></div>
+  </div>
+  <div class="kpi-card">
+    <div class="kpi-label">On-Time</div>
+    <div class="kpi-value">{{ '%.0f'|format((on_time_pct or 0) * 100) }}%</div>
+  </div>
+</div>
+
+<div>
+<div class="space-y-6">
+  <div class="flex items-center justify-between">
+    <div>
+      <h1 class="text-2xl font-bold text-slate-900 dark:text-slate-50">Planning & Scheduling</h1>
+      <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Orders, stock, and schedule coordination</p>
+    </div>
+    <a href="{{ url_for('planning.orders') }}" class="inline-flex items-center px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-lg shadow-sm">
+      View Orders
+    </a>
+  </div>
+
+  <!-- KPI Cards -->
+  <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+    <div class="bg-white dark:bg-slate-800 rounded-lg shadow p-4">
+      <div class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Total Orders</div>
+      <div class="text-3xl font-bold text-slate-900 dark:text-slate-50 mt-2">{{ total_orders or 0 }}</div>
+    </div>
+    <div class="bg-white dark:bg-slate-800 rounded-lg shadow p-4">
+      <div class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Active Orders</div>
+      <div class="text-3xl font-bold text-emerald-600 dark:text-emerald-400 mt-2">{{ active_orders or 0 }}</div>
+    </div>
+    <div class="bg-white dark:bg-slate-800 rounded-lg shadow p-4">
+      <div class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Shortages</div>
+      <div class="text-3xl font-bold {% if (shortages_count or 0) > 0 %}text-red-600 dark:text-red-400{% else %}text-slate-900 dark:text-slate-50{% endif %} mt-2">{{ shortages_count or 0 }}</div>
+    </div>
+    <div class="bg-white dark:bg-slate-800 rounded-lg shadow p-4">
+      <div class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">On-Time %</div>
+      <div class="text-3xl font-bold text-primary-600 dark:text-primary-500 mt-2">{{ '%.0f'|format((on_time_pct or 0) * 100) }}%</div>
+    </div>
+  </div>
+
+  <!-- Recent Orders -->
+  <div class="bg-white dark:bg-slate-800 rounded-lg shadow overflow-hidden">
+    <div class="px-6 py-4 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between">
+      <h2 class="text-lg font-semibold text-slate-900 dark:text-slate-50">Recent Orders</h2>
+      <a href="{{ url_for('planning.orders') }}" class="text-sm text-primary-600 dark:text-primary-400 hover:underline">View all &rarr;</a>
+    </div>
+    <div class="overflow-x-auto">
+      <table class="w-full text-sm text-left">
+        <thead class="bg-slate-50 dark:bg-slate-700/50 text-slate-600 dark:text-slate-400 uppercase tracking-wider text-xs font-semibold border-b border-slate-200 dark:border-slate-700">
+          <tr>
+            <th class="px-6 py-3">Order #</th>
+            <th class="px-6 py-3">Customer</th>
+            <th class="px-6 py-3">Profile</th>
+            <th class="px-6 py-3">Qty (kg)</th>
+            <th class="px-6 py-3">Due Date</th>
+            <th class="px-6 py-3">Status</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-100 dark:divide-slate-700">
+          {% for order in (recent_orders or [])[:10] %}
+          <tr class="hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
+            <td class="px-6 py-3 font-medium text-slate-900 dark:text-slate-50">{{ order.order_number }}</td>
+            <td class="px-6 py-3 text-slate-700 dark:text-slate-300">{{ order.customer_name }}</td>
+            <td class="px-6 py-3 text-slate-600 dark:text-slate-400">{{ order.profile_code }}</td>
+            <td class="px-6 py-3 text-slate-600 dark:text-slate-400">{{ order.quantity_kg }}</td>
+            <td class="px-6 py-3 text-slate-600 dark:text-slate-400">{{ order.due_date }}</td>
+            <td class="px-6 py-3">
+              <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium
+                {% if order.status == 'PENDING' %}bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-300
+                {% elif order.status == 'IN_PROGRESS' %}bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300
+                {% elif order.status == 'COMPLETED' %}bg-emerald-100 dark:bg-emerald-900/30 text-emerald-800 dark:text-emerald-300
+                {% else %}bg-slate-100 dark:bg-slate-700 text-slate-800 dark:text-slate-200{% endif %}">
+                {{ order.status }}
+              </span>
+            </td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="6" class="px-6 py-8 text-center text-slate-500 dark:text-slate-400">
+              <p class="text-sm">No orders found</p>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+</div>{% endblock %}

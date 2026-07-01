@@ -1,0 +1,108 @@
+{% extends "layout.html" %}
+{% block title %}Stock Availability{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+  <div class="flex items-center justify-between">
+    <div>
+      <h1 class="text-2xl font-bold text-slate-900 dark:text-slate-50">Stock Availability</h1>
+      <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Dies and billets ready for production</p>
+    </div>
+  </div>
+
+  <!-- Dies Availability -->
+  <div class="bg-white dark:bg-slate-800 rounded-lg shadow overflow-hidden">
+    <div class="px-6 py-4 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between">
+      <h2 class="text-lg font-semibold text-slate-900 dark:text-slate-50">Die Registry</h2>
+      <a href="{{ url_for('tool_shop.die_list') }}" class="text-sm text-primary-600 dark:text-primary-400 hover:underline">Go to Tool Shop &rarr;</a>
+    </div>
+    <div class="overflow-x-auto">
+      <table class="w-full text-sm text-left">
+        <thead class="bg-slate-50 dark:bg-slate-700/50 text-slate-600 dark:text-slate-400 uppercase tracking-wider text-xs font-semibold border-b border-slate-200 dark:border-slate-700">
+          <tr>
+            <th class="px-6 py-3">Die Code</th>
+            <th class="px-6 py-3">Profile</th>
+            <th class="px-6 py-3">Alloy</th>
+            <th class="px-6 py-3">Status</th>
+            <th class="px-6 py-3">Location</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-100 dark:divide-slate-700">
+          {% for die in (dies or []) %}
+          <tr class="hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
+            <td class="px-6 py-3 font-medium text-slate-900 dark:text-slate-50">
+              <a class="hover:text-primary-600" href="{{ url_for('tool_shop.die_detail', id=die.id) }}">{{ die.die_code }}</a>
+            </td>
+            <td class="px-6 py-3 text-slate-600 dark:text-slate-400 font-mono text-xs">{{ die.profile_code or '-' }}</td>
+            <td class="px-6 py-3 text-slate-600 dark:text-slate-400">{{ die.alloy or '-' }}</td>
+            <td class="px-6 py-3">
+              <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium
+                {% if die.status == 'Available' or die.status == 'Nitrided' %}bg-emerald-100 dark:bg-emerald-900/30 text-emerald-800 dark:text-emerald-300
+                {% elif die.status == 'TestingPending' %}bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-300
+                {% elif die.status in ('Rejected','TestingFailed') %}bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300
+                {% else %}bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300{% endif %}">
+                {{ die.status }}
+              </span>
+            </td>
+            <td class="px-6 py-3 text-slate-600 dark:text-slate-400">{{ die.location or '-' }}</td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="5" class="px-6 py-8 text-center text-slate-500 dark:text-slate-400">
+              <p class="text-sm">No dies registered. Inward a die from the Tool Shop to begin.</p>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Billets Availability -->
+  <div class="bg-white dark:bg-slate-800 rounded-lg shadow overflow-hidden">
+    <div class="px-6 py-4 border-b border-slate-200 dark:border-slate-700">
+      <h2 class="text-lg font-semibold text-slate-900 dark:text-slate-50">Billet Stock</h2>
+    </div>
+    <div class="overflow-x-auto">
+      <table class="w-full text-sm text-left">
+        <thead class="bg-slate-50 dark:bg-slate-700/50 text-slate-600 dark:text-slate-400 uppercase tracking-wider text-xs font-semibold border-b border-slate-200 dark:border-slate-700">
+          <tr>
+            <th class="px-6 py-3">Billet Code</th>
+            <th class="px-6 py-3">Alloy</th>
+            <th class="px-6 py-3">Diameter (mm)</th>
+            <th class="px-6 py-3">Length (mm)</th>
+            <th class="px-6 py-3">Weight (kg)</th>
+            <th class="px-6 py-3">Status</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-100 dark:divide-slate-700">
+          {% for billet in (billets or []) %}
+          <tr class="hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
+            <td class="px-6 py-3 font-medium text-slate-900 dark:text-slate-50">{{ billet.billet_code }}</td>
+            <td class="px-6 py-3 text-slate-600 dark:text-slate-400">{{ billet.alloy or '-' }}</td>
+            <td class="px-6 py-3 text-slate-600 dark:text-slate-400">{{ '%.2f'|format(billet.diameter_mm) if billet.diameter_mm else '-' }}</td>
+            <td class="px-6 py-3 text-slate-600 dark:text-slate-400">{{ '%.1f'|format(billet.length_mm) if billet.length_mm else '-' }}</td>
+            <td class="px-6 py-3 text-slate-600 dark:text-slate-400">{{ '%.2f'|format(billet.quantity_kg) if billet.quantity_kg else '-' }}</td>
+            <td class="px-6 py-3">
+              <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium
+                {% if billet.status == 'INSPECTED' %}bg-emerald-100 dark:bg-emerald-900/30 text-emerald-800 dark:text-emerald-300
+                {% elif billet.status == 'CONSUMED' %}bg-slate-100 dark:bg-slate-700 text-slate-800 dark:text-slate-200
+                {% elif billet.status == 'REJECTED' %}bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300
+                {% else %}bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300{% endif %}">
+                {{ billet.status }}
+              </span>
+            </td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="6" class="px-6 py-8 text-center text-slate-500 dark:text-slate-400">
+              <p class="text-sm">No billets in stock.</p>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

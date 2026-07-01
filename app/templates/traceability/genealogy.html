@@ -1,0 +1,183 @@
+{% extends "layout.html" %}
+{% block title %}Work Order Genealogy{% endblock %}
+
+{% block content %}
+<div class="mb-6">
+  <h1 class="text-2xl font-bold text-slate-900">Work Order Genealogy</h1>
+  <p class="text-sm text-slate-500 mt-1">Track process history for a specific work order</p>
+</div>
+
+<form method="get" class="bg-white rounded-xl border border-slate-200 p-4 mb-6 shadow-sm">
+  <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+    <div class="md:col-span-3">
+      <label for="order_number" class="block text-sm font-medium text-slate-700 mb-1.5">Work Order Number</label>
+      <input type="text" name="order_number" id="order_number" value="{{ order_number or '' }}" placeholder="Enter work order number"
+             class="block w-full rounded-lg border-slate-300 shadow-sm focus:border-primary-500 focus:ring-1 focus:ring-primary-500 text-sm py-2 px-3" />
+    </div>
+    <div class="md:col-span-1">
+      <button type="submit" class="w-full inline-flex items-center justify-center px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-lg shadow-sm">
+        Search
+      </button>
+    </div>
+  </div>
+</form>
+
+{% if work_order %}
+<div class="space-y-6">
+  <!-- Header -->
+  <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
+    <h2 class="text-lg font-semibold text-slate-900 mb-4">Work Order Summary</h2>
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 text-sm">
+      <div>
+        <span class="block text-xs font-medium text-slate-500 uppercase tracking-wider">Order Number</span>
+        <span class="block text-slate-900 font-mono mt-1">{{ work_order.order_number }}</span>
+      </div>
+      <div>
+        <span class="block text-xs font-medium text-slate-500 uppercase tracking-wider">Quantity (tons)</span>
+        <span class="block text-slate-900 mt-1">{{ work_order.quantity or '-' }}</span>
+      </div>
+      <div>
+        <span class="block text-xs font-medium text-slate-500 uppercase tracking-wider">Status</span>
+        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 mt-1">
+          {{ work_order.status or '-' }}
+        </span>
+      </div>
+      <div>
+        <span class="block text-xs font-medium text-slate-500 uppercase tracking-wider">Scheduled Start</span>
+        <span class="block text-slate-700 mt-1">{{ work_order.scheduled_start.strftime('%Y-%m-%d %H:%M') if work_order.scheduled_start else '-' }}</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Operation History -->
+  <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+    <div class="p-6 border-b border-slate-200">
+      <h2 class="text-lg font-semibold text-slate-900">Traceability Records</h2>
+      <p class="text-xs text-slate-500 mt-1">{{ process_events|length }} events recorded</p>
+    </div>
+    <div class="overflow-x-auto">
+      <table class="w-full text-left text-sm">
+        <thead class="bg-slate-50 text-slate-600 uppercase tracking-wider text-xs font-semibold border-b border-slate-200">
+          <tr>
+            <th class="px-6 py-3">Timestamp</th>
+            <th class="px-6 py-3">Event</th>
+            <th class="px-6 py-3">Operator</th>
+            <th class="px-6 py-3">Machine</th>
+            <th class="px-6 py-3">Details</th>
+            <th class="px-6 py-3">Result</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-100">
+          {% for e in process_events|sort(attribute='occurred_at') %}
+          <tr class="hover:bg-slate-50 transition-colors">
+            <td class="px-6 py-4 text-slate-500 text-xs font-mono">{{ e.occurred_at.strftime('%Y-%m-%d %H:%M') if e.occurred_at else '-' }}</td>
+            <td class="px-6 py-4 text-slate-700">{{ e.event_type or '-' }}</td>
+            <td class="px-6 py-4 text-slate-600 text-xs">{{ e.operator_id or '-' }}</td>
+            <td class="px-6 py-4 font-mono text-xs text-slate-600">{{ e.machine_name or '-' }}</td>
+            <td class="px-6 py-4">
+              {% if e.data %}
+              <button onclick="document.getElementById('proc-{{ e.id }}').classList.toggle('hidden')" class="text-primary-600 hover:text-primary-700 text-xs font-medium">View</button>
+              <div id="proc-{{ e.id }}" class="hidden mt-2 text-xs text-slate-700 bg-slate-50 p-2 rounded">
+                <pre class="whitespace-pre-wrap">{{ e.data }}</pre>
+              </div>
+              {% else %}
+              <span class="text-slate-400 text-xs">-</span>
+              {% endif %}
+            </td>
+            <td class="px-6 py-4">
+              {% if e.result %}
+              <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium
+                {% if 'PASS' in e.result or 'OK' in e.result %}bg-green-100 text-green-800
+                {% elif 'FAIL' in e.result %}bg-red-100 text-red-800
+                {% else %}bg-slate-100 text-slate-700{% endif %}">
+                {{ e.result }}
+              </span>
+              {% else %}
+              <span class="text-slate-400 text-xs">-</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="6" class="px-6 py-8 text-center text-sm text-slate-500">No traceability records found for this work order.</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Genealogy Events -->
+  <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+    <div class="p-6 border-b border-slate-200">
+      <h2 class="text-lg font-semibold text-slate-900">Genealogy Events</h2>
+      <p class="text-xs text-slate-500 mt-1">{{ genealogy_events|length }} events recorded</p>
+    </div>
+    <div class="overflow-x-auto">
+      <table class="w-full text-left text-sm">
+        <thead class="bg-slate-50 text-slate-600 uppercase tracking-wider text-xs font-semibold border-b border-slate-200">
+          <tr>
+            <th class="px-6 py-3">Timestamp</th>
+            <th class="px-6 py-3">Event</th>
+            <th class="px-6 py-3">Entity Type</th>
+            <th class="px-6 py-3">Entity ID</th>
+            <th class="px-6 py-3">Notes</th>
+            <th class="px-6 py-3">Details</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-100">
+          {% for g in genealogy_events|sort(attribute='occurred_at') %}
+          <tr class="hover:bg-slate-50 transition-colors">
+            <td class="px-6 py-4 text-slate-500 text-xs font-mono">{{ g.occurred_at.strftime('%Y-%m-%d %H:%M') if g.occurred_at else '-' }}</td>
+            <td class="px-6 py-4 text-slate-700">{{ g.event_type or '-' }}</td>
+            <td class="px-6 py-4">
+              <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium
+                {% if g.entity_type == 'ORDER' %}bg-blue-100 text-blue-800
+                {% elif g.entity_type == 'DIE' %}bg-amber-100 text-amber-800
+                {% elif g.entity_type == 'BILLET' %}bg-green-100 text-green-800
+                {% elif g.entity_type == 'PROCESS_RUN' %}bg-purple-100 text-purple-800
+                {% else %}bg-slate-100 text-slate-700{% endif %}">
+                {{ g.entity_type or '-' }}
+              </span>
+            </td>
+            <td class="px-6 py-4 font-mono text-xs text-slate-600">{{ g.entity_id[:8] if g.entity_id else '-' }}</td>
+            <td class="px-6 py-4 text-slate-600 text-xs">{{ g.notes or '-' }}</td>
+            <td class="px-6 py-4">
+              {% if g.data %}
+              <button onclick="document.getElementById('gen-{{ g.id }}').classList.toggle('hidden')" class="text-primary-600 hover:text-primary-700 text-xs font-medium">View</button>
+              <div id="gen-{{ g.id }}" class="hidden mt-2 text-xs text-slate-700 bg-slate-50 p-2 rounded">
+                <pre class="whitespace-pre-wrap">{{ g.data }}</pre>
+              </div>
+              {% else %}
+              <span class="text-slate-400 text-xs">-</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="6" class="px-6 py-8 text-center text-sm text-slate-500">No genealogy events found for this work order.</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% elif order_number %}
+<div class="bg-yellow-50 border border-yellow-200 rounded-xl p-6 shadow-sm">
+  <div class="flex">
+    <div class="flex-shrink-0">
+      <svg class="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
+        <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+      </svg>
+    </div>
+    <div class="ml-3">
+      <h3 class="text-sm font-medium text-yellow-800">No work order found</h3>
+      <div class="mt-1 text-sm text-yellow-700">
+        <p>No work order found for number <span class="font-mono font-medium">{{ order_number }}</span>.</p>
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
+{% endblock %}

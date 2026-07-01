@@ -1,0 +1,59 @@
+{% extends "layout.html" %}
+{% block title %}Process Events{% endblock %}
+
+{% block content %}
+<!-- Header -->
+<div class="mb-6">
+  <h1 class="text-2xl font-bold text-slate-900">Process Events</h1>
+  <p class="text-sm text-slate-500 mt-1">System-wide log of all extrusion process stages and traceability events.</p>
+</div>
+
+<!-- Data Table -->
+<div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+  <div class="overflow-x-auto">
+    <table class="w-full text-left text-sm">
+      <thead class="bg-slate-50 text-slate-600 uppercase tracking-wider text-xs font-semibold border-b border-slate-200">
+        <tr>
+          <th class="px-6 py-3">Stage</th>
+          <th class="px-6 py-3">Work Order</th>
+          <th class="px-6 py-3">Billet</th>
+          <th class="px-6 py-3">Die Code</th>
+          <th class="px-6 py-3">Alloy / Profile</th>
+          <th class="px-6 py-3">Machine</th>
+          <th class="px-6 py-3">Operator</th>
+          <th class="px-6 py-3">Occurred At</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-slate-100">
+        {% for e in events %}
+        {% set ed = e.data or {} %}
+        <tr class="hover:bg-slate-50 transition-colors">
+          <td class="px-6 py-4">
+            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-700">
+              {{ e.event_type }}
+            </span>
+          </td>
+          <td class="px-6 py-4 text-slate-700 text-xs font-mono">{{ ed.get('order_number') or e.wo_id or '-' }}</td>
+          <td class="px-6 py-4 text-slate-700 text-xs font-mono">{{ ed.get('billet') or e.lot_number or '-' }}</td>
+          <td class="px-6 py-4 text-slate-600 text-xs font-mono">{{ ed.get('die_code') or e.reference_designator or '-' }}</td>
+          <td class="px-6 py-4 text-slate-700 text-xs font-mono">{{ ed.get('alloy') or e.part_number or '-' }}</td>
+          <td class="px-6 py-4 text-slate-600 text-xs">{{ e.machine_id or '-' }}</td>
+          <td class="px-6 py-4 text-slate-600 text-xs">{{ e.operator_id or '-' }}</td>
+          <td class="px-6 py-4 text-slate-500 text-xs">{{ e.occurred_at.strftime('%Y-%m-%d %H:%M') if e.occurred_at else '-' }}</td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="8" class="px-6 py-12 text-center">
+            <svg class="mx-auto h-12 w-12 text-slate-400 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <p class="text-sm font-medium text-slate-900">No process events found.</p>
+            <p class="text-xs text-slate-500 mt-1">Event logs will appear here as production occurs.</p>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

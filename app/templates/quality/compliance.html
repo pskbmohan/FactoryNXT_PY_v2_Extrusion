@@ -1,0 +1,64 @@
+{% extends "layout.html" %}
+{% block title %}Compliance Dashboard{% endblock %}
+{% block content %}
+<div class="mb-6">
+  <h2 class="text-2xl font-bold text-slate-900">Compliance Dashboard</h2>
+  <p class="text-sm text-slate-500">Track regulatory and internal compliance status.</p>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+  <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6 text-center">
+    <div class="text-3xl font-bold text-slate-900">{{ stats.total }}</div>
+    <div class="text-xs font-medium text-slate-500 uppercase tracking-wider mt-1">Total</div>
+  </div>
+  <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6 text-center">
+    <div class="text-3xl font-bold text-green-600">{{ stats.compliant }}</div>
+    <div class="text-xs font-medium text-slate-500 uppercase tracking-wider mt-1">Compliant</div>
+  </div>
+  <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6 text-center">
+    <div class="text-3xl font-bold text-red-600">{{ stats.non_compliant }}</div>
+    <div class="text-xs font-medium text-slate-500 uppercase tracking-wider mt-1">Non-Compliant</div>
+  </div>
+  <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6 text-center">
+    <div class="text-3xl font-bold text-yellow-600">{{ stats.pending }}</div>
+    <div class="text-xs font-medium text-slate-500 uppercase tracking-wider mt-1">Pending</div>
+  </div>
+</div>
+<h3 class="text-lg font-semibold text-slate-900 mb-4">Records</h3>
+<div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-x-auto">
+  <table class="w-full text-left text-sm">
+    <thead class="bg-slate-50 text-slate-600 uppercase tracking-wider text-xs font-semibold border-b border-slate-200">
+      <tr>
+        <th class="py-3 px-4">Standard</th>
+        <th class="py-3 px-4">Scope</th>
+        <th class="py-3 px-4">Status</th>
+        <th class="py-3 px-4">Review Date</th>
+        <th class="py-3 px-4">Next Review</th>
+        <th class="py-3 px-4">Reviewer</th>
+      </tr>
+    </thead>
+    <tbody class="divide-y divide-slate-100">
+      {% for r in records %}
+      <tr class="{% if r.status=='non_compliant' %}bg-red-50{% elif r.status=='compliant' %}bg-green-50{% endif %}">
+        <td class="py-3 px-4 font-medium">{{ r.standard_name }}</td>
+        <td class="py-3 px-4 text-slate-600">{{ r.scope or '-' }}</td>
+        <td class="py-3 px-4">
+          <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {% if r.status == 'compliant' %}bg-green-100 text-green-800{% elif r.status == 'non_compliant' %}bg-red-100 text-red-800{% else %}bg-yellow-100 text-yellow-800{% endif %}">{{ r.status }}</span>
+        </td>
+        <td class="py-3 px-4 text-slate-600 text-xs">{{ r.review_date.strftime('%Y-%m-%d') if r.review_date else '-' }}</td>
+        <td class="py-3 px-4 text-slate-600 text-xs">{{ r.next_review_date.strftime('%Y-%m-%d') if r.next_review_date else '-' }}</td>
+        <td class="py-3 px-4 text-slate-600">{{ r.reviewed_by or '-' }}</td>
+      </tr>
+      {% else %}
+      <tr>
+        <td colspan="6" class="py-8 text-center">
+          <div class="flex flex-col items-center">
+            <svg class="h-10 w-10 text-slate-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            <p class="text-sm font-medium text-slate-900">No compliance records.</p>
+          </div>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

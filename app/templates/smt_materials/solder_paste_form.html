@@ -1,0 +1,89 @@
+{% extends "layout.html" %}
+{% block title %}New Solder Paste Lot{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto">
+  <!-- Header -->
+  <div class="mb-6">
+    <h1 class="text-2xl font-bold text-slate-900">New Solder Paste Lot</h1>
+    <p class="text-sm text-slate-500 mt-1">Register a new solder paste lot for shelf life and floor time tracking.</p>
+  </div>
+
+  <!-- Form Card -->
+  <form method="post" class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+    <div class="p-6 space-y-5">
+
+      <!-- Lot Number -->
+      <div>
+        <label for="lot_number" class="block text-sm font-medium text-slate-700 mb-1.5">Lot Number <span class="text-red-500">*</span></label>
+        <input type="text" name="lot_number" id="lot_number" required value="{{ lot.lot_number if lot else '' }}"
+               class="block w-full rounded-lg border-slate-300 shadow-sm focus:border-primary-500 focus:ring-1 focus:ring-primary-500 text-sm py-2 px-3 transition-colors"
+               placeholder="e.g., LOT-SP-2024-001" />
+      </div>
+
+      <!-- Manufacturer -->
+      <div>
+        <label for="manufacturer" class="block text-sm font-medium text-slate-700 mb-1.5">Manufacturer <span class="text-red-500">*</span></label>
+        <input type="text" name="manufacturer" id="manufacturer" required value="{{ lot.manufacturer if lot else '' }}"
+               class="block w-full rounded-lg border-slate-300 shadow-sm focus:border-primary-500 focus:ring-1 focus:ring-primary-500 text-sm py-2 px-3 transition-colors"
+               placeholder="e.g., Indium, Kester, Senju" />
+      </div>
+
+      <!-- Part Number -->
+      <div>
+        <label for="part_number" class="block text-sm font-medium text-slate-700 mb-1.5">Part Number <span class="text-red-500">*</span></label>
+        <input type="text" name="part_number" id="part_number" required value="{{ lot.part_number if lot else '' }}"
+               class="block w-full rounded-lg border-slate-300 shadow-sm focus:border-primary-500 focus:ring-1 focus:ring-primary-500 text-sm py-2 px-3 transition-colors"
+               placeholder="e.g., SAC305 T4" />
+      </div>
+
+      <!-- Quantity & Floor Life Grid -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+        <div>
+          <label for="quantity_g" class="block text-sm font-medium text-slate-700 mb-1.5">Quantity (g) <span class="text-red-500">*</span></label>
+          <input type="number" name="quantity_g" id="quantity_g" step="0.1" required value="{{ lot.quantity_g if lot else '' }}"
+                 class="block w-full rounded-lg border-slate-300 shadow-sm focus:border-primary-500 focus:ring-1 focus:ring-primary-500 text-sm py-2 px-3 transition-colors"
+                 placeholder="e.g., 500" />
+        </div>
+        <div>
+          <label for="floor_life_hours" class="block text-sm font-medium text-slate-700 mb-1.5">Floor Life (hours)</label>
+          <input type="number" name="floor_life_hours" id="floor_life_hours" step="0.5" value="{{ lot.floor_life_hours if lot else 8 }}"
+                 class="block w-full rounded-lg border-slate-300 shadow-sm focus:border-primary-500 focus:ring-1 focus:ring-primary-500 text-sm py-2 px-3 transition-colors"
+                 placeholder="e.g., 8" />
+          <p class="mt-1.5 text-xs text-slate-500">Default is typically 8–24 hours depending on MSD level.</p>
+        </div>
+      </div>
+
+      <!-- Expiry Date -->
+      <div>
+        <label for="expiry_date" class="block text-sm font-medium text-slate-700 mb-1.5">Expiry Date <span class="text-red-500">*</span></label>
+        <div class="relative max-w-xs">
+          <input type="date" name="expiry_date" id="expiry_date" required value="{{ lot.expiry_date if lot else '' }}"
+                 class="block w-full rounded-lg border-slate-300 bg-white py-2 pl-3 pr-10 text-sm text-slate-900 shadow-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500 transition-colors [color-scheme:light]" />
+          <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-slate-400">
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Form Actions -->
+    <div class="px-6 py-4 bg-slate-50 border-t border-slate-200 flex items-center justify-end gap-3">
+      <a href="{{ url_for('smt_materials.solder_paste_list') }}"
+         class="inline-flex items-center px-4 py-2 bg-white border border-slate-300 text-slate-700 text-sm font-medium rounded-lg shadow-sm hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-primary-500/20 transition-colors">
+        Cancel
+      </a>
+      <button type="submit"
+              class="inline-flex items-center px-4 py-2 bg-primary-600 text-white text-sm font-medium rounded-lg shadow-sm hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500/20 transition-colors">
+        <svg class="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+        </svg>
+        Save Lot
+      </button>
+    </div>
+  </form>
+</div>
+{% endblock %}

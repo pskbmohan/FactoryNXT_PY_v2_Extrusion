@@ -1,0 +1,97 @@
+feat: refactor SMT/PCB MES to Aluminum Extrusion digitalization platform
+
+Domain shift from electronics assembly (SMT/PCB) to aluminum
+extrusion plant operations (dies, billets, extrusion process lines).
+
+## Sidebar: 21 items → 8 modules only
+
+1. Dashboard         - Executive overview with extrusion KPIs
+2. Planning & Sched  - Order import, stock, machine availability,
+                       scheduler (Gantt), shortages, plan-vs-actual
+3. Tool Shop         - Die workflows: inward, inspection, testing,
+                       nitriding, registry, shortage view
+4. Process Line      - Billet inspection, HLS/pressing/quenching,
+                       puller, stretching, final cut, die oven
+5. Quality & Trace   - Die/billet/lot trace, inspection/test records,
+                       operator audit trail, ERP transaction log
+6. KPI & Alerts      - OEE, throughput, die lifecycle, downtime,
+                       threshold alerts, sync failure alerts
+7. Integrations      - ERP connectors, PLC connectors, signal mapping,
+                       integration jobs, reprocess tools
+8. Administration    - Master data, user/role mgmt, thresholds,
+                       machine master, process params
+
+Obsolete sidebar items (W/O, Inventory, Kitting, SMT Materials,
+Routing, PCB, NCR, OEE, Maintenance, Stations) removed from primary
+nav. Old blueprints preserved at their URLs for backward compatibility.
+
+## Backend + Migration
+
+- 22 new domain models appended to app/models.py (CustomerOrder,
+  ProcessPlan, Die, DieInspection, DieTest, NitridingRecord, Billet,
+  BilletInspection, MaterialGrade, SetpointProfile, ProcessRun,
+  QuenchRecord, CutRecord, StretchRecord, OvenRecord, AlertRule,
+  Alert, KPIRecord, IntegrationJob, ERPTransactionLog,
+  PLCSignalMapping, TraceabilityRecord)
+- All 51 existing SMT/PCB tables preserved untouched
+- Consolidation migration 8b1c2d3e4f5g_foundry_domain.py
+  (revision: 8b1c2d3e4f5g, down_revision: 7a42c1b9e2d5)
+- Total schema: 73 tables
+
+## Services layer (new: app/services/)
+
+- erp_adapter.py  - ERP posting + retry via IntegrationJob
+- plc_adapter.py  - PLC signal mapping + setpoint load/capture
+- scheduler.py    - Greedy optimizer + shortage computation
+- kpi_engine.py   - OEE / die-lifetime / shortage risk KPIs
+
+## New blueprints + endpoints (43 new routes)
+
+- planning      (9 endpoints: /planning/*)
+- tool_shop     (11 endpoints: /tool-shop/*)
+- process_line  (14 endpoints: /process-line/*)
+- kpi_alerts    (9 endpoints: /kpi-alerts/*)
+- integrations  (3 new endpoints: plc-connectors, signal-mapping, jobs)
+- admin         (3 new endpoints: thresholds, machine-master, process-params)
+
+## Templates (33 new + 2 modified)
+
+- planning/         (7 pages)
+- tool_shop/        (8 pages)
+- process_line/     (11 pages)
+- kpi_alerts/       (6 pages)
+- dashboard.html    (restructured with foundry KPI cards)
+- layout.html       (sidebar rewritten - top bar/scripts/CSS preserved)
+
+## Workflow state machines
+
+- Die.status: New → Inspected → TestingPending → TestingPassed/Failed
+  → NitridingPending → Nitrided → Available | Rework | Rejected
+- ProcessPlan.status: Draft → Optimized → Released → InProgress →
+  Delayed → Completed
+- IntegrationJob.status: Pending → Running → Success → Failed →
+  RetryQueued
+- Alert.status: Open → Acknowledged → Closed
+
+## Verification
+
+✓ Flask app factory: 28 blueprints, 212 routes, 73 tables
+✓ Zero broken url_for() in sidebar + all new templates (93 checked)
+✓ All 43 new endpoints registered and routable
+✓ All 22 new tables present in schema
+✓ All existing tables preserved
+✓ Migration revision chain: 7a42c1b9e2d5 → 8b1c2d3e4f5g
+
+## Assumptions (pending customer input)
+
+- ERP API shape: adapter uses generic mock; customer to provide docs
+  → implement methods in app/services/erp_adapter.py
+- PLC protocol (OPC-UA / Modbus / MQTT): adapter uses generic mock;
+  customer to provide hardware details
+  → implement methods in app/services/plc_adapter.py
+- Sensor vendors: abstracted via PLCSignalMapping; calibration
+  formulas TBD
+- Gantt: static SVG placeholder; JS library needed for interactive
+- Quench trend chart: static SVG placeholder; chart library needed
+
+Files: 7 modified | 53 added | 0 deleted

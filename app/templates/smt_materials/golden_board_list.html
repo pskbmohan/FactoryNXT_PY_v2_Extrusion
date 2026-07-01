@@ -1,0 +1,78 @@
+{% extends "layout.html" %}
+{% block title %}Golden Boards{% endblock %}
+
+{% block content %}
+<!-- Header & Actions -->
+<div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
+  <div>
+    <h1 class="text-2xl font-bold text-slate-900">Golden Boards</h1>
+    <p class="text-sm text-slate-500 mt-1">Manage reference boards for machine calibration and quality limits.</p>
+  </div>
+  <a href="{{ url_for('smt_materials.golden_board_new') }}"
+     class="mt-4 sm:mt-0 inline-flex items-center justify-center px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-lg shadow-sm transition-colors">
+    <svg class="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+    </svg>
+    Register Board
+  </a>
+</div>
+
+<!-- Data Table -->
+<div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+  <div class="overflow-x-auto">
+    <table class="w-full text-left text-sm">
+      <thead class="bg-slate-50 text-slate-600 uppercase tracking-wider text-xs font-semibold border-b border-slate-200">
+        <tr>
+          <th class="px-6 py-3">Part Number</th>
+          <th class="px-6 py-3">Serial Number</th>
+          <th class="px-6 py-3">Machine ID</th>
+          <th class="px-6 py-3">Limit File</th>
+          <th class="px-6 py-3">Status</th>
+          <th class="px-6 py-3">Created</th>
+          <th class="px-6 py-3 text-right">Actions</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-slate-100">
+        {% for board in boards %}
+        <tr class="hover:bg-slate-50 transition-colors">
+          <td class="px-6 py-4 font-mono text-xs font-medium text-slate-900">{{ board.part_number }}</td>
+          <td class="px-6 py-4 text-slate-700">{{ board.serial_number }}</td>
+          <td class="px-6 py-4 text-slate-600">{{ board.machine_id or '-' }}</td>
+          <td class="px-6 py-4 text-slate-600 text-xs truncate max-w-[150px]" title="{{ board.limit_file_path }}">{{ board.limit_file_path or '-' }}</td>
+          <td class="px-6 py-4">
+            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+              {% if board.is_active %}bg-green-100 text-green-800
+              {% else %}bg-slate-100 text-slate-600{% endif %}">
+              {{ 'Active' if board.is_active else 'Inactive' }}
+            </span>
+          </td>
+          <td class="px-6 py-4 text-slate-500 text-xs">{{ board.created_at.strftime('%Y-%m-%d') }}</td>
+          <td class="px-6 py-4 text-right">
+            {% if board.is_active %}
+            <form method="post" action="{{ url_for('smt_materials.golden_board_deactivate', board_id=board.id) }}" class="inline">
+              <button type="submit" onclick="return confirm('Deactivate this golden board?')"
+                      class="inline-flex items-center px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white text-xs font-medium rounded-md shadow-sm transition-colors">
+                Deactivate
+              </button>
+            </form>
+            {% else %}
+            <span class="text-slate-400 text-xs">-</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="7" class="px-6 py-12 text-center">
+            <svg class="mx-auto h-12 w-12 text-slate-400 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <p class="text-sm font-medium text-slate-900">No golden boards registered.</p>
+            <p class="text-xs text-slate-500 mt-1">Use the button above to add your first reference board.</p>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

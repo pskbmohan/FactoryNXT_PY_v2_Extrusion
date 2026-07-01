@@ -1,0 +1,463 @@
+{% extends "layout.html" %}
+{% block title %}Gantt Board{% endblock %}
+
+{% block head_extra %}
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/frappe-gantt@0.6.1/dist/frappe-gantt.css" />
+  <script src="https://cdn.jsdelivr.net/npm/moment@2.30.1/min/moment.min.js"></script>
+{% endblock %}
+
+{% block content %}
+<!-- Header -->
+<div class="mb-6 flex items-start justify-between flex-wrap gap-4">
+  <div>
+    <h1 class="text-2xl font-bold text-slate-900 flex items-center gap-2">
+      <svg class="w-6 h-6 text-primary-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+      </svg>
+      Gantt Board
+    </h1>
+    <p class="text-sm text-slate-500 mt-1">Interactive production schedule — drag tasks to reschedule, click for details.</p>
+  </div>
+  <div class="flex items-center gap-2">
+    <div class="inline-flex rounded-lg border border-slate-200 bg-white p-0.5 shadow-sm" role="group" aria-label="View mode">
+      <button type="button" data-view="Hour"  class="gantt-view px-3 py-1.5 text-xs font-medium rounded-md bg-primary-50 text-primary-700">Hour</button>
+      <button type="button" data-view="Day"   class="gantt-view px-3 py-1.5 text-xs font-medium rounded-md text-slate-600 hover:bg-slate-50">Day</button>
+      <button type="button" data-view="Week"  class="gantt-view px-3 py-1.5 text-xs font-medium rounded-md text-slate-600 hover:bg-slate-50">Week</button>
+      <button type="button" data-view="Month" class="gantt-view px-3 py-1.5 text-xs font-medium rounded-md text-slate-600 hover:bg-slate-50">Month</button>
+    </div>
+    <button id="gantt-scroll-today" type="button" class="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 shadow-sm hover:bg-slate-50">
+      <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+      Today
+    </button>
+    <button id="gantt-refresh" type="button" class="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 shadow-sm hover:bg-slate-50">
+      <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+      Reload
+    </button>
+  </div>
+</div>
+
+<!-- Gantt chart container -->
+<div class="bg-white rounded-xl border border-slate-200 shadow-sm p-4 mb-6">
+  <div id="gantt-legend" class="flex flex-wrap gap-3 text-xs text-slate-600 mb-3 px-1">
+    <span class="inline-flex items-center gap-1.5"><span class="w-3 h-3 rounded" style="background:#94a3b8"></span>Draft</span>
+    <span class="inline-flex items-center gap-1.5"><span class="w-3 h-3 rounded" style="background:#6366f1"></span>Released</span>
+    <span class="inline-flex items-center gap-1.5"><span class="w-3 h-3 rounded" style="background:#3b82f6"></span>Running</span>
+    <span class="inline-flex items-center gap-1.5"><span class="w-3 h-3 rounded" style="background:#10b981"></span>Completed</span>
+    <span class="inline-flex items-center gap-1.5"><span class="w-3 h-3 rounded" style="background:#f59e0b"></span>Urgent</span>
+    <span class="inline-flex items-center gap-1.5"><span class="w-3 h-3 rounded" style="background:#ef4444"></span>Cancelled</span>
+  </div>
+  <div id="gantt-loader" class="py-8 text-center text-sm text-slate-500">Loading schedule…</div>
+  <svg id="gantt" class="gantt"></svg>
+  <div id="gantt-empty" class="hidden py-12 text-center">
+    <svg class="mx-auto h-10 w-10 text-slate-400 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+    <p class="text-sm font-medium text-slate-900">No plottable work orders.</p>
+    <p class="text-xs text-slate-500 mt-1">Create work orders with scheduled dates to see them on the chart.</p>
+  </div>
+</div>
+
+<!-- Gantt task detail modal -->
+<div id="gantt-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="gantt-modal-title">
+  <div class="bg-white rounded-xl shadow-2xl border border-slate-200 w-full max-w-md overflow-hidden">
+    <div class="flex items-start justify-between px-5 py-4 border-b border-slate-200">
+      <div>
+        <h3 id="gantt-modal-title" class="text-base font-semibold text-slate-900">Work Order</h3>
+        <p id="gantt-modal-sub" class="text-xs text-slate-500 mt-0.5"></p>
+      </div>
+      <button id="gantt-modal-close" class="text-slate-400 hover:text-slate-600" aria-label="Close">
+        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div id="gantt-modal-body" class="px-5 py-4 text-sm space-y-2"></div>
+  </div>
+</div>
+
+<!-- Summary table — rendered live from server JSON -->
+<div id="summary-root" class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+  <div class="px-5 py-3.5 border-b border-slate-200 flex items-center justify-between">
+    <h2 class="text-sm font-semibold text-slate-900">
+      Schedule Summary
+      <span id="summary-count" class="ml-1.5 font-normal text-xs text-slate-500">{{ rows|length }} entries</span>
+    </h2>
+    <div class="flex items-center gap-2">
+      <span id="summary-updated" class="text-[10px] uppercase tracking-wide text-slate-400"></span>
+      <button id="summary-refresh" type="button" class="inline-flex items-center gap-1 rounded-md border border-slate-200 bg-white px-2 py-1 text-xs font-medium text-slate-700 hover:bg-slate-50">
+        <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+        Refresh
+      </button>
+    </div>
+  </div>
+  <div id="summary-body" class="overflow-x-auto"></div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/frappe-gantt@0.6.1/dist/frappe-gantt.min.js"></script>
+<script>
+  (function () {
+    // ── URLs from Flask ─────────────────────────────────────────────────────────
+    const API_URL = "{{ url_for('production.api_gantt_data') }}";
+    const SUMMARY_URL = "{{ url_for('production.api_gantt_summary') }}";
+    const SCHEDULE_PATCH_URL = "{{ url_for('production.api_work_order_schedule', id='__ID__') }}";
+    const PATCH_URL = (id) => SCHEDULE_PATCH_URL.replace("__ID__", encodeURIComponent(id));
+
+    // ── 5-minute snapper ────────────────────────────────────────────────────────
+    // Drag/resize results (Date objects) get rounded to the nearest 5 minutes so
+    // bars fall on :00 / :05 / :10 / :15 … before being sent to the server.
+    const MIN_SCALE_MS = 5 * 60 * 1000;
+    function snap5(date) {
+      return new Date(Math.round(date.getTime() / MIN_SCALE_MS) * MIN_SCALE_MS);
+    }
+
+    // Helper to coerce a Date/moment into "YYYY-MM-DD HH:mm:ss" or null if invalid.
+    const fmt = (d) => {
+      const m = moment(snap5(moment(d).toDate()));
+      return m.isValid() ? m.format("YYYY-MM-DD HH:mm:ss") : null;
+    };
+
+    // ── Register a custom "Hour" view at library level (once) ───────────────────
+    // Frappe Gantt 0.6.1's update_view_scale() is a hardcoded if-else that only
+    // knows Day / Half Day / Quarter Day / Week / Month / Year — passing an
+    // unknown mode leaves step and column_width undefined → no grid, no labels.
+    // We patch two prototype methods so "Hour" works end-to-end:
+    //
+    //   update_view_scale()  → step=1 (1 hour per column), column_width=56px
+    //   get_dates_to_draw()  → inject Hour_{upper,lower} labels and x positions
+    //                          so the day header + 00:00..23:00 tick labels render.
+    if (window.Gantt && Gantt.prototype) {
+      // 1) Patch update_view_scale — wrap the original so we only override Hour.
+      const origUpdate = Gantt.prototype.update_view_scale;
+      Gantt.prototype.update_view_scale = function (view_mode) {
+        origUpdate.call(this, view_mode);
+        if (view_mode === "Hour") {
+          // 1-hour step, 56px per column → readable 24-hour strip
+          this.options.step = 1;
+          this.options.column_width = 56;
+        }
+      };
+
+      // 2) Patch get_dates_to_draw — post-process the dates array and fill in
+      //    the Hour_* keys the upstream switch-case would otherwise return
+      //    undefined for. The returned date objects carry { upper_text,
+      //    lower_text, upper_x, lower_x, upper_y, lower_y }. For Hour mode
+      //    upstream sets lower_x = base_pos.x + undefined = NaN, so we MUST
+      //    overwrite with a finite value or SVG silently drops the text.
+      const origGetDates = Gantt.prototype.get_dates_to_draw;
+      Gantt.prototype.get_dates_to_draw = function () {
+        const dates = origGetDates.call(this) || [];
+        if (this.options.view_mode !== "Hour") return dates;
+        const cw = this.options.column_width;
+        dates.forEach((d, i) => {
+          const t = this.dates && this.dates[i];
+          const m = moment.isMoment(t) ? t.clone() : moment(t);
+          if (!m || !m.isValid()) return;
+          const hour = m.hours();
+          // Only top-of-hour columns get a tick; other columns stay blank.
+          d.lower_text = m.minutes() === 0 ? m.format("HH:mm") : "";
+          // Day boundary: first column after a calendar-date change hosts header.
+          const prev = i > 0 && this.dates[i - 1]
+            ? (moment.isMoment(this.dates[i - 1]) ? this.dates[i - 1] : moment(this.dates[i - 1]))
+            : null;
+          const newDay = !prev || !prev.isValid() || prev.date() !== m.date();
+          d.upper_text = (hour === 0 || (newDay && m.minutes() === 0))
+            ? m.format("MMM D · ddd")
+            : "";
+          // Overwrite x positions absolutely — column i's left edge is at i * cw,
+          // center the label at i * cw + cw/2. Upstream leaves these NaN for
+          // unknown modes, which makes SVG drop the <text> elements silently.
+          d.lower_x = i * cw + cw / 2;
+          d.upper_x = i * cw + cw / 2;
+        });
+        return dates;
+      };
+    }
+
+    // ── Page scaffolding ────────────────────────────────────────────────────────
+    let gantt = null;
+    let currentTasks = [];
+    const viewButtons = document.querySelectorAll(".gantt-view");
+    const loader = document.getElementById("gantt-loader");
+    const emptyEl = document.getElementById("gantt-empty");
+    const ganttSvg = document.getElementById("gantt");
+    const modal = document.getElementById("gantt-modal");
+    const summaryBody = document.getElementById("summary-body");
+    const summaryCount = document.getElementById("summary-count");
+    const summaryUpdated = document.getElementById("summary-updated");
+
+    function activeView() {
+      const active = document.querySelector(".gantt-view.bg-primary-50");
+      return active ? active.dataset.view : "Hour";
+    }
+
+    function setView(view) {
+      viewButtons.forEach(btn => {
+        btn.classList.toggle("bg-primary-50", btn.dataset.view === view);
+        btn.classList.toggle("text-primary-700", btn.dataset.view === view);
+        btn.classList.toggle("text-slate-600", btn.dataset.view !== view);
+      });
+      if (gantt) gantt.change_view_mode(view);
+    }
+
+    function flashToast(message, tone) {
+      const el = document.createElement("div");
+      const color = tone === "ok" ? "bg-emerald-600" : tone === "warn" ? "bg-amber-500" : "bg-red-600";
+      el.className = `fixed bottom-6 right-6 z-50 px-4 py-2.5 rounded-lg shadow-lg text-white text-sm font-medium ${color}`;
+      el.textContent = message;
+      document.body.appendChild(el);
+      setTimeout(() => { el.style.opacity = "0"; el.style.transition = "opacity .4s"; }, 2400);
+      setTimeout(() => el.remove(), 2900);
+    }
+
+    function showTask(task) {
+      document.getElementById("gantt-modal-title").textContent = task.order_number;
+      document.getElementById("gantt-modal-sub").textContent = `Part ${task.part_number}`;
+      const body = document.getElementById("gantt-modal-body");
+      const rows = [
+        ["Status",   (task.status || "").replace("_", " ")],
+        ["Priority", task.priority || "normal"],
+        ["Quantity", task.quantity],
+        ["Start",    task.start],
+        ["End",      task.end],
+        ["Due date", task.due_date || "—"],
+        ["Progress", task.progress + "%"],
+      ];
+      if (task.status === "DRAFT") {
+        rows.push(["", `<span class="inline-flex items-center gap-1.5 text-amber-600 text-xs font-medium"><svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M5 19h14a2 2 0 001.73-3L13.73 4a2 2 0 00-3.46 0L3.27 16A2 2 0 005 19z"/></svg>Needs release to floor</span>`]);
+      }
+      body.innerHTML = rows.map(([k, v]) => `
+        <div class="flex justify-between gap-4 py-1.5 border-b border-slate-100 last:border-0">
+          <span class="text-slate-500 text-xs uppercase tracking-wide">${k}</span>
+          <span class="text-slate-900 font-medium text-right">${v}</span>
+        </div>
+      `).join("");
+      modal.classList.remove("hidden");
+    }
+    function hideTask() { modal.classList.add("hidden"); }
+
+    function replaceTask(updated) {
+      const idx = currentTasks.findIndex(t => t.id === updated.id);
+      if (idx === -1) { currentTasks.push(updated); return; }
+      currentTasks[idx] = Object.assign({}, currentTasks[idx], updated);
+    }
+
+    // ── Summary table render ────────────────────────────────────────────────────
+    const statusClass = (s) => ({
+      COMPLETED: "bg-green-100 text-green-800",
+      RUNNING:   "bg-blue-100 text-blue-800",
+      RELEASED:  "bg-indigo-100 text-indigo-800",
+      DRAFT:     "bg-slate-100 text-slate-700",
+      CANCELLED: "bg-red-100 text-red-700",
+    })[s] || "bg-slate-100 text-slate-700";
+
+    const prioClass = (p) => ({
+      urgent: "bg-red-100 text-red-800",
+      high:   "bg-amber-100 text-amber-800",
+    })[(p || "").toLowerCase()] || "bg-slate-100 text-slate-700";
+
+    function fmtTime(iso) {
+      if (!iso) return "—";
+      const m = moment(iso);
+      return m.isValid() ? m.format("YYYY-MM-DD HH:mm") : "—";
+    }
+
+    async function loadSummary() {
+      try {
+        const resp = await fetch(SUMMARY_URL, { headers: { Accept: "application/json" } });
+        if (!resp.ok) throw new Error("Network error");
+        const data = await resp.json();
+        renderSummary(data.rows || []);
+        summaryUpdated.textContent = "Updated " + moment().format("HH:mm:ss");
+      } catch (err) {
+        console.error("[summary] load failed", err);
+      }
+    }
+
+    function renderSummary(rows) {
+      if (!summaryBody) return;
+      summaryCount.textContent = `${rows.length} entries`;
+      if (!rows.length) {
+        summaryBody.innerHTML = `
+          <div class="px-6 py-12 text-center">
+            <p class="text-sm font-medium text-slate-900">No scheduled work orders.</p>
+            <p class="text-xs text-slate-500 mt-1">Create work orders with scheduled dates to see them here.</p>
+          </div>`;
+        return;
+      }
+      const thead = `
+        <thead class="bg-slate-50 text-slate-600 uppercase tracking-wider text-xs font-semibold border-b border-slate-200">
+          <tr>
+            <th class="px-6 py-3">WO #</th>
+            <th class="px-6 py-3">Part #</th>
+            <th class="px-6 py-3">Priority</th>
+            <th class="px-6 py-3">Scheduled Start</th>
+            <th class="px-6 py-3">Scheduled End</th>
+            <th class="px-6 py-3">Status</th>
+            <th class="px-6 py-3 text-right">Duration (hrs)</th>
+          </tr>
+        </thead>`;
+      const tbody = `<tbody class="divide-y divide-slate-100">` +
+        rows.map(r => `
+          <tr class="hover:bg-slate-50 transition-colors">
+            <td class="px-6 py-4 font-mono text-xs font-medium text-slate-900">${r.order_number}</td>
+            <td class="px-6 py-4 text-slate-700">${r.part_number}</td>
+            <td class="px-6 py-4">
+              <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${prioClass(r.priority)}">${(r.priority || "normal").replace(/^\w/, c => c.toUpperCase())}</span>
+            </td>
+            <td class="px-6 py-4 text-slate-700 text-xs font-mono">${fmtTime(r.scheduled_start)}</td>
+            <td class="px-6 py-4 text-slate-700 text-xs font-mono">${fmtTime(r.scheduled_end)}</td>
+            <td class="px-6 py-4">
+              <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusClass(r.status)}">${(r.status || "").replace(/_/g, " ").replace(/^\w/, c => c.toUpperCase())}</span>
+            </td>
+            <td class="px-6 py-4 text-right font-mono text-sm text-slate-700">${r.duration_hours != null ? r.duration_hours : "—"}</td>
+          </tr>
+        `).join("") +
+      `</tbody>`;
+      summaryBody.innerHTML = `<table class="w-full text-left text-sm">${thead}${tbody}</table>`;
+    }
+
+    // ── Main Gantt load ─────────────────────────────────────────────────────────
+    async function loadGantt() {
+      loader.classList.remove("hidden"); emptyEl.classList.add("hidden"); ganttSvg.innerHTML = "";
+      try {
+        const resp = await fetch(API_URL, { headers: { "Accept": "application/json" } });
+        if (!resp.ok) throw new Error("Network error");
+        currentTasks = await resp.json();
+      } catch (e) {
+        loader.textContent = "Failed to load schedule.";
+        return;
+      }
+      loader.classList.add("hidden");
+      if (!currentTasks.length) { emptyEl.classList.remove("hidden"); return; }
+
+      gantt = new Gantt("#gantt", currentTasks, {
+        view_mode: activeView(),
+        on_click: showTask,
+        on_date_change: async function (task, start, end) {
+          const s = fmt(start), e = fmt(end);  // fmt() already snaps to 5 min
+          if (!s || !e) {
+            console.warn("[gantt] on_date_change got invalid date, skipping PATCH", { start, end });
+            await loadGantt();
+            return;
+          }
+          const payload = { scheduled_start: s, scheduled_end: e };
+          const url = PATCH_URL(task.id);
+          try {
+            const resp = await fetch(url, {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json", "Accept": "application/json" },
+              body: JSON.stringify(payload),
+            });
+            const body = await resp.json().catch(() => ({}));
+            if (!resp.ok) throw new Error(body.error || `HTTP ${resp.status}`);
+            replaceTask(body);
+            // Both charts share the WO source of truth — refresh summary too.
+            loadSummary();
+            if (body.needs_release) {
+              flashToast(`${body.order_number} downgraded to DRAFT — re-release to commit to floor.`, "warn");
+            } else {
+              flashToast(`${body.order_number} schedule saved.`, "ok");
+            }
+          } catch (err) {
+            console.error("[gantt] date PATCH failed", err, payload);
+            flashToast(`Could not save: ${err.message || err}`, "err");
+            await loadGantt();
+          }
+        },
+        on_progress_change: async function (task, progress) {
+          if (progress === undefined || progress === null) return;
+          const pct = Math.max(0, Math.min(100, Number(progress) || 0));
+          const payload = { progress: pct };
+          const url = PATCH_URL(task.id);
+          try {
+            const resp = await fetch(url, {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json", "Accept": "application/json" },
+              body: JSON.stringify(payload),
+            });
+            const body = await resp.json().catch(() => ({}));
+            if (!resp.ok) throw new Error(body.error || `HTTP ${resp.status}`);
+            replaceTask(body);
+            loadSummary();
+          } catch (err) {
+            console.error("[gantt] progress PATCH failed", err, payload);
+            flashToast(`Could not save progress: ${err.message || err}`, "err");
+            await loadGantt();
+          }
+        },
+        custom_popup_html: function (task) {
+          const end = task._start.getTime() === task._end.getTime() ? ""
+            : " — " + moment(task._end).format("MMM D HH:mm");
+          const draftBadge = task.status === "DRAFT"
+            ? `<div style="font-size:11px;color:#b45309;margin-top:3px;">⚠ Draft — needs release</div>` : "";
+          return `
+            <div class="details">
+              <div class="title">${task.name}</div>
+              <div class="subtitle">
+                ${moment(task._start).format("MMM D HH:mm")}${end} · ${task.progress}% done
+              </div>
+              ${draftBadge}
+            </div>`;
+        }
+      });
+    }
+
+    // ── Event wiring ────────────────────────────────────────────────────────────
+    viewButtons.forEach(btn => btn.addEventListener("click", () => setView(btn.dataset.view)));
+    document.getElementById("gantt-scroll-today").addEventListener("click", function () {
+      if (!gantt) return;
+      const today = moment().startOf("hour");
+      const start = gantt.gantt_start || moment();
+      const diff = today.diff(start, "hours");
+      const barContainer = ganttSvg.closest(".gantt-container") || ganttSvg.parentElement;
+      const colWidth = ganttSvg.querySelector(".upper_text")?.getBoundingClientRect().width || 56;
+      if (barContainer) barContainer.scrollLeft = Math.max(0, diff) * colWidth - 80;
+    });
+    document.getElementById("gantt-refresh").addEventListener("click", function () {
+      loadGantt();
+      loadSummary();
+    });
+    document.getElementById("summary-refresh").addEventListener("click", loadSummary);
+    document.getElementById("gantt-modal-close").addEventListener("click", hideTask);
+    modal.addEventListener("click", (e) => { if (e.target === modal) hideTask(); });
+    document.addEventListener("keydown", (e) => { if (e.key === "Escape") hideTask(); });
+    // Auto-refresh summary when the Gantt tab regains focus — catches WO status
+    // changes made from the Work Orders screen in another tab.
+    document.addEventListener("visibilitychange", () => {
+      if (!document.hidden) loadSummary();
+    });
+    // Also poll every 30s while the tab is focused so changes by other users show.
+    setInterval(() => { if (!document.hidden) loadSummary(); }, 30000);
+
+    // ── Initial load ────────────────────────────────────────────────────────────
+    loadGantt();
+    loadSummary();
+  })();
+</script>
+
+<!-- Scoped overrides to match Tailwind-ish palette -->
+<style>
+  .gantt .bar { fill-opacity: 0.9; }
+  .gantt .bar-progress { fill-opacity: 1; }
+  .gantt .gantt-task-running       .bar        { fill: #3b82f6; }
+  .gantt .gantt-task-running       .bar-progress { fill: #2563eb; }
+  .gantt .gantt-task-completed     .bar        { fill: #10b981; }
+  .gantt .gantt-task-completed     .bar-progress { fill: #059669; }
+  .gantt .gantt-task-urgent        .bar        { fill: #f59e0b; }
+  .gantt .gantt-task-urgent        .bar-progress { fill: #d97706; }
+  .gantt .gantt-task-cancelled     .bar        { fill: #ef4444; opacity: 0.6; }
+  .gantt .gantt-task-cancelled     .bar-progress { fill: #dc2626; }
+  .gantt .gantt-task-default       .bar        { fill: #94a3b8; }
+  .gantt .gantt-task-default       .bar-progress { fill: #64748b; }
+  .gantt .gantt-task-draft         .bar        { fill: #cbd5e1; }
+  .gantt .gantt-task-draft         .bar-progress { fill: #94a3b8; }
+  .gantt .gantt-task-released      .bar        { fill: #6366f1; }
+  .gantt .gantt-task-released      .bar-progress { fill: #4338ca; }
+  .gantt .bar-label                { fill: #0f172a; font-size: 11px; }
+  .gantt .lower-text, .gantt .upper-text { fill: #475569; font-size: 11px; }
+  /* Hour view: slightly bolder day headers, monospace hour ticks for alignment */
+  .gantt .upper-text { font-weight: 600; letter-spacing: 0.01em; }
+  .gantt .grid-row                 { fill: #ffffff; }
+  .gantt .row-line, .gantt .tick   { stroke: #e2e8f0; }
+  .gantt .today-highlight          { fill: #fef3c7; opacity: 0.35; }
+  .gantt-container                 { overflow-x: auto; }
+  #gantt-modal .details .title     { font-weight: 600; }
+  #gantt-modal .details .subtitle  { opacity: 0.8; font-size: 12px; }
+</style>
+{% endblock %}

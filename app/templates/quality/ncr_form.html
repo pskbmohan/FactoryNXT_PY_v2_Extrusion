@@ -1,0 +1,126 @@
+{% extends "layout.html" %}
+{% block title %}New NCR{% endblock %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto">
+  <!-- Header -->
+  <div class="mb-6">
+    <h1 class="text-2xl font-bold text-slate-900">New Non-Conformance Report</h1>
+    <p class="text-sm text-slate-500 mt-1">Log a quality deviation for tracking and corrective action.</p>
+  </div>
+
+  <!-- Form Card -->
+  <form method="post" class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+    <div class="p-6 space-y-8">
+
+      <!-- Section 1: Basic Information -->
+      <div>
+        <h3 class="text-sm font-semibold text-slate-900 uppercase tracking-wide mb-4 pb-2 border-b border-slate-100">Basic Information</h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+          <div>
+            <label for="ncr_number" class="block text-sm font-medium text-slate-700 mb-1.5">NCR Number <span class="text-red-500">*</span></label>
+            <input type="text" name="ncr_number" id="ncr_number" required
+                   class="block w-full rounded-lg border-slate-300 shadow-sm focus:border-primary-500 focus:ring-1 focus:ring-primary-500 text-sm py-2 px-3 transition-colors"
+                   placeholder="e.g., NCR-2024-001" />
+          </div>
+          <div>
+            <label for="title" class="block text-sm font-medium text-slate-700 mb-1.5">Title <span class="text-red-500">*</span></label>
+            <input type="text" name="title" id="title" required
+                   class="block w-full rounded-lg border-slate-300 shadow-sm focus:border-primary-500 focus:ring-1 focus:ring-primary-500 text-sm py-2 px-3 transition-colors"
+                   placeholder="Brief summary of the issue" />
+          </div>
+        </div>
+        <div class="mt-5">
+          <label for="description" class="block text-sm font-medium text-slate-700 mb-1.5">Description <span class="text-red-500">*</span></label>
+          <textarea name="description" id="description" rows="4" required
+                    class="block w-full rounded-lg border-slate-300 shadow-sm focus:border-primary-500 focus:ring-1 focus:ring-primary-500 text-sm py-2 px-3 transition-colors resize-y"
+                    placeholder="Detailed description of the non-conformance..."></textarea>
+        </div>
+      </div>
+
+      <!-- Section 2: Product Details -->
+      <div>
+        <h3 class="text-sm font-semibold text-slate-900 uppercase tracking-wide mb-4 pb-2 border-b border-slate-100">Product Details</h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+          <div>
+            <label for="part_number" class="block text-sm font-medium text-slate-700 mb-1.5">Part Number</label>
+            <input type="text" name="part_number" id="part_number"
+                   class="block w-full rounded-lg border-slate-300 shadow-sm focus:border-primary-500 focus:ring-1 focus:ring-primary-500 text-sm py-2 px-3 transition-colors"
+                   placeholder="e.g., PN-8842-A" />
+          </div>
+          <div>
+            <label for="lot_number" class="block text-sm font-medium text-slate-700 mb-1.5">Lot Number</label>
+            <input type="text" name="lot_number" id="lot_number"
+                   class="block w-full rounded-lg border-slate-300 shadow-sm focus:border-primary-500 focus:ring-1 focus:ring-primary-500 text-sm py-2 px-3 transition-colors"
+                   placeholder="e.g., LOT-9921" />
+          </div>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-5 mt-5">
+          <div>
+            <label for="quantity_affected" class="block text-sm font-medium text-slate-700 mb-1.5">Qty Affected</label>
+            <input type="number" name="quantity_affected" id="quantity_affected" value="0" min="0"
+                   class="block w-full rounded-lg border-slate-300 shadow-sm focus:border-primary-500 focus:ring-1 focus:ring-primary-500 text-sm py-2 px-3 transition-colors" />
+          </div>
+          <div>
+            <label for="defect_type" class="block text-sm font-medium text-slate-700 mb-1.5">Defect Type</label>
+            <input type="text" name="defect_type" id="defect_type"
+                   class="block w-full rounded-lg border-slate-300 shadow-sm focus:border-primary-500 focus:ring-1 focus:ring-primary-500 text-sm py-2 px-3 transition-colors"
+                   placeholder="e.g., Dimensional, Cosmetic" />
+          </div>
+          <div>
+            <label for="severity" class="block text-sm font-medium text-slate-700 mb-1.5">Severity</label>
+            <div class="relative">
+              <select name="severity" id="severity"
+                      class="block w-full appearance-none rounded-lg border-slate-300 bg-white py-2 pl-3 pr-10 text-sm text-slate-900 shadow-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500 transition-colors">
+                {% for s in ['minor','major','critical'] %}
+                <option value="{{ s }}" {% if s == 'major' %}selected{% endif %}>{{ s|capitalize }}</option>
+                {% endfor %}
+              </select>
+              <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-slate-500">
+                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                </svg>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Section 3: Assignment -->
+      <div>
+        <h3 class="text-sm font-semibold text-slate-900 uppercase tracking-wide mb-4 pb-2 border-b border-slate-100">Assignment</h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+          <div>
+            <label for="detected_by" class="block text-sm font-medium text-slate-700 mb-1.5">Detected By</label>
+            <input type="text" name="detected_by" id="detected_by"
+                   class="block w-full rounded-lg border-slate-300 shadow-sm focus:border-primary-500 focus:ring-1 focus:ring-primary-500 text-sm py-2 px-3 transition-colors"
+                   placeholder="Name or ID of inspector" />
+          </div>
+          <div>
+            <label for="assigned_to" class="block text-sm font-medium text-slate-700 mb-1.5">Assigned To</label>
+            <input type="text" name="assigned_to" id="assigned_to"
+                   class="block w-full rounded-lg border-slate-300 shadow-sm focus:border-primary-500 focus:ring-1 focus:ring-primary-500 text-sm py-2 px-3 transition-colors"
+                   placeholder="Name or ID of assignee" />
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Form Actions -->
+    <div class="px-6 py-4 bg-slate-50 border-t border-slate-200 flex items-center justify-end gap-3">
+      <a href="{{ url_for('quality.ncr_list') }}"
+         class="inline-flex items-center px-4 py-2 bg-white border border-slate-300 text-slate-700 text-sm font-medium rounded-lg shadow-sm hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-primary-500/20 transition-colors">
+        Cancel
+      </a>
+      <button type="submit"
+              class="inline-flex items-center px-4 py-2 bg-primary-600 text-white text-sm font-medium rounded-lg shadow-sm hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500/20 transition-colors">
+        <svg class="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+        </svg>
+        Create NCR
+      </button>
+    </div>
+  </form>
+</div>
+{% endblock %}

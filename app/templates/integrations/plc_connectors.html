@@ -1,0 +1,128 @@
+{% extends "layout.html" %}
+{% block title %}PLC Connectors - Integrations{% endblock %}
+{% block content %}
+<div class="mb-6 flex items-center justify-between">
+  <div>
+    <h1 class="text-2xl font-bold text-slate-900 dark:text-slate-100">PLC Connectors</h1>
+    <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Machine PLC signal mappings and connectivity status</p>
+  </div>
+  <a href="{{ url_for('integrations.signal_mapping') }}" class="bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-lg text-sm font-medium">
+    Manage Signal Mapping
+  </a>
+</div>
+
+<div class="space-y-6">
+  {% if not machines %}
+  <div class="bg-white dark:bg-slate-800 rounded-lg shadow-sm p-12 text-center">
+    <svg class="mx-auto h-12 w-12 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z" />
+    </svg>
+    <h3 class="mt-2 text-sm font-medium text-slate-900 dark:text-slate-100">No machines</h3>
+    <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">Get started by creating machines in Administration.</p>
+  </div>
+  {% else %}
+  <div class="grid grid-cols-1 gap-4">
+    {% for machine in machines %}
+    {% set signals = machine_signals.get(machine.name, []) %}
+    <div class="bg-white dark:bg-slate-800 rounded-lg shadow-sm border border-slate-200 dark:border-slate-700 p-5">
+      <div class="flex items-start justify-between mb-4">
+        <div>
+          <h3 class="text-lg font-semibold text-slate-900 dark:text-slate-100">{{ machine.name }}</h3>
+          <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">
+            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {% if machine.status == 'Running' %}bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200{% elif machine.status == 'Idle' %}bg-slate-100 text-slate-800 dark:bg-slate-700 dark:text-slate-300{% else %}bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200{% endif %}">
+              {{ machine.status }}
+            </span>
+            <span class="ml-2 text-slate-400">•</span>
+            <span class="ml-2">{{ signals|length }} signal{% if signals|length != 1 %}s{% endif %} mapped</span>
+          </p>
+        </div>
+        <div class="flex items-center space-x-2">
+          {% if signals %}
+          <span class="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+            <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+              <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+            </svg>
+            Connected
+          </span>
+          {% else %}
+          <span class="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200">
+            <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+              <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+            </svg>
+            No Signals
+          </span>
+          {% endif %}
+        </div>
+      </div>
+
+      {% if signals %}
+      <div class="mt-4">
+        <div class="flex flex-wrap gap-2">
+          {% set signal_types = {} %}
+          {% for s in signals %}
+            {% if s.signal_type not in signal_types %}
+              {% set _ = signal_types.update({s.signal_type: 0}) %}
+            {% endif %}
+            {% set _ = signal_types.update({s.signal_type: signal_types[s.signal_type] + 1}) %}
+          {% endfor %}
+          {% for stype, count in signal_types.items() %}
+          <span class="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-300">
+            {{ stype }}: {{ count }}
+          </span>
+          {% endfor %}
+        </div>
+      </div>
+
+      <div class="mt-4 overflow-x-auto">
+        <table class="w-full text-xs">
+          <thead>
+            <tr class="border-b border-slate-200 dark:border-slate-700">
+              <th class="text-left py-2 px-2 font-medium text-slate-600 dark:text-slate-400">Signal Tag</th>
+              <th class="text-left py-2 px-2 font-medium text-slate-600 dark:text-slate-400">Type</th>
+              <th class="text-left py-2 px-2 font-medium text-slate-600 dark:text-slate-400">Process</th>
+              <th class="text-left py-2 px-2 font-medium text-slate-600 dark:text-slate-400">Unit</th>
+              <th class="text-right py-2 px-2 font-medium text-slate-600 dark:text-slate-400">Status</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100 dark:divide-slate-700">
+            {% for signal in signals[:5] %}
+            <tr class="hover:bg-slate-50 dark:hover:bg-slate-700/50">
+              <td class="py-2 px-2 font-mono text-slate-900 dark:text-slate-100">{{ signal.signal_tag }}</td>
+              <td class="py-2 px-2">
+                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium {% if signal.signal_type == 'SETPOINT' %}bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200{% elif signal.signal_type == 'ACTUAL' %}bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200{% elif signal.signal_type == 'ALARM' %}bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200{% else %}bg-slate-100 text-slate-800 dark:bg-slate-700 dark:text-slate-300{% endif %}">
+                  {{ signal.signal_type }}
+                </span>
+              </td>
+              <td class="py-2 px-2 text-slate-600 dark:text-slate-400">{{ signal.process_type or '-' }}</td>
+              <td class="py-2 px-2 text-slate-600 dark:text-slate-400">{{ signal.unit or '-' }}</td>
+              <td class="py-2 px-2 text-right">
+                {% if signal.is_active %}
+                <span class="text-green-600 dark:text-green-400">Active</span>
+                {% else %}
+                <span class="text-slate-400">Inactive</span>
+                {% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        {% if signals|length > 5 %}
+        <p class="mt-2 text-xs text-slate-500 dark:text-slate-400 text-center">
+          + {{ signals|length - 5 }} more signal{{ 's' if signals|length - 5 != 1 }}
+        </p>
+        {% endif %}
+      </div>
+      {% else %}
+      <div class="mt-4 text-center py-6 bg-slate-50 dark:bg-slate-700/30 rounded-lg">
+        <p class="text-sm text-slate-500 dark:text-slate-400">No signal mappings configured</p>
+        <a href="{{ url_for('integrations.signal_mapping') }}" class="mt-2 inline-block text-xs text-primary-600 hover:text-primary-700 dark:text-primary-400">
+          Configure signals →
+        </a>
+      </div>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

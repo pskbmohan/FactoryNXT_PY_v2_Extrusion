@@ -1,0 +1,95 @@
+{% extends "layout.html" %}
+{% block title %}NCR List{% endblock %}
+{% block content %}
+<div class="mb-6">
+  <h2 class="text-2xl font-bold text-slate-900">Non-Conformance Reports (NCR)</h2>
+  <p class="text-sm text-slate-500">Review active and resolved material discrepancy tickets.</p>
+</div>
+
+<form class="mb-6 grid grid-cols-1 md:grid-cols-4 gap-4 items-end" method="get">
+  <div>
+    <label class="block text-sm font-medium text-slate-700 mb-1">Filter by Work Order</label>
+    <div class="relative">
+      <select name="work_order" class="appearance-none block w-full rounded-lg border-slate-300 shadow-sm focus:border-primary-500 focus:ring-1 focus:ring-primary-500 text-sm py-2 px-3 pr-10">
+        <option value="all" {% if filter_work_order == 'all' %}selected{% endif %}>All Work Orders</option>
+        {% for wo in work_orders %}
+        <option value="{{ wo.id }}" {% if filter_work_order == wo.id %}selected{% endif %}>{{ wo.order_number }}</option>
+        {% endfor %}
+      </select>
+      <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-slate-500">
+        <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+      </div>
+    </div>
+  </div>
+  <div>
+    <label class="block text-sm font-medium text-slate-700 mb-1">Filter by Status</label>
+    <div class="relative">
+      <select name="status" class="appearance-none block w-full rounded-lg border-slate-300 shadow-sm focus:border-primary-500 focus:ring-1 focus:ring-primary-500 text-sm py-2 px-3 pr-10">
+        {% set statuses = ['all', 'Open', 'In Progress', 'Closed'] %}
+        {% for s in statuses %}
+        <option value="{{ s }}" {% if filter_status == s %}selected{% endif %}>{{ s }}</option>
+        {% endfor %}
+      </select>
+      <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-slate-500">
+        <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+      </div>
+    </div>
+  </div>
+  <div>
+    <button class="inline-flex items-center px-4 py-2 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 text-sm font-medium rounded-lg shadow-sm w-full justify-center" type="submit">Apply</button>
+  </div>
+  <div>
+    <a class="inline-flex items-center px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-lg shadow-sm w-full justify-center" href="{{ url_for('ncr.create_ncr') }}">Create New NCR</a>
+  </div>
+</form>
+
+<div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-x-auto">
+  <table class="w-full text-left text-sm">
+    <thead class="bg-slate-50 text-slate-600 uppercase tracking-wider text-xs font-semibold border-b border-slate-200">
+      <tr>
+        <th class="py-3 px-4">NCR Ticket ID</th>
+        <th class="py-3 px-4">Defect Ref</th>
+        <th class="py-3 px-4">Work Order ID</th>
+        <th class="py-3 px-4">Description</th>
+        <th class="py-3 px-4">Severity</th>
+        <th class="py-3 px-4">Status</th>
+        <th class="py-3 px-4">Created At</th>
+        <th class="py-3 px-4">Resolved At</th>
+        <th class="py-3 px-4 text-right">Actions</th>
+      </tr>
+    </thead>
+    <tbody class="divide-y divide-slate-100">
+      {% if ncrs|length == 0 %}
+      <tr>
+        <td colspan="9" class="py-8 text-center">
+          <div class="flex flex-col items-center">
+            <svg class="h-10 w-10 text-slate-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            <p class="text-sm font-medium text-slate-900">No NCR records discovered.</p>
+          </div>
+        </td>
+      </tr>
+      {% else %}
+      {% for n in ncrs %}
+      <tr>
+        <td class="py-3 px-4 font-mono text-xs">{{ n.id }}</td>
+        <td class="py-3 px-4 font-mono text-xs">{{ n.defect_id or 'Manual' }}</td>
+        <td class="py-3 px-4">{{ n.work_order.order_number if n.work_order else 'N/A' }}</td>
+        <td class="py-3 px-4 max-w-xs truncate">{{ n.description }}</td>
+        <td class="py-3 px-4">
+          <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {% if n.severity == 'Critical' %}bg-red-100 text-red-800{% elif n.severity == 'Major' %}bg-orange-100 text-orange-800{% else %}bg-yellow-100 text-yellow-800{% endif %}">{{ n.severity }}</span>
+        </td>
+        <td class="py-3 px-4">
+          <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {% if n.status == 'Closed' %}bg-green-100 text-green-800{% elif n.status == 'In Progress' %}bg-blue-100 text-blue-800{% else %}bg-slate-100 text-slate-800{% endif %}">{{ n.status }}</span>
+        </td>
+        <td class="py-3 px-4 text-slate-600 text-xs">{{ n.created_at }}</td>
+        <td class="py-3 px-4 text-slate-600 text-xs">{{ n.resolved_at or '—' }}</td>
+        <td class="py-3 px-4 text-right">
+          <a class="inline-flex items-center px-3 py-1.5 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 text-xs font-medium rounded-md shadow-sm" href="{{ url_for('ncr.detail', id=n.id) }}">View</a>
+        </td>
+      </tr>
+      {% endfor %}
+      {% endif %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

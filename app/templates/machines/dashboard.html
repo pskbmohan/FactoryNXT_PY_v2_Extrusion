@@ -1,0 +1,154 @@
+{% extends "layout.html" %}
+{% block title %}Equipment Dashboard{% endblock %}
+
+{% block content %}
+<!-- Header -->
+<div class="mb-8">
+  <h1 class="text-2xl font-bold text-slate-900">Equipment & PM Dashboard</h1>
+  <p class="text-sm text-slate-500 mt-1">Monitor machine status, preventive maintenance, and recent logs.</p>
+</div>
+
+<!-- Machines Overview -->
+<div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden mb-8">
+  <div class="px-6 py-4 border-b border-slate-200 bg-slate-50/50 flex items-center justify-between">
+    <h2 class="text-lg font-semibold text-slate-900">Machine Fleet Status</h2>
+    <span class="text-xs font-medium text-slate-500 bg-slate-100 px-2.5 py-1 rounded-full">{{ machines|length }} Total</span>
+  </div>
+  <div class="overflow-x-auto">
+    <table class="w-full text-left text-sm">
+      <thead class="bg-slate-50 text-slate-600 uppercase tracking-wider text-xs font-semibold border-b border-slate-200">
+        <tr>
+          <th class="px-6 py-3">Machine ID</th>
+          <th class="px-6 py-3">Name</th>
+          <th class="px-6 py-3">Current Status</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-slate-100">
+        {% for m in machines %}
+        <tr class="hover:bg-slate-50 transition-colors">
+          <td class="px-6 py-4 font-mono text-xs font-medium text-slate-900">{{ m.id }}</td>
+          <td class="px-6 py-4 font-medium text-slate-900">{{ m.name }}</td>
+          <td class="px-6 py-4">
+            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+              {% if m.status == 'RUNNING' or m.status == 'ACTIVE' %}bg-green-100 text-green-800
+              {% elif m.status == 'DOWN' or m.status == 'MAINTENANCE' %}bg-red-100 text-red-800
+              {% elif m.status == 'IDLE' %}bg-amber-100 text-amber-800
+              {% else %}bg-slate-100 text-slate-700{% endif %}">
+              {{ m.status|replace('_', ' ')|capitalize }}
+            </span>
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="3" class="px-6 py-8 text-center text-slate-500">No machines registered.</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Two Column Layout for PM and Recent Maintenance -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+
+  <!-- PM Due -->
+  <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+    <div class="px-6 py-4 border-b border-slate-200 bg-amber-50/50">
+      <h2 class="text-lg font-semibold text-amber-900 flex items-center gap-2">
+        <svg class="w-5 h-5 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        Preventive Maintenance Due
+      </h2>
+    </div>
+    <div class="overflow-x-auto">
+      <table class="w-full text-left text-sm">
+        <thead class="bg-slate-50 text-slate-600 uppercase tracking-wider text-xs font-semibold border-b border-slate-200">
+          <tr>
+            <th class="px-6 py-3">Machine</th>
+            <th class="px-6 py-3">Task</th>
+            <th class="px-6 py-3">Due At</th>
+            <th class="px-6 py-3">Status</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-100">
+          {% for p in pm_due %}
+          <tr class="hover:bg-slate-50 transition-colors">
+            <td class="px-6 py-4 font-medium text-slate-900">{{ p.machine_id }}</td>
+            <td class="px-6 py-4 text-slate-700">{{ p.task_name }}</td>
+            <td class="px-6 py-4 text-slate-600">{{ p.due_at.strftime('%Y-%m-%d') if p.due_at else '-' }}</td>
+            <td class="px-6 py-4">
+              <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+                {% if p.status == 'OVERDUE' %}bg-red-100 text-red-800
+                {% elif p.status == 'DUE SOON' %}bg-amber-100 text-amber-800
+                {% else %}bg-blue-100 text-blue-800{% endif %}">
+                {{ p.status|replace('_', ' ')|capitalize }}
+              </span>
+            </td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="4" class="px-6 py-8 text-center text-slate-500">
+              <p class="text-sm font-medium">All preventive maintenance is up to date.</p>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Recent Maintenance -->
+  <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+    <div class="px-6 py-4 border-b border-slate-200 bg-slate-50/50">
+      <h2 class="text-lg font-semibold text-slate-900 flex items-center gap-2">
+        <svg class="w-5 h-5 text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+        </svg>
+        Recent Maintenance Logs
+      </h2>
+    </div>
+    <div class="overflow-x-auto">
+      <table class="w-full text-left text-sm">
+        <thead class="bg-slate-50 text-slate-600 uppercase tracking-wider text-xs font-semibold border-b border-slate-200">
+          <tr>
+            <th class="px-6 py-3">Machine</th>
+            <th class="px-6 py-3">Type</th>
+            <th class="px-6 py-3">Description</th>
+            <th class="px-6 py-3 text-right">Downtime</th>
+            <th class="px-6 py-3">Performed At</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-100">
+          {% for l in recent_maint %}
+          <tr class="hover:bg-slate-50 transition-colors">
+            <td class="px-6 py-4 font-medium text-slate-900">{{ l.machine_id }}</td>
+            <td class="px-6 py-4">
+              <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-700">
+                {{ l.log_type|capitalize }}
+              </span>
+            </td>
+            <td class="px-6 py-4 text-slate-700">{{ l.description }}</td>
+            <td class="px-6 py-4 text-right font-mono text-xs text-slate-600">
+              {% if l.downtime_minutes %}
+                {{ l.downtime_minutes }} min
+              {% else %}
+                -
+              {% endif %}
+            </td>
+            <td class="px-6 py-4 text-slate-500 text-xs">{{ l.performed_at.strftime('%Y-%m-%d %H:%M') if l.performed_at else '-' }}</td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="5" class="px-6 py-8 text-center text-slate-500">
+              <p class="text-sm font-medium">No recent maintenance logs.</p>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

@@ -1,0 +1,71 @@
+{% extends "layout.html" %}
+{% block title %}Bill of Materials{% endblock %}
+
+{% block content %}
+<div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
+  <div class="mb-6">
+    <h2 class="text-2xl font-bold text-slate-900">Bill of Materials (BOM)</h2>
+    <p class="text-sm text-slate-500 mt-1">Manage component schemas and assembly recipes.</p>
+  </div>
+
+  <form class="mb-6" method="get">
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+      <div class="relative md:col-span-1">
+        <label for="parent" class="block text-sm font-medium text-slate-700 mb-1">Parent Product / Board</label>
+        <select id="parent" name="parent" class="block w-full rounded-lg border-slate-300 shadow-sm focus:border-primary-500 focus:ring-1 focus:ring-primary-500 text-sm py-2 px-3 appearance-none bg-white">
+          <option value="All" {% if parent_filter == 'All' %}selected{% endif %}>All Product Families</option>
+          {% for p in parent_parts %}
+          <option value="{{ p }}" {% if parent_filter == p %}selected{% endif %}>{{ p }}</option>
+          {% endfor %}
+        </select>
+        <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 pt-6 text-slate-500">
+          <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+        </div>
+      </div>
+      <div>
+        <button type="submit" class="inline-flex items-center px-4 py-2 bg-white hover:bg-slate-50 text-slate-700 text-sm font-medium rounded-lg border border-slate-300 shadow-sm">Apply</button>
+      </div>
+      <div class="md:justify-self-end">
+        <a href="{{ url_for('bom.create_bom_item') }}" class="inline-flex items-center px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-lg shadow-sm">Create New BOM Item</a>
+      </div>
+    </div>
+  </form>
+
+  <div class="overflow-x-auto">
+    <table class="w-full text-left text-sm">
+      <thead class="bg-slate-50 text-slate-600 uppercase tracking-wider text-xs font-semibold border-b border-slate-200">
+        <tr>
+          <th class="px-4 py-3">Assembly Part Number</th>
+          <th class="px-4 py-3">Component Part Number</th>
+          <th class="px-4 py-3 text-right">Qty per Unit</th>
+          <th class="px-4 py-3">Designator</th>
+          <th class="px-4 py-3">Revision</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-slate-100">
+        {% if items|length == 0 %}
+        <tr>
+          <td colspan="5" class="px-4 py-12 text-center">
+            <div class="flex flex-col items-center justify-center">
+              <svg class="h-12 w-12 text-slate-400 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path></svg>
+              <p class="text-sm font-medium text-slate-900">No BOM items found</p>
+              <p class="text-xs text-slate-500 mt-1">Get started by creating a new BOM item.</p>
+            </div>
+          </td>
+        </tr>
+        {% else %}
+        {% for item in items %}
+        <tr class="hover:bg-slate-50 transition-colors">
+          <td class="px-4 py-3 font-medium text-slate-900">{{ item.part_number }}</td>
+          <td class="px-4 py-3 font-mono text-slate-700">{{ item.component_part_number }}</td>
+          <td class="px-4 py-3 text-right text-slate-700">{{ item.quantity_per_unit }}</td>
+          <td class="px-4 py-3 text-slate-700">{{ item.designator or '—' }}</td>
+          <td class="px-4 py-3 text-slate-700">{{ item.revision or 'A' }}</td>
+        </tr>
+        {% endfor %}
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

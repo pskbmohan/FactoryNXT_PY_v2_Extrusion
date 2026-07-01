@@ -1,0 +1,60 @@
+{% extends 'layout.html' %}
+{% block title %}PCB Tracking{% endblock %}
+{% block content %}
+<div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
+  <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-6 gap-4">
+    <div>
+      <h2 class="text-2xl font-bold text-slate-900">PCB Panels</h2>
+      <p class="text-sm text-slate-500 mt-1">Manage and track PCB panel assemblies.</p>
+    </div>
+    <div class="flex gap-3">
+      <a href="{{ url_for('pcb.panel_new') }}" class="inline-flex items-center px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-lg shadow-sm">
+        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+        New Panel
+      </a>
+      <a href="{{ url_for('pcb.boards') }}" class="inline-flex items-center px-4 py-2 bg-white hover:bg-slate-50 text-slate-700 text-sm font-medium rounded-lg border border-slate-300 shadow-sm">All Boards</a>
+    </div>
+  </div>
+
+  <div class="overflow-x-auto">
+    <table class="w-full text-left text-sm">
+      <thead class="bg-slate-50 text-slate-600 uppercase tracking-wider text-xs font-semibold border-b border-slate-200">
+        <tr>
+          <th class="px-4 py-3">Panel Serial</th>
+          <th class="px-4 py-3">WO#</th>
+          <th class="px-4 py-3">Board Count</th>
+          <th class="px-4 py-3">Status</th>
+          <th class="px-4 py-3">Created</th>
+          <th class="px-4 py-3"></th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-slate-100">
+        {% for panel in panels %}
+        <tr class="hover:bg-slate-50 transition-colors">
+          <td class="px-4 py-3 font-mono font-medium text-slate-900">{{ panel.panel_serial }}</td>
+          <td class="px-4 py-3 text-slate-700">{{ panel.work_order.order_number if panel.work_order else '—' }}</td>
+          <td class="px-4 py-3 text-slate-700">{{ panel.board_count }}</td>
+          <td class="px-4 py-3">
+            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-800">{{ panel.status }}</span>
+          </td>
+          <td class="px-4 py-3 text-slate-500">{{ panel.created_at.strftime('%Y-%m-%d') if panel.created_at else '—' }}</td>
+          <td class="px-4 py-3">
+            <a href="{{ url_for('pcb.panel_detail', panel_id=panel.id) }}" class="inline-flex items-center px-3 py-1.5 bg-primary-50 hover:bg-primary-100 text-primary-700 text-xs font-medium rounded-md transition-colors">View</a>
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="6" class="px-4 py-12 text-center">
+            <div class="flex flex-col items-center justify-center">
+              <svg class="h-12 w-12 text-slate-400 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z"></path></svg>
+              <p class="text-sm font-medium text-slate-900">No panels found</p>
+              <p class="text-xs text-slate-500 mt-1">Get started by creating a new PCB panel.</p>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

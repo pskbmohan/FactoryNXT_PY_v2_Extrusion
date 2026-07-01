@@ -1,0 +1,144 @@
+{% extends "layout.html" %}
+{% block title %}Signal Mapping - Integrations{% endblock %}
+{% block content %}
+<div class="mb-6 flex items-center justify-between">
+  <div>
+    <h1 class="text-2xl font-bold text-slate-900 dark:text-slate-100">PLC Signal Mapping</h1>
+    <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Configure PLC signal tags for machine data integration</p>
+  </div>
+  <button onclick="document.getElementById('newMappingModal').style.display='flex'" class="bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-lg text-sm font-medium">
+    + New Signal Mapping
+  </button>
+</div>
+
+{% if not mappings %}
+<div class="bg-white dark:bg-slate-800 rounded-lg shadow-sm p-12 text-center">
+  <svg class="mx-auto h-12 w-12 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z" />
+  </svg>
+  <h3 class="mt-2 text-sm font-medium text-slate-900 dark:text-slate-100">No signal mappings</h3>
+  <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">Get started by creating your first signal mapping.</p>
+  <button onclick="document.getElementById('newMappingModal').style.display='flex'" class="mt-4 bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-lg text-sm font-medium">
+    Create Signal Mapping
+  </button>
+</div>
+{% else %}
+<div class="bg-white dark:bg-slate-800 rounded-lg shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
+  <table class="w-full">
+    <thead class="bg-slate-50 dark:bg-slate-700/50">
+      <tr>
+        <th class="text-left py-3 px-4 font-medium text-xs text-slate-600 dark:text-slate-400 uppercase tracking-wider">Machine Name</th>
+        <th class="text-left py-3 px-4 font-medium text-xs text-slate-600 dark:text-slate-400 uppercase tracking-wider">Signal Tag</th>
+        <th class="text-left py-3 px-4 font-medium text-xs text-slate-600 dark:text-slate-400 uppercase tracking-wider">Type</th>
+        <th class="text-left py-3 px-4 font-medium text-xs text-slate-600 dark:text-slate-400 uppercase tracking-wider">Process</th>
+        <th class="text-left py-3 px-4 font-medium text-xs text-slate-600 dark:text-slate-400 uppercase tracking-wider">Unit</th>
+        <th class="text-right py-3 px-4 font-medium text-xs text-slate-600 dark:text-slate-400 uppercase tracking-wider">Scale</th>
+        <th class="text-right py-3 px-4 font-medium text-xs text-slate-600 dark:text-slate-400 uppercase tracking-wider">Offset</th>
+        <th class="text-center py-3 px-4 font-medium text-xs text-slate-600 dark:text-slate-400 uppercase tracking-wider">Status</th>
+        <th class="text-right py-3 px-4 font-medium text-xs text-slate-600 dark:text-slate-400 uppercase tracking-wider">Actions</th>
+      </tr>
+    </thead>
+    <tbody class="divide-y divide-slate-100 dark:divide-slate-700">
+      {% for mapping in mappings %}
+      <tr class="hover:bg-slate-50 dark:hover:bg-slate-700/50">
+        <td class="py-3 px-4 text-sm font-medium text-slate-900 dark:text-slate-100">{{ mapping.machine_name }}</td>
+        <td class="py-3 px-4 text-sm font-mono text-slate-700 dark:text-slate-300">{{ mapping.signal_tag }}</td>
+        <td class="py-3 px-4 text-sm">
+          <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium {% if mapping.signal_type == 'SETPOINT' %}bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200{% elif mapping.signal_type == 'ACTUAL' %}bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200{% elif mapping.signal_type == 'ALARM' %}bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200{% else %}bg-slate-100 text-slate-800 dark:bg-slate-700 dark:text-slate-300{% endif %}">
+            {{ mapping.signal_type }}
+          </span>
+        </td>
+        <td class="py-3 px-4 text-sm text-slate-600 dark:text-slate-400">{{ mapping.process_type or '-' }}</td>
+        <td class="py-3 px-4 text-sm text-slate-600 dark:text-slate-400">{{ mapping.unit or '-' }}</td>
+        <td class="py-3 px-4 text-sm text-right text-slate-600 dark:text-slate-400">{{ '%.2f'|format(mapping.scale_factor) }}</td>
+        <td class="py-3 px-4 text-sm text-right text-slate-600 dark:text-slate-400">{{ '%.2f'|format(mapping.offset) }}</td>
+        <td class="py-3 px-4 text-sm text-center">
+          {% if mapping.is_active %}
+          <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+            Active
+          </span>
+          {% else %}
+          <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-slate-100 text-slate-800 dark:bg-slate-700 dark:text-slate-300">
+            Inactive
+          </span>
+          {% endif %}
+        </td>
+        <td class="py-3 px-4 text-right">
+          <form method="POST" action="{{ url_for('integrations.signal_mapping_toggle', id=mapping.id) }}" class="inline">
+            <button type="submit" class="text-xs text-primary-600 hover:text-primary-700 dark:text-primary-400">
+              {{ 'Disable' if mapping.is_active else 'Enable' }}
+            </button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}
+
+<!-- New Mapping Modal -->
+<div id="newMappingModal" style="display:none" class="fixed inset-0 bg-slate-900/50 flex items-center justify-content-center z-50" onclick="if(event.target===this) this.style.display='none'">
+  <div class="bg-white dark:bg-slate-800 rounded-lg shadow-xl border border-slate-200 dark:border-slate-700 w-full max-w-2xl mx-4">
+    <div class="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-700">
+      <h2 class="text-lg font-semibold text-slate-900 dark:text-slate-100">New Signal Mapping</h2>
+      <button onclick="document.getElementById('newMappingModal').style.display='none'" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </button>
+    </div>
+    <form method="POST" action="{{ url_for('integrations.signal_mapping_new') }}" class="p-6 space-y-4">
+      <div class="grid grid-cols-2 gap-4">
+        <div class="col-span-2">
+          <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Machine Name</label>
+          <input type="text" name="machine_name" required class="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 text-sm" placeholder="e.g., Press-01">
+        </div>
+        <div class="col-span-2">
+          <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Signal Tag</label>
+          <input type="text" name="signal_tag" required class="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 font-mono text-sm" placeholder="e.g., DB100.DBD0">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Signal Type</label>
+          <select name="signal_type" required class="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 text-sm">
+            <option value="ACTUAL">ACTUAL</option>
+            <option value="SETPOINT">SETPOINT</option>
+            <option value="ALARM">ALARM</option>
+            <option value="STATUS">STATUS</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Process Type</label>
+          <input type="text" name="process_type" class="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 text-sm" placeholder="e.g., Pressing">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Unit</label>
+          <input type="text" name="unit" class="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 text-sm" placeholder="e.g., °C, bar, mm">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Scale Factor</label>
+          <input type="number" name="scale_factor" value="1.0" step="0.01" class="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 text-sm">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Offset</label>
+          <input type="number" name="offset" value="0.0" step="0.01" class="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 text-sm">
+        </div>
+        <div class="col-span-2">
+          <label class="flex items-center">
+            <input type="checkbox" name="is_active" checked class="w-4 h-4 text-primary-600 border-slate-300 rounded">
+            <span class="ml-2 text-sm text-slate-700 dark:text-slate-300">Active</span>
+          </label>
+        </div>
+      </div>
+      <div class="flex justify-end space-x-3 pt-4 border-t border-slate-200 dark:border-slate-700">
+        <button type="button" onclick="document.getElementById('newMappingModal').style.display='none'" class="px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700">
+          Cancel
+        </button>
+        <button type="submit" class="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg text-sm font-medium">
+          Create Mapping
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

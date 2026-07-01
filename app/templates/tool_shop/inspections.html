@@ -1,0 +1,74 @@
+{% extends "layout.html" %}
+{% block title %}Die Inspections{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+  <div class="flex items-center justify-between">
+    <div>
+      <h1 class="text-2xl font-bold text-slate-900 dark:text-slate-50">Die Inspections</h1>
+      <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Visual and dimensional inspection records</p>
+    </div>
+    <a href="{{ url_for('tool_shop.die_list') }}" class="inline-flex items-center px-3 py-1.5 text-sm font-medium rounded-md bg-primary-600 text-white hover:bg-primary-700">&larr; Back to Dies</a>
+  </div>
+
+  <div class="bg-white dark:bg-slate-800 rounded-lg shadow overflow-hidden">
+    <div class="overflow-x-auto">
+      <table class="w-full text-sm text-left">
+        <thead class="bg-slate-50 dark:bg-slate-700/50 text-slate-600 dark:text-slate-400 uppercase tracking-wider text-xs font-semibold border-b border-slate-200 dark:border-slate-700">
+          <tr>
+            <th class="px-6 py-3">Die Code</th>
+            <th class="px-6 py-3">Profile</th>
+            <th class="px-6 py-3">Inspection Date</th>
+            <th class="px-6 py-3">Inspector</th>
+            <th class="px-6 py-3">Dimensions</th>
+            <th class="px-6 py-3">Surface</th>
+            <th class="px-6 py-3">Hardness (HV)</th>
+            <th class="px-6 py-3">Result</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-100 dark:divide-slate-700">
+          {% for ins in inspections or [] %}
+          {% set pass_all = ins.dimensions_ok and ins.surface_ok %}
+          <tr class="hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
+            <td class="px-6 py-3 font-medium text-slate-900 dark:text-slate-50">
+              <a href="{{ url_for('tool_shop.die_detail', id=ins.die_id) }}" class="hover:text-primary-600 dark:hover:text-primary-400">{{ ins.die.die_code if ins.die else '-' }}</a>
+            </td>
+            <td class="px-6 py-3 text-slate-600 dark:text-slate-400">{{ ins.die.profile_code if ins.die else '-' }}</td>
+            <td class="px-6 py-3 text-slate-600 dark:text-slate-400">{{ ins.inspection_date.strftime('%Y-%m-%d') if ins.inspection_date else '' }}</td>
+            <td class="px-6 py-3 text-slate-600 dark:text-slate-400">{{ ins.inspector or '-' }}</td>
+            <td class="px-6 py-3">
+              {% if ins.dimensions_ok %}
+              <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-emerald-100 dark:bg-emerald-900/30 text-emerald-800 dark:text-emerald-300">OK</span>
+              {% else %}
+              <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300">FAIL</span>
+              {% endif %}
+            </td>
+            <td class="px-6 py-3">
+              {% if ins.surface_ok %}
+              <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-emerald-100 dark:bg-emerald-900/30 text-emerald-800 dark:text-emerald-300">OK</span>
+              {% else %}
+              <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300">FAIL</span>
+              {% endif %}
+            </td>
+            <td class="px-6 py-3 text-slate-600 dark:text-slate-400">{{ '%.1f'|format(ins.hardness) if ins.hardness else '-' }}</td>
+            <td class="px-6 py-3">
+              <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium
+                {% if pass_all %}bg-emerald-100 dark:bg-emerald-900/30 text-emerald-800 dark:text-emerald-300
+                {% else %}bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300{% endif %}">
+                {{ 'PASS' if pass_all else 'FAIL' }}
+              </span>
+            </td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="8" class="px-6 py-12 text-center text-slate-500 dark:text-slate-400">
+              <p class="text-sm">No inspections recorded.</p>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

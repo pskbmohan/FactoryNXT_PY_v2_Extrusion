@@ -1,0 +1,142 @@
+{% extends "layout.html" %}
+{% block title %}KPI Dashboard{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+  <div class="flex items-center justify-between">
+    <div>
+      <h1 class="text-2xl font-bold text-slate-900 dark:text-slate-50">KPI Dashboard</h1>
+      <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Performance indicators, production metrics and active alerts</p>
+    </div>
+    <div class="flex gap-2">
+      <a href="{{ url_for('kpi_alerts.oee') }}" class="inline-flex items-center px-3 py-1.5 bg-white border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 text-sm font-medium rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700">OEE&nbsp;Detail</a>
+      <a href="{{ url_for('kpi_alerts.die_lifecycle') }}" class="inline-flex items-center px-3 py-1.5 bg-white border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 text-sm font-medium rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700">Die&nbsp;Lifecycle</a>
+      <a href="{{ url_for('kpi_alerts.downtime') }}" class="inline-flex items-center px-3 py-1.5 bg-white border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 text-sm font-medium rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700">Downtime</a>
+    </div>
+  </div>
+
+  <!-- Hero KPI Cards -->
+  <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
+    <div class="bg-white dark:bg-slate-800 rounded-lg shadow p-4">
+      <div class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">OEE</div>
+      <div class="text-3xl font-bold text-emerald-600 dark:text-emerald-400 mt-2">{{ '%.1f'|format((oee or 0) * 100) }}%</div>
+      <div class="w-full bg-slate-100 dark:bg-slate-700 rounded-full h-1.5 mt-2">
+        <div class="bg-emerald-500 h-1.5 rounded-full" style="width: {{ [(oee or 0) * 100, 100]|min }}%"></div>
+      </div>
+    </div>
+    <div class="bg-white dark:bg-slate-800 rounded-lg shadow p-4">
+      <div class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Throughput</div>
+      <div class="text-3xl font-bold text-slate-900 dark:text-slate-50 mt-2">{{ throughput_kg_h or 0 }} <span class="text-sm font-semibold text-slate-500 dark:text-slate-400">kg/h</span></div>
+    </div>
+    <div class="bg-white dark:bg-slate-800 rounded-lg shadow p-4">
+      <div class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Rejection Rate</div>
+      <div class="text-3xl font-bold {% if (rejection_pct or 0) > 2 %}text-red-600 dark:text-red-400{% else %}text-emerald-600 dark:text-emerald-400{% endif %} mt-2">{{ '%.2f'|format(rejection_pct or 0) }}%</div>
+    </div>
+    <div class="bg-white dark:bg-slate-800 rounded-lg shadow p-4">
+      <div class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Die Lifecycle</div>
+      <div class="text-3xl font-bold text-indigo-600 dark:text-indigo-400 mt-2">{{ avg_die_cycles or 0 }} <span class="text-sm font-semibold text-slate-500 dark:text-slate-400">cycles</span></div>
+    </div>
+    <div class="bg-white dark:bg-slate-800 rounded-lg shadow p-4">
+      <div class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Downtime</div>
+      <div class="text-3xl font-bold {% if (downtime_min or 0) > 60 %}text-red-600 dark:text-red-400{% else %}text-slate-900 dark:text-slate-50{% endif %} mt-2">{{ downtime_min or 0 }} <span class="text-sm font-semibold text-slate-500 dark:text-slate-400">min</span></div>
+    </div>
+  </div>
+
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <!-- Recent KPI Records Table -->
+    <div class="bg-white dark:bg-slate-800 rounded-lg shadow overflow-hidden">
+      <div class="px-6 py-4 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between">
+        <h2 class="text-lg font-semibold text-slate-900 dark:text-slate-50">Recent KPI Records</h2>
+        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300">{{ recent_kpis|length if recent_kpis else 0 }}</span>
+      </div>
+      <div class="overflow-x-auto max-h-96 overflow-y-auto">
+        <table class="w-full text-sm text-left">
+          <thead class="bg-slate-50 dark:bg-slate-700/50 text-slate-600 dark:text-slate-400 uppercase tracking-wider text-xs font-semibold border-b border-slate-200 dark:border-slate-700 sticky top-0">
+            <tr>
+              <th class="px-4 py-2">Type</th>
+              <th class="px-4 py-2 text-right">Value</th>
+              <th class="px-4 py-2">Machine</th>
+              <th class="px-4 py-2">When</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100 dark:divide-slate-700">
+            {% for kpi in (recent_kpis or [])[:15] %}
+            <tr class="hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
+              <td class="px-4 py-2">
+                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium
+                  {% if kpi.kpi_type == 'OEE' %}bg-emerald-100 dark:bg-emerald-900/30 text-emerald-800 dark:text-emerald-300
+                  {% elif kpi.kpi_type == 'THROUGHPUT' %}bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300
+                  {% elif kpi.kpi_type == 'REJECTION_RATE' %}bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300
+                  {% elif kpi.kpi_type == 'DIE_LIFETIME' %}bg-indigo-100 dark:bg-indigo-900/30 text-indigo-800 dark:text-indigo-300
+                  {% else %}bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300{% endif %}">
+                  {{ kpi.kpi_type }}
+                </span>
+              </td>
+              <td class="px-4 py-2 text-right font-mono text-slate-700 dark:text-slate-300">{{ '%.1f'|format(kpi.value|float) if kpi.value is not none else '-' }}</td>
+              <td class="px-4 py-2 text-slate-600 dark:text-slate-400 text-xs">
+                {% if kpi.machine_id %}
+                  {% for m in machines if m.id == kpi.machine_id %}{{ m.name }}{% endfor %}
+                {% else %}
+                  <span class="text-slate-400">—</span>
+                {% endif %}
+              </td>
+              <td class="px-4 py-2 text-slate-500 dark:text-slate-400 text-xs">{{ kpi.calculated_at.strftime('%m-%d %H:%M') if kpi.calculated_at else '' }}</td>
+            </tr>
+            {% else %}
+            <tr>
+              <td colspan="4" class="px-4 py-8 text-center text-slate-500 dark:text-slate-400 text-sm">
+                No KPI records yet.
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Active Alerts -->
+    <div class="bg-white dark:bg-slate-800 rounded-lg shadow overflow-hidden">
+      <div class="px-6 py-4 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <h2 class="text-lg font-semibold text-slate-900 dark:text-slate-50">Active Alerts</h2>
+          <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300">{{ alerts|length if alerts else 0 }}</span>
+        </div>
+        <a href="{{ url_for('kpi_alerts.alerts_list') }}" class="text-sm text-primary-600 dark:text-primary-400 hover:underline">View all &rarr;</a>
+      </div>
+      <div class="divide-y divide-slate-100 dark:divide-slate-700 max-h-96 overflow-y-auto">
+        {% for alert in (alerts or [])[:10] %}
+        <div class="px-6 py-3 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors
+          {% if alert.severity == 'CRITICAL' %}bg-red-50 dark:bg-red-900/10
+          {% elif alert.severity == 'HIGH' %}bg-amber-50 dark:bg-amber-900/10{% endif %}">
+          <div class="flex items-center gap-3">
+            <span class="w-2.5 h-2.5 rounded-full
+              {% if alert.severity == 'CRITICAL' %}bg-red-500
+              {% elif alert.severity == 'HIGH' %}bg-red-400
+              {% elif alert.severity == 'MEDIUM' %}bg-amber-400
+              {% else %}bg-slate-400{% endif %}"></span>
+            <div>
+              <p class="text-sm font-medium text-slate-900 dark:text-slate-50">{{ alert.title }}</p>
+              <p class="text-xs text-slate-500 dark:text-slate-400">{{ alert.source }} &middot; {{ alert.created_at.strftime('%Y-%m-%d %H:%M') if alert.created_at else '' }}</p>
+            </div>
+          </div>
+          <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium
+            {% if alert.severity == 'CRITICAL' %}bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300
+            {% elif alert.severity == 'HIGH' %}bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300
+            {% elif alert.severity == 'MEDIUM' %}bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-300
+            {% else %}bg-slate-100 dark:bg-slate-700 text-slate-800 dark:text-slate-200{% endif %}">
+            {{ alert.severity }}
+          </span>
+        </div>
+        {% else %}
+        <div class="px-6 py-8 text-center text-slate-500 dark:text-slate-400">
+          <svg class="mx-auto h-10 w-10 text-emerald-400 dark:text-emerald-500 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <p class="text-sm">No active alerts</p>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

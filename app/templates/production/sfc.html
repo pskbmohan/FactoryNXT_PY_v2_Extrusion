@@ -1,0 +1,36 @@
+{% extends "layout.html" %}
+{% block title %}SFC Board{% endblock %}
+{% block content %}
+<div class="mb-6">
+  <h2 class="text-2xl font-bold text-slate-900">SFC Board</h2>
+  <p class="text-sm text-slate-500">Shop floor control status overview.</p>
+</div>
+<div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-x-auto">
+  <table class="w-full text-left text-sm">
+    <thead class="bg-slate-50 text-slate-600 uppercase tracking-wider text-xs font-semibold border-b border-slate-200">
+      <tr>
+        <th class="py-3 px-4">WO</th>
+        <th class="py-3 px-4">Part</th>
+        <th class="py-3 px-4">Status</th>
+        <th class="py-3 px-4">Line</th>
+        <th class="py-3 px-4">Scheduled Start</th>
+        <th class="py-3 px-4">Scheduled End</th>
+      </tr>
+    </thead>
+    <tbody class="divide-y divide-slate-100">
+      {% for ps in entries %}
+      <tr>
+        <td class="py-3 px-4 font-medium">{{ ps.work_order.order_number }}</td>
+        <td class="py-3 px-4">{{ ps.work_order.part_number }}</td>
+        <td class="py-3 px-4">
+          <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {% if ps.work_order.status == 'Completed' %}bg-green-100 text-green-800{% elif ps.work_order.status == 'In Progress' %}bg-blue-100 text-blue-800{% else %}bg-slate-100 text-slate-800{% endif %}">{{ ps.work_order.status }}</span>
+        </td>
+        <td class="py-3 px-4 text-slate-600">{{ ps.smt_line.code if ps.smt_line else 'Unassigned' }}</td>
+        <td class="py-3 px-4 text-slate-600">{{ ps.scheduled_start }}</td>
+        <td class="py-3 px-4 text-slate-600">{{ ps.scheduled_end }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

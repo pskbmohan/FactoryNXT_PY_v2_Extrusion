@@ -1,0 +1,78 @@
+{% extends "layout.html" %}
+{% block title %}Plan vs Actual{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+  <div class="flex items-center justify-between">
+    <div>
+      <h1 class="text-2xl font-bold text-slate-900 dark:text-slate-50">Plan vs Actual</h1>
+      <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Scheduled production vs actual output</p>
+    </div>
+    <form method="get" class="flex items-center gap-2">
+      <input type="date" name="date" value="{{ selected_date or '' }}" class="block rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-200 shadow-sm focus:border-primary-500 focus:ring-1 focus:ring-primary-500 text-sm py-2 px-3" />
+      <button type="submit" class="inline-flex items-center px-3 py-1.5 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-lg">Filter</button>
+    </form>
+  </div>
+
+  <!-- Summary -->
+  <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+    <div class="bg-white dark:bg-slate-800 rounded-lg shadow p-4">
+      <div class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Planned Output</div>
+      <div class="text-3xl font-bold text-slate-900 dark:text-slate-50 mt-2">{{ planned_output or 0 }} kg</div>
+    </div>
+    <div class="bg-white dark:bg-slate-800 rounded-lg shadow p-4">
+      <div class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Actual Output</div>
+      <div class="text-3xl font-bold text-emerald-600 dark:text-emerald-400 mt-2">{{ actual_output or 0 }} kg</div>
+    </div>
+    <div class="bg-white dark:bg-slate-800 rounded-lg shadow p-4">
+      <div class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Variance</div>
+      <div class="text-3xl font-bold {% if (variance_pct or 0) >= 0 %}text-emerald-600 dark:text-emerald-400{% else %}text-red-600 dark:text-red-400{% endif %} mt-2">{{ '%.1f'|format(variance_pct or 0) }}%</div>
+    </div>
+    <div class="bg-white dark:bg-slate-800 rounded-lg shadow p-4">
+      <div class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Achievement</div>
+      <div class="text-3xl font-bold text-primary-600 dark:text-primary-500 mt-2">{{ '%.0f'|format((achievement_pct or 0) * 100) }}%</div>
+    </div>
+  </div>
+
+  <!-- Comparison Table -->
+  <div class="bg-white dark:bg-slate-800 rounded-lg shadow overflow-hidden">
+    <div class="px-6 py-4 border-b border-slate-200 dark:border-slate-700">
+      <h2 class="text-lg font-semibold text-slate-900 dark:text-slate-50">Per-Machine Breakdown</h2>
+    </div>
+    <div class="overflow-x-auto">
+      <table class="w-full text-sm text-left">
+        <thead class="bg-slate-50 dark:bg-slate-700/50 text-slate-600 dark:text-slate-400 uppercase tracking-wider text-xs font-semibold border-b border-slate-200 dark:border-slate-700">
+          <tr>
+            <th class="px-6 py-3">Machine</th>
+            <th class="px-6 py-3">Planned (kg)</th>
+            <th class="px-6 py-3">Actual (kg)</th>
+            <th class="px-6 py-3">Variance</th>
+            <th class="px-6 py-3">Progress</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-100 dark:divide-slate-700">
+          {% for row in rows or [] %}
+          <tr class="hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
+            <td class="px-6 py-3 font-medium text-slate-900 dark:text-slate-50">{{ row.machine_name }}</td>
+            <td class="px-6 py-3 text-slate-700 dark:text-slate-300">{{ row.planned }}</td>
+            <td class="px-6 py-3 text-slate-700 dark:text-slate-300">{{ row.actual }}</td>
+            <td class="px-6 py-3 font-semibold {% if (row.variance or 0) >= 0 %}text-emerald-600 dark:text-emerald-400{% else %}text-red-600 dark:text-red-400{% endif %}">{{ '%+.1f'|format(row.variance or 0) }}%</td>
+            <td class="px-6 py-3">
+              <div class="w-32 bg-slate-100 dark:bg-slate-700 rounded-full h-2">
+                <div class="bg-primary-600 dark:bg-primary-500 h-2 rounded-full" style="width: {{ [100, row.achievement or 0]|min }}%"></div>
+              </div>
+            </td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="5" class="px-6 py-8 text-center text-slate-500 dark:text-slate-400">
+              <p class="text-sm">No data for selected period.</p>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

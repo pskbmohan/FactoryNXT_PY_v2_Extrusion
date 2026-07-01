@@ -1,0 +1,63 @@
+{% extends "layout.html" %}
+{% block title %}New Calibration Record{% endblock %}
+
+{% block content %}
+<div class="mb-6">
+  <h1 class="text-2xl font-bold text-slate-900">New Calibration Record</h1>
+  <p class="text-sm text-slate-500 mt-1">Create a new equipment calibration record.</p>
+</div>
+
+<form method="post" class="bg-white rounded-xl border border-slate-200 p-6 shadow-sm max-w-3xl">
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+    <div>
+      <label for="machine_id" class="block text-sm font-medium text-slate-700 mb-1.5">Machine ID <span class="text-red-500">*</span></label>
+      <input type="text" name="machine_id" id="machine_id" required
+             class="block w-full rounded-lg border-slate-300 shadow-sm focus:border-primary-500 focus:ring-1 focus:ring-primary-500 text-sm py-2 px-3" />
+    </div>
+    <div>
+      <label for="result" class="block text-sm font-medium text-slate-700 mb-1.5">Result</label>
+      <div class="relative">
+        <select name="result" id="result" class="block w-full rounded-lg border-slate-300 shadow-sm focus:border-primary-500 focus:ring-1 focus:ring-primary-500 text-sm py-2 px-3 appearance-none bg-white pr-10">
+          <option>Pass</option>
+          <option>Fail</option>
+          <option>Conditional</option>
+        </select>
+        <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-slate-500">
+          <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+          </svg>
+        </div>
+      </div>
+    </div>
+    <div>
+      <label for="certificate_number" class="block text-sm font-medium text-slate-700 mb-1.5">Certificate Number</label>
+      <input type="text" name="certificate_number" id="certificate_number"
+             class="block w-full rounded-lg border-slate-300 shadow-sm focus:border-primary-500 focus:ring-1 focus:ring-primary-500 text-sm py-2 px-3" />
+    </div>
+    <div>
+      <label for="performed_by" class="block text-sm font-medium text-slate-700 mb-1.5">Performed By</label>
+      <input type="text" name="performed_by" id="performed_by"
+             class="block w-full rounded-lg border-slate-300 shadow-sm focus:border-primary-500 focus:ring-1 focus:ring-primary-500 text-sm py-2 px-3" />
+    </div>
+    <div>
+      <label for="performed_at" class="block text-sm font-medium text-slate-700 mb-1.5">Performed At <span class="text-red-500">*</span></label>
+      <input type="datetime-local" name="performed_at" id="performed_at" required
+             class="block w-full rounded-lg border-slate-300 shadow-sm focus:border-primary-500 focus:ring-1 focus:ring-primary-500 text-sm py-2 px-3" />
+    </div>
+    <div>
+      <label for="next_due_at" class="block text-sm font-medium text-slate-700 mb-1.5">Next Due At <span class="text-red-500">*</span></label>
+      <input type="datetime-local" name="next_due_at" id="next_due_at" required
+             class="block w-full rounded-lg border-slate-300 shadow-sm focus:border-primary-500 focus:ring-1 focus:ring-primary-500 text-sm py-2 px-3" />
+    </div>
+  </div>
+
+  <div class="mt-6 flex gap-3 pt-4 border-t border-slate-200">
+    <button type="submit" class="inline-flex items-center px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-lg shadow-sm">
+      Save
+    </button>
+    <a href="{{ url_for('maintenance.calibration') }}" class="inline-flex items-center px-4 py-2 bg-white border border-slate-300 text-slate-700 text-sm font-medium rounded-lg shadow-sm hover:bg-slate-50">
+      Cancel
+    </a>
+  </div>
+</form>
+{% endblock %}

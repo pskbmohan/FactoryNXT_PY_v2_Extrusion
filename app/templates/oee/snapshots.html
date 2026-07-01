@@ -1,0 +1,68 @@
+{% extends 'layout.html' %}
+{% block title %}OEE Snapshots{% endblock %}
+{% block content %}
+<div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
+  <div class="mb-6">
+    <h2 class="text-2xl font-bold text-slate-900">OEE Snapshots</h2>
+    <p class="text-sm text-slate-500 mt-1">Historical Overall Equipment Effectiveness records.</p>
+  </div>
+
+  <form method="get" class="mb-6 flex flex-col sm:flex-row gap-3">
+    <div class="relative sm:w-64">
+      <select name="line_id" class="block w-full rounded-lg border-slate-300 shadow-sm focus:border-primary-500 focus:ring-1 focus:ring-primary-500 text-sm py-2 px-3 appearance-none bg-white">
+        <option value="">All Lines</option>
+        {% for l in lines %}<option value="{{ l.id }}" {% if selected_line==l.id %}selected{% endif %}>{{ l.name }}</option>{% endfor %}
+      </select>
+      <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-slate-500">
+        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+      </div>
+    </div>
+    <button type="submit" class="inline-flex items-center px-4 py-2 bg-white hover:bg-slate-50 text-slate-700 text-sm font-medium rounded-lg border border-slate-300 shadow-sm self-start sm:self-auto">Filter</button>
+  </form>
+
+  <div class="overflow-x-auto">
+    <table class="w-full text-left text-sm">
+      <thead class="bg-slate-50 text-slate-600 uppercase tracking-wider text-xs font-semibold border-b border-slate-200">
+        <tr>
+          <th class="px-4 py-3">Date</th>
+          <th class="px-4 py-3">Shift</th>
+          <th class="px-4 py-3">Line</th>
+          <th class="px-4 py-3 text-right">OEE %</th>
+          <th class="px-4 py-3 text-right">A %</th>
+          <th class="px-4 py-3 text-right">P %</th>
+          <th class="px-4 py-3 text-right">Q %</th>
+          <th class="px-4 py-3 text-right">Planned</th>
+          <th class="px-4 py-3 text-right">Produced</th>
+          <th class="px-4 py-3 text-right">Defective</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-slate-100">
+        {% for s in records %}
+        <tr class="hover:bg-slate-50 transition-colors">
+          <td class="px-4 py-3 text-slate-700">{{ s.shift_date }}</td>
+          <td class="px-4 py-3 text-slate-700">{{ s.shift_name }}</td>
+          <td class="px-4 py-3 text-slate-700">{{ s.smt_line.name if s.smt_line }}</td>
+          <td class="px-4 py-3 text-right font-semibold text-slate-900">{{ '%.1f'|format((s.oee or 0)*100) }}%</td>
+          <td class="px-4 py-3 text-right text-slate-700">{{ '%.1f'|format((s.availability or 0)*100) }}%</td>
+          <td class="px-4 py-3 text-right text-slate-700">{{ '%.1f'|format((s.performance or 0)*100) }}%</td>
+          <td class="px-4 py-3 text-right text-slate-700">{{ '%.1f'|format((s.quality or 0)*100) }}%</td>
+          <td class="px-4 py-3 text-right text-slate-700">{{ s.units_planned }}</td>
+          <td class="px-4 py-3 text-right text-slate-700">{{ s.units_produced }}</td>
+          <td class="px-4 py-3 text-right text-slate-700">{{ s.units_defective }}</td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="10" class="px-4 py-12 text-center">
+            <div class="flex flex-col items-center justify-center">
+              <svg class="h-12 w-12 text-slate-400 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
+              <p class="text-sm font-medium text-slate-900">No records found</p>
+              <p class="text-xs text-slate-500 mt-1">OEE snapshot data will populate here.</p>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

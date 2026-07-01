@@ -1,0 +1,51 @@
+{% extends 'layout.html' %}
+{% block title %}Burn-In Sessions{% endblock %}
+{% block content %}
+<div class="mb-6 flex items-center justify-between">
+  <div>
+    <h1 class="text-2xl font-bold text-slate-900">Burn-In Sessions</h1>
+    <p class="text-sm text-slate-500">Track burn-in testing for work orders.</p>
+  </div>
+  <a href="{{ url_for('quality_ext.burn_in_new') }}" class="inline-flex items-center px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-lg shadow-sm">+ New Session</a>
+</div>
+<div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-x-auto">
+  <table class="w-full text-left text-sm">
+    <thead class="bg-slate-50 text-slate-600 uppercase tracking-wider text-xs font-semibold border-b border-slate-200">
+      <tr>
+        <th class="py-3 px-4">WO</th>
+        <th class="py-3 px-4">Chamber</th>
+        <th class="py-3 px-4">Planned (hrs)</th>
+        <th class="py-3 px-4">Actual (hrs)</th>
+        <th class="py-3 px-4">Status</th>
+        <th class="py-3 px-4">Started</th>
+        <th class="py-3 px-4">Completed</th>
+      </tr>
+    </thead>
+    <tbody class="divide-y divide-slate-100">
+      {% for s in sessions %}
+      <tr>
+        <td class="py-3 px-4 font-medium">{{ s.wo_id }}</td>
+        <td class="py-3 px-4">{{ s.chamber_id or '-' }}</td>
+        <td class="py-3 px-4">{{ s.planned_hours }}</td>
+        <td class="py-3 px-4">{{ s.actual_hours or '-' }}</td>
+        <td class="py-3 px-4">
+          <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {% if s.status == 'complete' %}bg-green-100 text-green-800{% elif s.status == 'running' %}bg-blue-100 text-blue-800{% elif s.status == 'aborted' %}bg-red-100 text-red-800{% else %}bg-slate-100 text-slate-800{% endif %}">{{ s.status }}</span>
+        </td>
+        <td class="py-3 px-4 text-slate-600 text-xs">{{ s.started_at.strftime('%Y-%m-%d %H:%M') if s.started_at else '-' }}</td>
+        <td class="py-3 px-4 text-slate-600 text-xs">{{ s.completed_at.strftime('%Y-%m-%d %H:%M') if s.completed_at else '-' }}</td>
+      </tr>
+      {% else %}
+      <tr>
+        <td colspan="7" class="py-8 text-center">
+          <div class="flex flex-col items-center">
+            <svg class="h-10 w-10 text-slate-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+            <p class="text-sm font-medium text-slate-900">No burn-in sessions.</p>
+            <p class="text-xs text-slate-500">Queue a new session to get started.</p>
+          </div>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

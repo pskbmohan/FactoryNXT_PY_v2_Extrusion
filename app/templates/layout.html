@@ -1,0 +1,704 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{% block title %}FactoryNXT{% endblock %}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.tailwindcss.com?plugins=forms,typography,aspect-ratio"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'system-ui', 'sans-serif'],
+          },
+          colors: {
+            primary: {
+              50: '#eef2ff', 100: '#e0e7ff', 500: '#6366f1', 600: '#4f46e5', 700: '#4338ca',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/custom.css') }}" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      background: #f8fafc;
+      color: #0f172a;
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+    }
+    .dark body {
+      background: #0f172a;
+      color: #f1f5f9;
+    }
+
+    #topbar {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 200;
+      height: 64px; background: #ffffff;
+      display: flex; align-items: center; padding: 0 24px;
+      border-bottom: 1px solid #e2e8f0;
+    }
+    .dark #topbar {
+      background: #1e293b;
+      border-bottom: 1px solid #334155;
+    }
+    #topbar .toggle-btn {
+      background: transparent; border: none; cursor: pointer; color: #64748b;
+      padding: 8px; border-radius: 6px; transition: all 0.2s; display: flex; align-items: center;
+    }
+    .dark #topbar .toggle-btn { color: #94a3b8; }
+    #topbar .toggle-btn:hover { background: #f1f5f9; color: #0f172a; }
+    .dark #topbar .toggle-btn:hover { background: #334155; color: #f1f5f9; }
+    #topbar .brand { color: #0f172a; font-size: 20px; font-weight: 700; letter-spacing: -0.5px; }
+    .dark #topbar .brand { color: #f1f5f9; }
+    #topbar .brand span { color: #4f46e5; }
+    #topbar .top-right { margin-left: auto; display: flex; gap: 16px; align-items: center; }
+    #topbar .top-right a {
+      color: #475569; font-size: 14px; font-weight: 500; text-decoration: none;
+      transition: color 0.2s; display: flex; align-items: center; gap: 6px;
+    }
+    .dark #topbar .top-right a { color: #cbd5e1; }
+    #topbar .top-right a:hover { color: #0f172a; }
+    .dark #topbar .top-right a:hover { color: #f1f5f9; }
+
+    #sidebar {
+      position: fixed; top: 64px; left: 0; bottom: 0; z-index: 150;
+      width: 260px; background: #ffffff;
+      border-right: 1px solid #e2e8f0;
+      overflow-y: auto; overflow-x: hidden;
+      transition: width 0.25s cubic-bezier(0.4, 0, 0.2, 1), transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+      scrollbar-width: thin; scrollbar-color: #cbd5e1 transparent;
+    }
+    .dark #sidebar {
+      background: #1e293b;
+      border-right: 1px solid #334155;
+      scrollbar-color: #475569 transparent;
+    }
+    #sidebar.collapsed { width: 72px; }
+    #sidebar::-webkit-scrollbar { width: 4px; }
+    #sidebar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 2px; }
+    .dark #sidebar::-webkit-scrollbar-thumb { background: #475569; }
+    #sidebar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+    .dark #sidebar::-webkit-scrollbar-thumb:hover { background: #64748b; }
+
+    .sidebar-label {
+      color: #94a3b8; font-size: 11px; font-weight: 600;
+      letter-spacing: 0.05em; text-transform: uppercase;
+      padding: 24px 16px 8px; white-space: nowrap; transition: opacity 0.2s;
+    }
+    .dark .sidebar-label { color: #64748b; }
+    #sidebar.collapsed .sidebar-label { opacity: 0; pointer-events: none; }
+
+    .nav-group > .group-header {
+      display: flex; align-items: center; gap: 12px;
+      padding: 10px 16px; cursor: pointer;
+      color: #475569; font-size: 14px; font-weight: 500;
+      border-left: 2px solid transparent;
+      transition: all 0.2s ease;
+      user-select: none; position: relative;
+    }
+    .dark .nav-group > .group-header { color: #cbd5e1; }
+    .nav-group > .group-header:hover { background: #f8fafc; color: #0f172a; }
+    .dark .nav-group > .group-header:hover { background: #334155; color: #f1f5f9; }
+    .nav-group > .group-header .icon {
+      width: 20px; height: 20px; min-width: 20px; display: flex; align-items: center; justify-content: center;
+      color: #94a3b8; transition: color 0.2s;
+    }
+    .dark .nav-group > .group-header .icon { color: #64748b; }
+    .nav-group > .group-header:hover .icon { color: #64748b; }
+    .dark .nav-group > .group-header:hover .icon { color: #94a3b8; }
+    .nav-group > .group-header .label-text { flex: 1; white-space: nowrap; overflow: hidden; transition: opacity 0.2s; }
+    .nav-group > .group-header .arrow { width: 16px; height: 16px; transition: transform 0.2s; color: #94a3b8; }
+    .nav-group.open > .group-header .arrow { transform: rotate(90deg); }
+    #sidebar.collapsed .nav-group > .group-header .label-text,
+    #sidebar.collapsed .nav-group > .group-header .arrow { opacity: 0; pointer-events: none; }
+
+    .nav-children { overflow: hidden; max-height: 0; transition: max-height 0.25s cubic-bezier(0.4, 0, 0.2, 1); background: #ffffff; }
+    .dark .nav-children { background: #1e293b; }
+    .nav-group.open .nav-children { max-height: 800px; }
+    #sidebar.collapsed .nav-children { max-height: 0 !important; }
+
+    .nav-children a {
+      display: flex; align-items: center; gap: 10px;
+      padding: 8px 16px 8px 50px;
+      color: #64748b; font-size: 13.5px; font-weight: 400; text-decoration: none;
+      border-left: 2px solid transparent;
+      transition: all 0.15s ease;
+      white-space: nowrap;
+    }
+    .dark .nav-children a { color: #94a3b8; }
+    .nav-children a:hover { background: #f1f5f9; color: #0f172a; }
+    .dark .nav-children a:hover { background: #334155; color: #f1f5f9; }
+    .nav-children a.active { background: #eef2ff; color: #4338ca; border-left: 2px solid #4338ca; font-weight: 500; }
+    .dark .nav-children a.active { background: #312e81; color: #818cf8; border-left: 2px solid #818cf8; }
+
+    .nav-item {
+      display: flex; align-items: center; gap: 12px;
+      padding: 10px 16px; cursor: pointer;
+      color: #475569; font-size: 14px; font-weight: 500;
+      border-left: 2px solid transparent;
+      text-decoration: none;
+      transition: all 0.2s ease;
+    }
+    .dark .nav-item { color: #cbd5e1; }
+    .nav-item:hover { background: #f8fafc; color: #0f172a; }
+    .dark .nav-item:hover { background: #334155; color: #f1f5f9; }
+    .nav-item.active { background: #eef2ff; color: #4338ca; border-left: 2px solid #4338ca; font-weight: 500; }
+    .dark .nav-item.active { background: #312e81; color: #818cf8; border-left: 2px solid #818cf8; }
+    .nav-item .icon {
+      width: 20px; height: 20px; min-width: 20px; display: flex; align-items: center; justify-content: center;
+      color: #94a3b8; transition: color 0.2s;
+    }
+    .dark .nav-item .icon { color: #64748b; }
+    .nav-item:hover .icon { color: #64748b; }
+    .dark .nav-item:hover .icon { color: #94a3b8; }
+    .nav-item.active .icon { color: #4338ca; }
+    .dark .nav-item.active .icon { color: #818cf8; }
+    .nav-item .label-text { white-space: nowrap; overflow: hidden; transition: opacity 0.2s; }
+    #sidebar.collapsed .nav-item .label-text { opacity: 0; pointer-events: none; }
+
+    #sidebar.collapsed .nav-group > .group-header { position: relative; justify-content: center; padding: 10px 0; }
+    #sidebar.collapsed .group-header:hover::after,
+    #sidebar.collapsed .nav-item:hover::after {
+      content: attr(data-tip);
+      position: absolute; left: 70px; top: 50%; transform: translateY(-50%);
+      background: #0f172a; color: #ffffff; font-size: 12px; font-weight: 500;
+      padding: 6px 10px; border-radius: 6px; white-space: nowrap;
+      pointer-events: none; z-index: 9999;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    }
+    .dark #sidebar.collapsed .group-header:hover::after,
+    .dark #sidebar.collapsed .nav-item:hover::after {
+      background: #f1f5f9; color: #0f172a;
+    }
+    #sidebar.collapsed .nav-item { position: relative; justify-content: center; padding: 10px 0; }
+
+    #main-content {
+      margin-top: 64px; margin-left: 260px;
+      padding: 32px; flex: 1;
+      transition: margin-left 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+      min-height: calc(100vh - 64px);
+      background-color: #f8fafc;
+    }
+    .dark #main-content {
+      background-color: #0f172a;
+    }
+    #main-content.collapsed { margin-left: 72px; }
+
+    .flash-wrap { margin-bottom: 24px; }
+    .flash-msg { padding: 5px 5px; border-radius: 3px; font-size: 10px; font-weight: 500; margin-bottom: 8px; border: 1px solid transparent; }
+    .flash-msg.success { background: #f0fdf4; color: #166534; border-color: #bbf7d0; border-left-width: 4px; }
+    .dark .flash-msg.success { background: #064e3b; color: #6ee7b7; border-color: #065f46; }
+    .flash-msg.error   { background: #fef2f2; color: #991b1b; border-color: #fecaca; border-left-width: 4px; }
+    .dark .flash-msg.error { background: #7f1d1d; color: #f87171; border-color: #991b1b; }
+    .flash-msg.info    { background: #eff6ff; color: #1e40af; border-color: #bfdbfe; border-left-width: 4px; }
+    .dark .flash-msg.info { background: #1e3a8a; color: #93c5fd; border-color: #1e40af; }
+
+    @media (max-width: 768px) {
+      #sidebar { transform: translateX(-100%); width: 260px !important; }
+      #sidebar.mobile-open { transform: translateX(0); }
+      #main-content, #main-content.collapsed { margin-left: 0; padding: 16px; }
+    }
+
+  /* KPI hero: always-visible grid */
+  .kpi-hero {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 1rem;
+    padding: 1.5rem;
+    background: #fff;
+    border-radius: 0.75rem;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 1px 2px rgba(15,23,42,0.04);
+  }
+  .dark .kpi-hero { background: #1e293b; border-color: #334155; }
+  .kpi-hero .kpi-card { padding: 1rem; border-radius: 0.5rem; background: #f8fafc; }
+  .dark .kpi-hero .kpi-card { background: #0f172a; }
+  .kpi-hero .kpi-label { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; color: #64748b; font-weight: 600; }
+  .kpi-hero .kpi-value { font-size: 2rem; font-weight: 700; color: #0f172a; margin-top: 0.25rem; }
+  .dark .kpi-hero .kpi-value { color: #f1f5f9; }
+  </style>
+  {% block head_extra %}{% endblock %}
+</head>
+<body>
+<!-- TOP BAR -->
+<div id="topbar">
+  <button class="toggle-btn" id="sidebarToggle" aria-label="Toggle sidebar">
+    <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+    </svg>
+  </button>
+  <span class="brand">Factory<span>NXT</span></span>
+  <div class="top-right">
+    <button id="themeToggle" class="toggle-btn" aria-label="Toggle dark mode">
+      <svg id="themeIconLight" class="w-5 h-5 hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M12 3v2.25m6.364.386l-1.591 1.591M21 12h-2.25m-.386 6.364l-1.591-1.591M12 18.75V21m-4.773-4.227l-1.591 1.591M5.25 12H3m4.227-4.773L5.636 5.636M15.75 12a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0z" />
+      </svg>
+      <svg id="themeIconDark" class="w-5 h-5 hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M21.752 15.002A9.718 9.718 0 0118 15.75c-5.385 0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752A9.753 9.753 0 003 11.25C3 16.635 7.365 21 12.75 21a9.753 9.753 0 009.002-5.998z" />
+      </svg>
+    </button>
+    <a href="{{ url_for('auth.login') }}">
+      <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 11-6.5 3.75 3.75 3.75 0 016.5-3.75zM4.5 21.75h15a2.25 2.25 0 002.25-2.25v-1.5a2.25 2.25 0 00-2.25-2.25h-15a2.25 2.25 0 00-2.25 2.25v1.5a2.25 2.25 0 002.25 2.25z" />
+      </svg>
+      <span>{{ username if username else "Login" }}</span>
+    </a>
+  </div>
+</div>
+<!-- END TOP BAR -->
+
+<!-- SIDEBAR -->
+<nav id="sidebar">
+
+  <!-- Dashboard -->
+  <a class="nav-item {% if request.endpoint == 'dashboard.index' %}active{% endif %}"
+     href="{{ url_for('dashboard.index') }}" data-tip="Dashboard">
+    <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z" />
+    </svg>
+    <span class="label-text">Dashboard</span>
+  </a>
+
+  <div class="sidebar-label">Operations</div>
+
+  <!-- Planning & Scheduling -->
+  <div class="nav-group {% if request.blueprint == 'planning' %}open{% endif %}">
+    <div class="group-header" data-tip="Planning">
+      <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
+      </svg>
+      <span class="label-text">Planning & Scheduling</span>
+      <svg class="arrow" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+      </svg>
+    </div>
+    <div class="nav-children">
+      <a href="{{ url_for('aps.cockpit') }}"
+         class="{% if request.blueprint == 'aps' and request.endpoint == 'aps.cockpit' %}active{% endif %}">
+        <svg class="w-4 h-4 inline mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+        </svg>
+        APS Planning
+      </a>
+      <a href="{{ url_for('aps.scheduler') }}"
+         class="{% if request.blueprint == 'aps' and request.endpoint == 'aps.scheduler' %}active{% endif %}">
+        <svg class="w-4 h-4 inline mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2"/>
+        </svg>
+        APS Scheduler
+      </a>
+      <a href="{{ url_for('planning.index') }}"
+         class="{% if request.endpoint == 'planning.index' %}active{% endif %}">
+        Overview
+      </a>
+      <a href="{{ url_for('planning.orders') }}"
+         class="{% if request.endpoint == 'planning.orders' %}active{% endif %}">
+        Customer Orders
+      </a>
+      <a href="{{ url_for('planning.stock') }}"
+         class="{% if request.endpoint == 'planning.stock' %}active{% endif %}">
+        Stock Availability
+      </a>
+      <a href="{{ url_for('planning.availability') }}"
+         class="{% if request.endpoint == 'planning.availability' %}active{% endif %}">
+        Machine Availability
+      </a>
+      <a href="{{ url_for('planning.scheduler') }}"
+         class="{% if request.endpoint == 'planning.scheduler' %}active{% endif %}">
+        Scheduler (Gantt)
+      </a>
+      <a href="{{ url_for('planning.shortages') }}"
+         class="{% if request.endpoint == 'planning.shortages' %}active{% endif %}">
+        Projected Shortages
+      </a>
+      <a href="{{ url_for('planning.plan_vs_actual') }}"
+         class="{% if request.endpoint == 'planning.plan_vs_actual' %}active{% endif %}">
+        Plan vs Actual
+      </a>
+    </div>
+  </div>
+
+  <!-- Tool Shop -->
+  <div class="nav-group {% if request.blueprint == 'tool_shop' %}open{% endif %}">
+    <div class="group-header" data-tip="Tool Shop">
+      <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M11.42 15.17L17.25 21A2.652 2.652 0 0021 17.25l-5.877-5.877M11.42 15.17l2.496-3.03c.317-.384.74-.626 1.208-.766M11.42 15.17l-4.655 5.653a2.548 2.548 0 11-3.586-3.586l6.837-5.63m5.108-.233c.55-.164 1.163-.188 1.743-.14a4.5 4.5 0 004.486-6.336l-3.276 3.277a3.004 3.004 0 01-2.25-2.25l3.276-3.276a4.5 4.5 0 00-6.336 4.486c.091 1.076-.071 2.264-.904 2.95l-.102.085" />
+      </svg>
+      <span class="label-text">Tool Shop</span>
+      <svg class="arrow" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+      </svg>
+    </div>
+    <div class="nav-children">
+      <a href="{{ url_for('tool_shop.index') }}"
+         class="{% if request.endpoint == 'tool_shop.index' %}active{% endif %}">
+        Overview
+      </a>
+      <a href="{{ url_for('tool_shop.die_list') }}"
+         class="{% if request.endpoint == 'tool_shop.die_list' %}active{% endif %}">
+        Die Registry
+      </a>
+      <a href="{{ url_for('tool_shop.die_new') }}"
+         class="{% if request.endpoint == 'tool_shop.die_new' %}active{% endif %}">
+        + New Die Inward
+      </a>
+      <a href="{{ url_for('tool_shop.inspection_list') }}"
+         class="{% if request.endpoint == 'tool_shop.inspection_list' %}active{% endif %}">
+        Inspections
+      </a>
+      <a href="{{ url_for('tool_shop.test_list') }}"
+         class="{% if request.endpoint == 'tool_shop.test_list' %}active{% endif %}">
+        Tests
+      </a>
+      <a href="{{ url_for('tool_shop.nitriding_list') }}"
+         class="{% if request.endpoint == 'tool_shop.nitriding_list' %}active{% endif %}">
+        Nitriding
+      </a>
+      <a href="{{ url_for('tool_shop.shortages') }}"
+         class="{% if request.endpoint == 'tool_shop.shortages' %}active{% endif %}">
+        Shortages
+      </a>
+    </div>
+  </div>
+
+  <!-- Process Line -->
+  <div class="nav-group {% if request.blueprint == 'process_line' %}open{% endif %}">
+    <div class="group-header" data-tip="Process Line">
+      <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25z" />
+      </svg>
+      <span class="label-text">Process Line</span>
+      <svg class="arrow" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+      </svg>
+    </div>
+    <div class="nav-children">
+      <a href="{{ url_for('process_line.index') }}"
+         class="{% if request.endpoint == 'process_line.index' %}active{% endif %}">
+        Floor Overview
+      </a>
+      <a href="{{ url_for('process_line.billet_inspection') }}"
+         class="{% if request.endpoint == 'process_line.billet_inspection' %}active{% endif %}">
+        Billet Inspection
+      </a>
+      <a href="{{ url_for('process_line.hls') }}"
+         class="{% if request.endpoint == 'process_line.hls' %}active{% endif %}">
+        HLS
+      </a>
+      <a href="{{ url_for('process_line.pressing') }}"
+         class="{% if request.endpoint == 'process_line.pressing' %}active{% endif %}">
+        Pressing
+      </a>
+      <a href="{{ url_for('process_line.quenching') }}"
+         class="{% if request.endpoint == 'process_line.quenching' %}active{% endif %}">
+        Quenching
+      </a>
+      <a href="{{ url_for('process_line.puller') }}"
+         class="{% if request.endpoint == 'process_line.puller' %}active{% endif %}">
+        Puller & Cutting
+      </a>
+      <a href="{{ url_for('process_line.stretching') }}"
+         class="{% if request.endpoint == 'process_line.stretching' %}active{% endif %}">
+        Stretching
+      </a>
+      <a href="{{ url_for('process_line.final_cut') }}"
+         class="{% if request.endpoint == 'process_line.final_cut' %}active{% endif %}">
+        Final Cut
+      </a>
+      <a href="{{ url_for('process_line.die_oven') }}"
+         class="{% if request.endpoint == 'process_line.die_oven' %}active{% endif %}">
+        Die Oven
+      </a>
+    </div>
+  </div>
+
+  <div class="sidebar-label">Quality & Intelligence</div>
+
+  <!-- Quality & Traceability -->
+  <div class="nav-group {% if request.blueprint in ['quality_ext', 'traceability', 'genealogy'] %}open{% endif %}">
+    <div class="group-header" data-tip="Quality">
+      <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
+      </svg>
+      <span class="label-text">Quality & Traceability</span>
+      <svg class="arrow" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+      </svg>
+    </div>
+    <div class="nav-children">
+      <a href="{{ url_for('traceability.traceability_dashboard') }}"
+         class="{% if request.endpoint == 'traceability.traceability_dashboard' %}active{% endif %}">
+        Traceability Search
+      </a>
+      <a href="{{ url_for('traceability.material_traceability') }}"
+         class="{% if request.endpoint == 'traceability.material_traceability' %}active{% endif %}">
+        Material Trace
+      </a>
+      <a href="{{ url_for('genealogy.index') }}"
+         class="{% if request.endpoint == 'genealogy.index' %}active{% endif %}">
+        Genealogy
+      </a>
+      <a href="{{ url_for('quality_ext.defects') }}"
+         class="{% if request.endpoint == 'quality_ext.defects' %}active{% endif %}">
+        Defects
+      </a>
+      <a href="{{ url_for('quality_ext.inspection_plans') }}"
+         class="{% if request.endpoint == 'quality_ext.inspection_plans' %}active{% endif %}">
+        Inspection Records
+      </a>
+      <a href="{{ url_for('admin.audit_log') }}"
+         class="{% if request.endpoint == 'admin.audit_log' %}active{% endif %}">
+        Audit Trail
+      </a>
+    </div>
+  </div>
+
+  <!-- KPI & Alerts -->
+  <div class="nav-group {% if request.blueprint == 'kpi_alerts' %}open{% endif %}">
+    <div class="group-header" data-tip="KPI & Alerts">
+      <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" />
+      </svg>
+      <span class="label-text">KPI & Alerts</span>
+      <svg class="arrow" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+      </svg>
+    </div>
+    <div class="nav-children">
+      <a href="{{ url_for('kpi_alerts.index') }}"
+         class="{% if request.endpoint == 'kpi_alerts.index' %}active{% endif %}">
+        Overview
+      </a>
+      <a href="{{ url_for('kpi_alerts.oee') }}"
+         class="{% if request.endpoint == 'kpi_alerts.oee' %}active{% endif %}">
+        OEE
+      </a>
+      <a href="{{ url_for('kpi_alerts.die_lifecycle') }}"
+         class="{% if request.endpoint == 'kpi_alerts.die_lifecycle' %}active{% endif %}">
+        Die Lifecycle
+      </a>
+      <a href="{{ url_for('kpi_alerts.downtime') }}"
+         class="{% if request.endpoint == 'kpi_alerts.downtime' %}active{% endif %}">
+        Downtime
+      </a>
+      <a href="{{ url_for('kpi_alerts.alerts_list') }}"
+         class="{% if request.endpoint == 'kpi_alerts.alerts_list' %}active{% endif %}">
+        Alerts
+      </a>
+      <a href="{{ url_for('kpi_alerts.rules') }}"
+         class="{% if request.endpoint == 'kpi_alerts.rules' %}active{% endif %}">
+        Rules
+      </a>
+    </div>
+  </div>
+
+  <div class="sidebar-label">System</div>
+
+  <!-- Integrations -->
+  <div class="nav-group {% if request.blueprint == 'integrations' %}open{% endif %}">
+    <div class="group-header" data-tip="Integrations">
+      <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+      </svg>
+      <span class="label-text">Integrations</span>
+      <svg class="arrow" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+      </svg>
+    </div>
+    <div class="nav-children">
+      <a href="{{ url_for('integrations.hub') }}"
+         class="{% if request.endpoint == 'integrations.hub' %}active{% endif %}">
+        Hub
+      </a>
+      <a href="{{ url_for('integrations.erp_sync') }}"
+         class="{% if request.endpoint == 'integrations.erp_sync' %}active{% endif %}">
+        ERP Connectors
+      </a>
+      <a href="{{ url_for('integrations.plc_connectors') }}"
+         class="{% if request.endpoint == 'integrations.plc_connectors' %}active{% endif %}">
+        PLC Connectors
+      </a>
+      <a href="{{ url_for('integrations.signal_mapping') }}"
+         class="{% if request.endpoint == 'integrations.signal_mapping' %}active{% endif %}">
+        Signal Mapping
+      </a>
+      <a href="{{ url_for('integrations.jobs') }}"
+         class="{% if request.endpoint == 'integrations.jobs' %}active{% endif %}">
+        Integration Jobs
+      </a>
+      <a href="{{ url_for('integrations.webhooks') }}"
+         class="{% if request.endpoint == 'integrations.webhooks' %}active{% endif %}">
+        Webhooks
+      </a>
+      <a href="{{ url_for('integrations.api_docs') }}"
+         class="{% if request.endpoint == 'integrations.api_docs' %}active{% endif %}">
+        API Docs & Keys
+      </a>
+    </div>
+  </div>
+
+  <!-- Administration -->
+  <div class="nav-group {% if request.blueprint == 'admin' %}open{% endif %}">
+    <div class="group-header" data-tip="Administration">
+      <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 11-3 0m3 0a1.5 1.5 0 10-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-9.75 0h9.75" />
+      </svg>
+      <span class="label-text">Administration</span>
+      <svg class="arrow" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+      </svg>
+    </div>
+    <div class="nav-children">
+      <a href="{{ url_for('admin.admin_dashboard') }}"
+         class="{% if request.endpoint == 'admin.admin_dashboard' %}active{% endif %}">
+        Overview
+      </a>
+      <a href="{{ url_for('admin.plants') }}"
+         class="{% if request.endpoint == 'admin.plants' %}active{% endif %}">
+        Plants
+      </a>
+      <a href="{{ url_for('admin.users') }}"
+         class="{% if request.endpoint == 'admin.users' %}active{% endif %}">
+        Users
+      </a>
+      <a href="{{ url_for('admin.roles') }}"
+         class="{% if request.endpoint == 'admin.roles' %}active{% endif %}">
+        Roles
+      </a>
+      <a href="{{ url_for('admin.machine_master') }}"
+         class="{% if request.endpoint == 'admin.machine_master' %}active{% endif %}">
+        Machine Master
+      </a>
+      <a href="{{ url_for('admin.process_params') }}"
+         class="{% if request.endpoint == 'admin.process_params' %}active{% endif %}">
+        Process Parameters
+      </a>
+      <a href="{{ url_for('admin.thresholds') }}"
+         class="{% if request.endpoint == 'admin.thresholds' %}active{% endif %}">
+        Thresholds & Rules
+      </a>
+      <a href="{{ url_for('admin.audit_log') }}"
+         class="{% if request.endpoint == 'admin.audit_log' %}active{% endif %}">
+        Audit Log
+      </a>
+    </div>
+  </div>
+
+</nav>
+
+<!-- MAIN CONTENT -->
+<div id="main-content">
+  <div id="flash-container" class="fixed top-25 right-5 z-50 flex flex-col gap-3 w-full max-w-sm pointer-events-none">
+  {% with messages = get_flashed_messages() %}
+    {% if messages %}
+      {% for message in messages %}
+        <div class="flash-card pointer-events-auto flex items-center justify-between p-4 rounded-lg shadow-xl border border-emerald-500/20 bg-emerald-500 text-white font-medium text-sm transform transition-all duration-500 ease-in-out opacity-100 translate-y-0">
+          <span>{{ message }}</span>
+          <button onclick="dismissFlash(this.parentElement)" class="text-white/80 hover:text-white font-bold text-lg leading-none">&times;</button>
+        </div>
+      {% endfor %}
+    {% endif %}
+  {% endwith %}
+  </div>
+  {% block content %}{% endblock %}
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/semantic-ui@2.5.0/dist/semantic.min.js"></script>
+<script>
+(function () {
+  const sidebar = document.getElementById('sidebar');
+  const main    = document.getElementById('main-content');
+  const btn     = document.getElementById('sidebarToggle');
+  const MOBILE  = () => window.innerWidth <= 768;
+
+  if (!MOBILE() && localStorage.getItem('sidebarCollapsed') === 'true') {
+    sidebar.classList.add('collapsed');
+    main.classList.add('collapsed');
+  }
+
+  btn.addEventListener('click', () => {
+    if (MOBILE()) {
+      sidebar.classList.toggle('mobile-open');
+    } else {
+      const isCollapsed = sidebar.classList.toggle('collapsed');
+      main.classList.toggle('collapsed', isCollapsed);
+      localStorage.setItem('sidebarCollapsed', isCollapsed);
+    }
+  });
+
+  document.querySelectorAll('.nav-group .group-header').forEach(header => {
+    header.addEventListener('click', () => {
+      if (sidebar.classList.contains('collapsed')) return;
+      header.parentElement.classList.toggle('open');
+    });
+  });
+
+  document.querySelectorAll('.nav-children a.active').forEach(link => {
+    const group = link.closest('.nav-group');
+    if (group) group.classList.add('open');
+  });
+
+  // ── Theme Toggle Logic ──────────────────────────────
+  const themeToggle = document.getElementById('themeToggle');
+  const themeIconLight = document.getElementById('themeIconLight');
+  const themeIconDark = document.getElementById('themeIconDark');
+
+  function updateThemeIcon(isDark) {
+    if (isDark) {
+      themeIconDark.classList.add('hidden');
+      themeIconLight.classList.remove('hidden');
+    } else {
+      themeIconLight.classList.add('hidden');
+      themeIconDark.classList.remove('hidden');
+    }
+  }
+
+  // Initialize theme from localStorage or system preference
+  if (localStorage.getItem('theme') === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+    document.documentElement.classList.add('dark');
+    updateThemeIcon(true);
+  } else {
+    document.documentElement.classList.remove('dark');
+    updateThemeIcon(false);
+  }
+
+  themeToggle.addEventListener('click', () => {
+    if (document.documentElement.classList.contains('dark')) {
+      document.documentElement.classList.remove('dark');
+      localStorage.setItem('theme', 'light');
+      updateThemeIcon(false);
+    } else {
+      document.documentElement.classList.add('dark');
+      localStorage.setItem('theme', 'dark');
+      updateThemeIcon(true);
+    }
+  });
+})();
+
+document.addEventListener("DOMContentLoaded", function () {
+  const flashContainer = document.getElementById("flash-container");
+  if (flashContainer) {
+    setTimeout(() => {
+      flashContainer.classList.add("opacity-0");
+      setTimeout(() => {
+        flashContainer.remove();
+      }, 500);
+    }, 4000);
+  }
+});
+</script>
+
+</body>
+</html>

@@ -1,0 +1,47 @@
+{% extends 'layout.html' %}
+{% block title %}Roles{% endblock %}
+{% block content %}
+<div class="mb-6">
+  <h1 class="text-2xl font-bold text-slate-900">Roles</h1>
+  <p class="text-sm text-slate-500">System role definitions and associated permissions.</p>
+</div>
+<div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-x-auto">
+  <table class="w-full text-left text-sm">
+    <thead class="bg-slate-50 text-slate-600 uppercase tracking-wider text-xs font-semibold border-b border-slate-200">
+      <tr>
+        <th class="py-3 px-4">Name</th>
+        <th class="py-3 px-4">Display Name</th>
+        <th class="py-3 px-4">Permissions</th>
+      </tr>
+    </thead>
+    <tbody class="divide-y divide-slate-100">
+      {% for r in records %}
+      <tr>
+        <td class="py-3 px-4 font-mono text-xs">{{ r.name }}</td>
+        <td class="py-3 px-4 font-medium">{{ r.display_name }}</td>
+        <td class="py-3 px-4">
+          {% if r.permissions %}
+            <div class="flex flex-wrap gap-1">
+              {% for perm in r.permissions %}
+                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-slate-100 text-slate-700">{{ perm }}</span>
+              {% endfor %}
+            </div>
+          {% else %}
+            <span class="text-slate-400 text-xs">None</span>
+          {% endif %}
+        </td>
+      </tr>
+      {% else %}
+      <tr>
+        <td colspan="3" class="py-8 text-center">
+          <div class="flex flex-col items-center">
+            <svg class="h-10 w-10 text-slate-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
+            <p class="text-sm font-medium text-slate-900">No roles.</p>
+          </div>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}
