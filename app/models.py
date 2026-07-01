@@ -708,11 +708,26 @@ class Die(db.Model):
     last_tested_at = db.Column(db.DateTime, nullable=True)
     last_nitrided_at = db.Column(db.DateTime, nullable=True)
     erp_asset_id = db.Column(db.String(64), nullable=True)
+    # ── Extrusion dies management extensions ───────────────────────────
+    description = db.Column(db.Text, nullable=True)
+    die_type = db.Column(db.String(64), nullable=True)  # solid / hollow / semi-hollow
+    manufacturer = db.Column(db.String(128), nullable=True)
+    manufactured_date = db.Column(db.Date, nullable=True)
+    press_count = db.Column(db.Integer, default=0)
+    press_count_limit = db.Column(db.Integer, nullable=True)
+    repair_count = db.Column(db.Integer, default=0)
+    nitriding_count = db.Column(db.Integer, default=0)
+    last_used_at = db.Column(db.DateTime, nullable=True)
+    last_repaired_at = db.Column(db.DateTime, nullable=True)
+    # Extended statuses: in_furnace, in_press, repair, retired
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     inspections = db.relationship("DieInspection", backref="die", lazy="dynamic")
     tests = db.relationship("DieTest", backref="die", lazy="dynamic")
     nitriding_records = db.relationship("NitridingRecord", backref="die", lazy="dynamic")
+    furnace_logs = db.relationship("DieFurnaceLog", backref="die", lazy="dynamic")
+    repair_records = db.relationship("DieRepairRecord", backref="die", lazy="dynamic")
 
 
 class DieInspection(db.Model):
@@ -1003,3 +1018,331 @@ class TraceabilityRecord(db.Model):
     machine_id = db.Column(db.String(64), nullable=True)
     data = db.Column(db.JSON, default=dict)
     occurred_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+
+# ─── EXTRUSION: COST PRICE CALCULATOR ────────────────────────────────────
+class CostPriceConfig(db.Model):
+    __tablename__ = "cost_price_configs"
+    id = db.Column(db.String(36), primary_key=True, default=lambda: str(_uuid.uuid4()))
+    part_number = db.Column(db.String(64), nullable=False)
+    revision = db.Column(db.String(8), default="A")
+    raw_material_cost_per_kg = db.Column(db.Float, default=0.0)
+    material_weight_kg = db.Column(db.Float, default=0.0)
+    machine_rate_per_hour = db.Column(db.Float, default=0.0)
+    cycle_time_hours = db.Column(db.Float, default=0.0)
+    labor_rate_per_hour = db.Column(db.Float, default=0.0)
+    labor_hours = db.Column(db.Float, default=0.0)
+    energy_kwh = db.Column(db.Float, default=0.0)
+    energy_rate_per_kwh = db.Column(db.Float, default=0.0)
+    overhead_percent = db.Column(db.Float, default=10.0)
+    margin_percent = db.Column(db.Float, default=15.0)
+    calculated_cost = db.Column(db.Float, nullable=True)
+    break_even_price = db.Column(db.Float, nullable=True)
+    currency = db.Column(db.String(8), default="USD")
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+# ─── EXTRUSION: RAW MATERIAL RECEIPT ────────────────────────────────────
+class RawMaterialType(db.Model):
+    __tablename__ = "raw_material_types"
+    id = db.Column(db.String(36), primary_key=True, default=lambda: str(_uuid.uuid4()))
+    code = db.Column(db.String(64), unique=True, nullable=False)
+    name = db.Column(db.String(128), nullable=False)
+    category = db.Column(db.String(64), nullable=True)  # alloy / billet / ingot
+    uom = db.Column(db.String(16), default="KG")
+
+
+class AlloyComposition(db.Model):
+    __tablename__ = "alloy_compositions"
+    id = db.Column(db.String(36), primary_key=True, default=lambda: str(_uuid.uuid4()))
+    alloy_code = db.Column(db.String(64), unique=True, nullable=False)
+    alloy_name = db.Column(db.String(128), nullable=False)
+    composition = db.Column(db.JSON, default=dict)  # {"Si": {"min": 0.2, "max": 0.6}}
+    standard = db.Column(db.String(64), nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+
+class MaterialReceipt(db.Model):
+    __tablename__ = "material_receipts"
+    id = db.Column(db.String(36), primary_key=True, default=lambda: str(_uuid.uuid4()))
+    receipt_number = db.Column(db.String(64), unique=True, nullable=False)
+    supplier_name = db.Column(db.String(128), nullable=True)
+    truck_reference = db.Column(db.String(64), nullable=True)
+    material_type_id = db.Column(db.String(36), db.ForeignKey("raw_material_types.id"), nullable=True)
+    alloy_code = db.Column(db.String(64), db.ForeignKey("alloy_compositions.alloy_code"), nullable=True)
+    lot_number = db.Column(db.String(64), nullable=False)
+    quantity_received = db.Column(db.Float, nullable=False)
+    quantity_available = db.Column(db.Float, nullable=True)
+    uom = db.Column(db.String(16), default="KG")
+    actual_composition = db.Column(db.JSON, default=dict)
+    composition_status = db.Column(db.String(16), default="PENDING")
+    received_by = db.Column(db.String(128), nullable=True)
+    received_at = db.Column(db.DateTime, default=datetime.utcnow)
+    location_id = db.Column(db.String(36), db.ForeignKey("inventory_locations.id"), nullable=True)
+    notes = db.Column(db.Text, nullable=True)
+
+    material_type = db.relationship("RawMaterialType", backref="receipts")
+    alloy = db.relationship("AlloyComposition", backref="receipts")
+    location = db.relationship("InventoryLocation", backref="material_receipts")
+
+
+# ─── EXTRUSION: DIE FURNACE & REPAIR ───────────────────────────────────
+class DieFurnaceLog(db.Model):
+    __tablename__ = "die_furnace_logs"
+    id = db.Column(db.String(36), primary_key=True, default=lambda: str(_uuid.uuid4()))
+    die_id = db.Column(db.String(36), db.ForeignKey("dies.id"), nullable=False)
+    furnace_id = db.Column(db.String(64), nullable=True)
+    target_temp_celsius = db.Column(db.Float, nullable=True)
+    actual_temp_celsius = db.Column(db.Float, nullable=True)
+    soak_time_minutes = db.Column(db.Integer, nullable=True)
+    started_at = db.Column(db.DateTime, nullable=False)
+    completed_at = db.Column(db.DateTime, nullable=True)
+    status = db.Column(db.String(16), default="heating")  # heating / soaking / ready / aborted
+    operator_id = db.Column(db.String(128), nullable=True)
+
+
+class DieRepairRecord(db.Model):
+    __tablename__ = "die_repair_records"
+    id = db.Column(db.String(36), primary_key=True, default=lambda: str(_uuid.uuid4()))
+    die_id = db.Column(db.String(36), db.ForeignKey("dies.id"), nullable=False)
+    repair_type = db.Column(db.String(64), nullable=True)
+    description = db.Column(db.Text, nullable=True)
+    performed_by = db.Column(db.String(128), nullable=True)
+    performed_at = db.Column(db.DateTime, nullable=False)
+    cost = db.Column(db.Float, nullable=True)
+    returned_to_store_at = db.Column(db.DateTime, nullable=True)
+
+
+# ─── EXTRUSION: COATING SCHEDULE ───────────────────────────────────────
+class CoatingColor(db.Model):
+    __tablename__ = "coating_colors"
+    id = db.Column(db.String(36), primary_key=True, default=lambda: str(_uuid.uuid4()))
+    color_code = db.Column(db.String(64), unique=True, nullable=False)
+    color_name = db.Column(db.String(128), nullable=False)
+    hex_value = db.Column(db.String(7), nullable=True)
+    clean_time_minutes = db.Column(db.Integer, default=30)
+    ral_code = db.Column(db.String(32), nullable=True)
+
+
+class CoatingScheduleEntry(db.Model):
+    __tablename__ = "coating_schedule_entries"
+    id = db.Column(db.String(36), primary_key=True, default=lambda: str(_uuid.uuid4()))
+    wo_id = db.Column(db.String(36), db.ForeignKey("work_orders.id"), nullable=False)
+    coating_line_id = db.Column(db.String(64), nullable=True)
+    color_id = db.Column(db.String(36), db.ForeignKey("coating_colors.id"), nullable=True)
+    color_group_sequence = db.Column(db.Integer, nullable=True)
+    scheduled_start = db.Column(db.DateTime, nullable=True)
+    scheduled_end = db.Column(db.DateTime, nullable=True)
+    actual_start = db.Column(db.DateTime, nullable=True)
+    actual_end = db.Column(db.DateTime, nullable=True)
+    powder_quantity_kg = db.Column(db.Float, nullable=True)
+    actual_powder_used_kg = db.Column(db.Float, nullable=True)
+    status = db.Column(db.String(32), default="planned")
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    work_order = db.relationship("WorkOrder", backref="coating_entries")
+    color = db.relationship("CoatingColor", backref="schedule_entries")
+
+
+# ─── EXTRUSION: CONTAINERS ─────────────────────────────────────────────
+class Container(db.Model):
+    __tablename__ = "containers"
+    id = db.Column(db.String(36), primary_key=True, default=lambda: str(_uuid.uuid4()))
+    container_code = db.Column(db.String(64), unique=True, nullable=False)
+    container_type = db.Column(db.String(64), nullable=True)
+    tare_weight_kg = db.Column(db.Float, nullable=True)
+    max_capacity_kg = db.Column(db.Float, nullable=True)
+    max_capacity_units = db.Column(db.Integer, nullable=True)
+    status = db.Column(db.String(32), default="available")
+    current_location = db.Column(db.String(128), nullable=True)
+    current_wo_id = db.Column(db.String(36), db.ForeignKey("work_orders.id"), nullable=True)
+    material = db.Column(db.String(64), nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    current_work_order = db.relationship("WorkOrder", backref="containers")
+
+
+class ContainerWeighEvent(db.Model):
+    __tablename__ = "container_weigh_events"
+    id = db.Column(db.String(36), primary_key=True, default=lambda: str(_uuid.uuid4()))
+    container_id = db.Column(db.String(36), db.ForeignKey("containers.id"), nullable=False)
+    wo_id = db.Column(db.String(36), db.ForeignKey("work_orders.id"), nullable=True)
+    gross_weight_kg = db.Column(db.Float, nullable=False)
+    tare_weight_kg = db.Column(db.Float, nullable=False)
+    net_weight_kg = db.Column(db.Float, nullable=True)
+    expected_weight_kg = db.Column(db.Float, nullable=True)
+    weight_variance_percent = db.Column(db.Float, nullable=True)
+    weigh_station = db.Column(db.String(64), nullable=True)
+    operator_id = db.Column(db.String(128), nullable=True)
+    weighed_at = db.Column(db.DateTime, default=datetime.utcnow)
+    status = db.Column(db.String(16), default="OK")
+
+    work_order = db.relationship("WorkOrder", backref="container_weigh_events")
+    container = db.relationship("Container", backref="weigh_events")
+
+
+class ContainerMovement(db.Model):
+    __tablename__ = "container_movements"
+    id = db.Column(db.String(36), primary_key=True, default=lambda: str(_uuid.uuid4()))
+    container_id = db.Column(db.String(36), db.ForeignKey("containers.id"), nullable=False)
+    from_location = db.Column(db.String(128), nullable=True)
+    to_location = db.Column(db.String(128), nullable=False)
+    moved_by = db.Column(db.String(128), nullable=True)
+    moved_at = db.Column(db.DateTime, default=datetime.utcnow)
+    wo_id = db.Column(db.String(36), db.ForeignKey("work_orders.id"), nullable=True)
+
+    work_order = db.relationship("WorkOrder", backref="container_movements")
+    container = db.relationship("Container", backref="movements")
+
+
+# ─── EXTRUSION: FURNACE / HEAT TREATMENT ───────────────────────────────
+class Furnace(db.Model):
+    __tablename__ = "furnaces"
+    id = db.Column(db.String(36), primary_key=True, default=lambda: str(_uuid.uuid4()))
+    furnace_code = db.Column(db.String(64), unique=True, nullable=False)
+    name = db.Column(db.String(128), nullable=False)
+    furnace_type = db.Column(db.String(64), nullable=True)
+    max_temp_celsius = db.Column(db.Float, nullable=True)
+    capacity_kg = db.Column(db.Float, nullable=True)
+    status = db.Column(db.String(32), default="idle")
+    current_program_id = db.Column(db.String(36), nullable=True)
+    is_active = db.Column(db.Boolean, default=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+
+class HeatTreatmentProgram(db.Model):
+    __tablename__ = "heat_treatment_programs"
+    id = db.Column(db.String(36), primary_key=True, default=lambda: str(_uuid.uuid4()))
+    program_code = db.Column(db.String(64), unique=True, nullable=False)
+    name = db.Column(db.String(128), nullable=False)
+    alloy_code = db.Column(db.String(64), nullable=True)
+    temper_designation = db.Column(db.String(16), nullable=True)
+    stages = db.Column(db.JSON, default=list)
+    total_duration_minutes = db.Column(db.Integer, nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+
+class FurnaceSession(db.Model):
+    __tablename__ = "furnace_sessions"
+    id = db.Column(db.String(36), primary_key=True, default=lambda: str(_uuid.uuid4()))
+    furnace_id = db.Column(db.String(36), db.ForeignKey("furnaces.id"), nullable=False)
+    program_id = db.Column(db.String(36), db.ForeignKey("heat_treatment_programs.id"), nullable=False)
+    wo_id = db.Column(db.String(36), db.ForeignKey("work_orders.id"), nullable=True)
+    batch_reference = db.Column(db.String(64), nullable=True)
+    loaded_containers = db.Column(db.JSON, default=list)
+    total_load_kg = db.Column(db.Float, nullable=True)
+    status = db.Column(db.String(32), default="queued")
+    current_stage_index = db.Column(db.Integer, default=0)
+    current_temp_celsius = db.Column(db.Float, nullable=True)
+    started_at = db.Column(db.DateTime, nullable=True)
+    completed_at = db.Column(db.DateTime, nullable=True)
+    operator_id = db.Column(db.String(128), nullable=True)
+    temperature_log = db.Column(db.JSON, default=list)
+    result = db.Column(db.String(16), nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    furnace = db.relationship("Furnace", backref="sessions")
+    program = db.relationship("HeatTreatmentProgram", backref="sessions")
+    work_order = db.relationship("WorkOrder", backref="furnace_sessions")
+
+
+# ─── EXTRUSION: FINISHING PROCESSES ────────────────────────────────────
+class FinishingProcessType(db.Model):
+    __tablename__ = "finishing_process_types"
+    id = db.Column(db.String(36), primary_key=True, default=lambda: str(_uuid.uuid4()))
+    code = db.Column(db.String(64), unique=True, nullable=False)
+    name = db.Column(db.String(128), nullable=False)
+    description = db.Column(db.Text, nullable=True)
+    requires_plc_instruction = db.Column(db.Boolean, default=False)
+    default_parameters = db.Column(db.JSON, default=dict)
+
+
+class FinishingOrder(db.Model):
+    __tablename__ = "finishing_orders"
+    id = db.Column(db.String(36), primary_key=True, default=lambda: str(_uuid.uuid4()))
+    order_number = db.Column(db.String(64), unique=True, nullable=False)
+    wo_id = db.Column(db.String(36), db.ForeignKey("work_orders.id"), nullable=False)
+    process_type_id = db.Column(db.String(36), db.ForeignKey("finishing_process_types.id"), nullable=False)
+    container_id = db.Column(db.String(36), db.ForeignKey("containers.id"), nullable=True)
+    sequence = db.Column(db.Integer, default=1)
+    status = db.Column(db.String(32), default="pending")
+    parameters = db.Column(db.JSON, default=dict)
+    plc_command = db.Column(db.JSON, nullable=True)
+    plc_ack_status = db.Column(db.String(16), nullable=True)
+    operator_id = db.Column(db.String(128), nullable=True)
+    started_at = db.Column(db.DateTime, nullable=True)
+    completed_at = db.Column(db.DateTime, nullable=True)
+    remarks = db.Column(db.Text, nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    work_order = db.relationship("WorkOrder", backref="finishing_orders")
+    process_type_ref = db.relationship("FinishingProcessType", backref="orders")
+    container_ref = db.relationship("Container", backref="finishing_orders")
+
+
+# ─── EXTRUSION: LOGISTICS & SHIPMENT ───────────────────────────────────
+class PackagingSpec(db.Model):
+    __tablename__ = "packaging_specs"
+    id = db.Column(db.String(36), primary_key=True, default=lambda: str(_uuid.uuid4()))
+    part_number = db.Column(db.String(64), nullable=False)
+    packing_method = db.Column(db.String(128), nullable=True)
+    units_per_pack = db.Column(db.Integer, nullable=True)
+    theoretical_weight_per_pack_kg = db.Column(db.Float, nullable=True)
+    label_template = db.Column(db.String(256), nullable=True)
+    special_instructions = db.Column(db.Text, nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+
+class PackagingOrder(db.Model):
+    __tablename__ = "packaging_orders"
+    id = db.Column(db.String(36), primary_key=True, default=lambda: str(_uuid.uuid4()))
+    wo_id = db.Column(db.String(36), db.ForeignKey("work_orders.id"), nullable=False)
+    packaging_spec_id = db.Column(db.String(36), db.ForeignKey("packaging_specs.id"), nullable=True)
+    pack_number = db.Column(db.String(64), unique=True, nullable=False)
+    barcode = db.Column(db.String(128), unique=True, nullable=True)
+    quantity_packed = db.Column(db.Integer, nullable=True)
+    actual_weight_kg = db.Column(db.Float, nullable=True)
+    theoretical_weight_kg = db.Column(db.Float, nullable=True)
+    weight_variance_percent = db.Column(db.Float, nullable=True)
+    label_printed = db.Column(db.Boolean, default=False)
+    status = db.Column(db.String(32), default="pending")
+    packed_by = db.Column(db.String(128), nullable=True)
+    packed_at = db.Column(db.DateTime, nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    work_order = db.relationship("WorkOrder", backref="packaging_orders")
+    spec = db.relationship("PackagingSpec", backref="orders")
+
+
+class Shipment(db.Model):
+    __tablename__ = "shipments"
+    id = db.Column(db.String(36), primary_key=True, default=lambda: str(_uuid.uuid4()))
+    shipment_number = db.Column(db.String(64), unique=True, nullable=False)
+    customer_name = db.Column(db.String(128), nullable=True)
+    delivery_address = db.Column(db.Text, nullable=True)
+    carrier = db.Column(db.String(128), nullable=True)
+    truck_reference = db.Column(db.String(64), nullable=True)
+    scheduled_ship_date = db.Column(db.Date, nullable=True)
+    actual_ship_date = db.Column(db.Date, nullable=True)
+    status = db.Column(db.String(32), default="open")
+    theoretical_total_weight_kg = db.Column(db.Float, nullable=True)
+    actual_total_weight_kg = db.Column(db.Float, nullable=True)
+    weight_check_status = db.Column(db.String(16), nullable=True)
+    weight_check_variance_percent = db.Column(db.Float, nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+
+class ShipmentLine(db.Model):
+    __tablename__ = "shipment_lines"
+    id = db.Column(db.String(36), primary_key=True, default=lambda: str(_uuid.uuid4()))
+    shipment_id = db.Column(db.String(36), db.ForeignKey("shipments.id"), nullable=False)
+    packaging_order_id = db.Column(db.String(36), db.ForeignKey("packaging_orders.id"), nullable=False)
+    wo_id = db.Column(db.String(36), db.ForeignKey("work_orders.id"), nullable=True)
+    quantity = db.Column(db.Integer, nullable=True)
+    scanned_at = db.Column(db.DateTime, nullable=True)
+    scanned_by = db.Column(db.String(128), nullable=True)
+
+    shipment = db.relationship("Shipment", backref="lines")
+    packaging_order = db.relationship("PackagingOrder", backref="shipment_lines")
+    work_order = db.relationship("WorkOrder", backref="shipment_lines")

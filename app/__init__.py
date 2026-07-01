@@ -47,6 +47,16 @@ def create_app(config_class=Config):
     from .routes.aps import bp as aps_bp
     from .routes.aps import aps_page_bp
 
+    # ── Extrusion add-on modules (cost price, dies, furnace, etc.) ──────
+    from .routes.cost_price import bp as cost_price_bp
+    from .routes.material_receipt import bp as material_receipt_bp
+    from .routes.dies import bp as dies_mgmt_bp
+    from .routes.coating_schedule import bp as coating_schedule_bp
+    from .routes.containers import bp as containers_bp
+    from .routes.furnace import bp as furnace_bp
+    from .routes.finishing import bp as finishing_bp
+    from .routes.logistics import bp as logistics_bp
+
     # Import APS models so their tables are created by db.create_all()
     # and registered with SQLAlchemy's metadata.
     from . import models_aps  # noqa: F401
@@ -81,6 +91,16 @@ def create_app(config_class=Config):
     app.register_blueprint(kpi_alerts_bp)
     app.register_blueprint(aps_page_bp)   # page views  → 'aps.cockpit', 'aps.scheduler'
     app.register_blueprint(aps_bp)        # JSON API    → 'aps_resource.list_mappings' etc.
+
+    # ── Extrusion add-on modules ──────────────────────────────────────
+    app.register_blueprint(cost_price_bp)
+    app.register_blueprint(material_receipt_bp)
+    app.register_blueprint(dies_mgmt_bp)
+    app.register_blueprint(coating_schedule_bp)
+    app.register_blueprint(containers_bp)
+    app.register_blueprint(furnace_bp)
+    app.register_blueprint(finishing_bp)
+    app.register_blueprint(logistics_bp)
 
     # Auto-seed demo data so every screen has content on first run.
     # Runs only once the DB is up; silent on error.
