@@ -1,7 +1,7 @@
 """Add missing 'notes' column to aps_schedule_versions.
 
 Revision ID: aps_add_notes_columns
-Revises: 20260707_mrm, aps_add_schedule_engine
+Revises: 20260707_mrm
 Create Date: 2026-07-01
 
 Background
@@ -15,12 +15,9 @@ was missing, producing:
 
     ProgrammingError: column aps_schedule_versions.notes does not exist
 
-This is a MERGE migration — it comes after both:
-  * 20260707_mrm            (machine resource mapping)
-  * aps_add_schedule_engine (APS tables)
-
-This collapses the two-head fork back to a single linear tip so that
-``flask db upgrade heads`` (and plain ``flask db upgrade``) both work.
+This migration extends 20260707_mrm linearly. aps_add_schedule_engine
+is already reachable via 20260707_mrm's ancestry, so listing it as a
+direct parent created a self-referential overlap cycle in the DAG.
 
 The upgrade() adds ``notes`` (TEXT, nullable) to aps_schedule_versions
 and ``published_at`` (DATETIME, nullable) if either is absent, making
@@ -32,8 +29,7 @@ from sqlalchemy import inspect
 
 
 revision = "aps_add_notes_columns"
-# Merge node: depends on BOTH prior heads to collapse the fork
-down_revision = ("20260707_mrm", "aps_add_schedule_engine")
+down_revision = "20260707_mrm"
 branch_labels = None
 depends_on = None
 

@@ -67,7 +67,7 @@ fi
 # ───────────────────────────────────────────────────────────────────────────
 
 echo "Running flask db upgrade to apply pending migrations..."
-flask db upgrade heads
+flask db upgrade
 
 # ── Auto-seed on fresh database ─────────────────────────────────────────────
 # Check if the DB is empty (no Lines seeded yet). If so, run the full seed
