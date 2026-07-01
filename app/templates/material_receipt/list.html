@@ -1,0 +1,78 @@
+{% extends "layout.html" %}
+{% block title %}Material Receipts{% endblock %}
+
+{% block content %}
+<div class="flex items-center justify-between mb-6">
+  <div>
+    <h1 class="text-2xl font-bold text-slate-900 dark:text-slate-50">Raw Material Receipts</h1>
+    <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Billet, ingot &amp; alloy intake with composition tracking</p>
+  </div>
+  <div class="flex items-center gap-2">
+    <a href="{{ url_for('material_receipt.alloy_stock') }}"
+       class="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white text-sm font-medium rounded-lg hover:bg-emerald-700 shadow-sm">Alloy Stock</a>
+    <a href="{{ url_for('material_receipt.create_receipt') }}"
+       class="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 shadow-sm">
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+      New Receipt
+    </a>
+  </div>
+</div>
+
+{% if receipts %}
+<div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
+  <div class="overflow-x-auto">
+    <table class="min-w-full divide-y divide-slate-200 dark:divide-slate-700">
+      <thead class="bg-slate-50 dark:bg-slate-900/50">
+        <tr>
+          <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase">Receipt #</th>
+          <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase">Supplier</th>
+          <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase">Alloy</th>
+          <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase">Lot</th>
+          <th class="px-4 py-3 text-right text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase">Qty Received</th>
+          <th class="px-4 py-3 text-right text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase">Qty Available</th>
+          <th class="px-4 py-3 text-center text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase">Composition</th>
+          <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase">Received</th>
+          <th class="px-4 py-3"></th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-slate-200 dark:divide-slate-700">
+        {% for r in receipts %}
+        <tr class="hover:bg-slate-50 dark:hover:bg-slate-700/50">
+          <td class="px-4 py-3 text-sm font-medium text-slate-900 dark:text-slate-50">{{ r.receipt_number }}</td>
+          <td class="px-4 py-3 text-sm text-slate-600 dark:text-slate-400">{{ r.supplier_name or '—' }}</td>
+          <td class="px-4 py-3 text-sm text-slate-600 dark:text-slate-400">
+            {% if r.alloy %}{{ r.alloy.alloy_name }} <span class="text-xs text-slate-400">({{ r.alloy_code }})</span>
+            {% else %}<span class="text-slate-400">—</span>{% endif %}
+          </td>
+          <td class="px-4 py-3 text-sm text-slate-600 dark:text-slate-400 font-mono text-xs">{{ r.lot_number }}</td>
+          <td class="px-4 py-3 text-sm text-right text-slate-900 dark:text-slate-50">{{ '%.2f'|format(r.quantity_received or 0) }} {{ r.uom }}</td>
+          <td class="px-4 py-3 text-sm text-right font-semibold text-emerald-600 dark:text-emerald-400">{{ '%.2f'|format(r.quantity_available or 0) }} {{ r.uom }}</td>
+          <td class="px-4 py-3 text-center">
+            {% if r.composition_status == 'PASS' %}
+              <span class="inline-flex px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300">PASS</span>
+            {% elif r.composition_status == 'FAIL' %}
+              <span class="inline-flex px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300">FAIL</span>
+            {% else %}
+              <span class="inline-flex px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300">PENDING</span>
+            {% endif %}
+          </td>
+          <td class="px-4 py-3 text-sm text-slate-500 dark:text-slate-400">{{ r.received_at.strftime('%Y-%m-%d') if r.received_at else '—' }}</td>
+          <td class="px-4 py-3 text-right">
+            <a href="{{ url_for('material_receipt.detail', id=r.id) }}" class="text-indigo-600 dark:text-indigo-400 hover:underline text-sm font-medium">View</a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% else %}
+<div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-12 text-center">
+  <svg class="mx-auto h-12 w-12 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+    <path stroke-linecap="round" stroke-linejoin="round" d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z"/>
+  </svg>
+  <h3 class="mt-4 text-lg font-medium text-slate-900 dark:text-slate-50">No material receipts yet</h3>
+  <p class="mt-2 text-sm text-slate-500 dark:text-slate-400">Record your first material receipt to start tracking alloy inventory.</p>
+</div>
+{% endif %}
+{% endblock %}

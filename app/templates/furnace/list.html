@@ -1,0 +1,81 @@
+{% extends "layout.html" %}
+{% block title %}Furnace Operations{% endblock %}
+
+{% block head_extra %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+{% endblock %}
+
+{% block content %}
+<div class="flex items-center justify-between mb-6">
+  <div>
+    <h1 class="text-2xl font-bold text-slate-900 dark:text-slate-50">Furnace Floor</h1>
+    <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Heat treatment operations &amp; active programs</p>
+  </div>
+  <a href="{{ url_for('furnace.list_programs') }}" class="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 shadow-sm">Manage Programs</a>
+</div>
+
+{% if furnaces %}
+<div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4" id="furnaceGrid">
+  {% for f in furnaces %}
+  <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden hover:shadow-md transition-shadow">
+    <div class="px-5 py-4 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between">
+      <div>
+        <h3 class="text-base font-semibold text-slate-900 dark:text-slate-50">{{ f.name }}</h3>
+        <p class="text-xs text-slate-500 dark:text-slate-400">{{ f.furnace_code }} · {{ f.furnace_type or '—' }}</p>
+      </div>
+      {% set st = f.status or 'idle' %}
+      {% if st == 'idle' %}{% set badge_cls='bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300' %}{% set label='Idle' %}
+      {% elif st == 'heating' %}{% set badge_cls='bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300' %}{% set label='Heating' %}
+      {% elif st == 'soaking' %}{% set badge_cls='bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300' %}{% set label='Soaking' %}
+      {% elif st == 'cooling' %}{% set badge_cls='bg-sky-100 dark:bg-sky-900/30 text-sky-700 dark:text-sky-300' %}{% set label='Cooling' %}
+      {% elif st == 'fault' %}{% set badge_cls='bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300' %}{% set label='FAULT' %}
+      {% elif st == 'loading' %}{% set badge_cls='bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300' %}{% set label='Loading' %}
+      {% else %}{% set badge_cls='bg-slate-100 dark:bg-slate-700 text-slate-600' %}{% set label=st|upper %}{% endif %}
+      <span class="px-2 py-0.5 rounded-full text-xs font-semibold {{ badge_cls }}">{{ label }}</span>
+    </div>
+    <div class="p-5 space-y-3" data-furnace-id="{{ f.id }}">
+      <div class="flex justify-between text-sm">
+        <span class="text-slate-500 dark:text-slate-400">Current Temp</span>
+        <span class="font-semibold text-slate-900 dark:text-slate-50"><span class="live-temp">—</span> °C</span>
+      </div>
+      <div class="flex justify-between text-sm">
+        <span class="text-slate-500 dark:text-slate-400">Progress</span>
+        <span class="text-slate-700 dark:text-slate-300"><span class="live-progress">—</span>%</span>
+      </div>
+      <div class="w-full bg-slate-100 dark:bg-slate-700 rounded-full h-2">
+        <div class="bg-indigo-600 dark:bg-indigo-500 h-2 rounded-full live-progress-bar" style="width: 0%"></div>
+      </div>
+      <div class="flex justify-between text-sm pt-2">
+        <span class="text-slate-500 dark:text-slate-400">Capacity</span>
+        <span class="text-slate-700 dark:text-slate-300">{{ '%.0f'|format(f.capacity_kg) if f.capacity_kg else '—' }} kg</span>
+      </div>
+      <a href="{{ url_for('furnace.detail', id=f.id) }}"
+         class="block text-center text-sm px-3 py-2 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-300 rounded-lg hover:bg-indigo-100 font-medium">View Details →</a>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-12 text-center">
+  <h3 class="text-lg font-medium text-slate-900 dark:text-slate-50">No furnaces registered</h3>
+</div>
+{% endif %}
+
+<script>
+// Live update each furnace card every 5s
+setInterval(() => {
+  document.querySelectorAll('[data-furnace-id]').forEach(card => {
+    const id = card.dataset.furnaceId;
+    fetch(`/api/furnace/${id}/live-status`)
+      .then(r => r.json())
+      .then(d => {
+        card.querySelector('.live-temp').textContent =
+          d.current_temp_celsius != null ? d.current_temp_celsius.toFixed(0) : '—';
+        const pct = d.progress_pct != null ? d.progress_pct : 0;
+        card.querySelector('.live-progress').textContent = pct;
+        card.querySelector('.live-progress-bar').style.width = pct + '%';
+      }).catch(() => {});
+  });
+}, 5000);
+</script>
+{% endblock %}

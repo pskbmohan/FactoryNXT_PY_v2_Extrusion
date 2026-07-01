@@ -1,0 +1,92 @@
+{% extends "layout.html" %}
+{% block title %}New Heat Treatment Program{% endblock %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto">
+  <div class="mb-6">
+    <h1 class="text-2xl font-bold text-slate-900 dark:text-slate-50">New Heat Treatment Program</h1>
+    <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Define multi-stage heating profile</p>
+  </div>
+
+  <form method="post" id="programForm" class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm p-6 space-y-6">
+    <fieldset>
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div>
+          <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Program Code *</label>
+          <input type="text" name="program_code" required
+                 class="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-50 text-sm focus:ring-2 focus:ring-indigo-500 font-mono">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Name</label>
+          <input type="text" name="name"
+                 class="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-50 text-sm focus:ring-2 focus:ring-indigo-500">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Alloy Code</label>
+          <input type="text" name="alloy_code"
+                 class="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-50 text-sm focus:ring-2 focus:ring-indigo-500">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Temper Designation</label>
+          <input type="text" name="temper_designation" placeholder="T5, T6, T64..."
+                 class="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-50 text-sm focus:ring-2 focus:ring-indigo-500">
+        </div>
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend class="text-sm font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-4">
+        Heating Stages
+      </legend>
+      <div id="stages-container" class="space-y-2"></div>
+      <button type="button" onclick="addStage()"
+              class="mt-3 text-sm px-3 py-1.5 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg hover:bg-slate-200 font-medium">
+        + Add Stage
+      </button>
+      <input type="hidden" name="stages_json" id="stages_json">
+    </fieldset>
+
+    <div class="flex items-center gap-3 pt-4 border-t border-slate-200 dark:border-slate-700">
+      <button type="submit" class="px-6 py-2.5 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 shadow-sm">Save Program</button>
+      <a href="{{ url_for('furnace.list_programs') }}" class="px-6 py-2.5 text-slate-600 dark:text-slate-400 text-sm font-medium">Cancel</a>
+    </div>
+  </form>
+</div>
+
+<script>
+let stages = [];
+function addStage() {
+  stages.push({name: '', target_temp: 0, duration_min: 0});
+  renderStages();
+}
+function removeStage(i) {
+  stages.splice(i, 1); renderStages();
+}
+function updateStage(i, field, value) {
+  if (field === 'target_temp' || field === 'duration_min') value = parseFloat(value) || 0;
+  stages[i][field] = value;
+}
+function renderStages() {
+  const c = document.getElementById('stages-container');
+  c.innerHTML = stages.map((s, i) => `
+    <div class="grid grid-cols-12 gap-2 items-end p-2 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-900/30">
+      <div class="col-span-1 text-sm font-bold text-slate-400 pt-1">${i+1}</div>
+      <div class="col-span-4"><label class="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-0.5">Name</label>
+        <input type="text" value="${s.name||''}" onchange="updateStage(${i},'name',this.value)" placeholder="Heat / Soak / Cool"
+          class="w-full px-2 py-1.5 border border-slate-300 dark:border-slate-600 rounded bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-50 text-sm"></div>
+      <div class="col-span-3"><label class="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-0.5">Target (°C)</label>
+        <input type="number" step="1" value="${s.target_temp||0}" onchange="updateStage(${i},'target_temp',this.value)"
+          class="w-full px-2 py-1.5 border border-slate-300 dark:border-slate-600 rounded bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-50 text-sm"></div>
+      <div class="col-span-3"><label class="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-0.5">Duration (min)</label>
+        <input type="number" step="1" value="${s.duration_min||0}" onchange="updateStage(${i},'duration_min',this.value)"
+          class="w-full px-2 py-1.5 border border-slate-300 dark:border-slate-600 rounded bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-50 text-sm"></div>
+      <div class="col-span-1"><button type="button" onclick="removeStage(${i})" class="px-2 py-1.5 text-red-500 hover:bg-red-50 rounded">✕</button></div>
+    </div>
+  `).join('');
+}
+document.getElementById('programForm').addEventListener('submit', e => {
+  document.getElementById('stages_json').value = JSON.stringify(stages);
+});
+addStage(); // Pre-populate one stage
+</script>
+{% endblock %}

@@ -1,0 +1,89 @@
+{% extends "layout.html" %}
+{% block title %}Die Store{% endblock %}
+
+{% block content %}
+<div class="flex items-center justify-between mb-6">
+  <div>
+    <h1 class="text-2xl font-bold text-slate-900 dark:text-slate-50">Die Store</h1>
+    <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Lifecycle management of extrusion dies</p>
+  </div>
+  <a href="{{ url_for('dies_mgmt.create_die') }}"
+     class="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 shadow-sm">
+    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+    New Die
+  </a>
+</div>
+
+<!-- Status summary tiles -->
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+  <a href="{{ url_for('dies_mgmt.list_dies') }}" class="bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-xl p-5 hover:shadow-md transition-shadow">
+    <div class="text-xs text-emerald-700 dark:text-emerald-400 font-semibold uppercase tracking-wider">Available</div>
+    <div class="text-3xl font-bold text-emerald-900 dark:text-emerald-100 mt-2">{{ counts.get('Available', 0) }}</div>
+  </a>
+  <a href="{{ url_for('dies_mgmt.list_dies') }}" class="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl p-5 hover:shadow-md transition-shadow">
+    <div class="text-xs text-amber-700 dark:text-amber-400 font-semibold uppercase tracking-wider">In Furnace</div>
+    <div class="text-3xl font-bold text-amber-900 dark:text-amber-100 mt-2">{{ counts.get('In_Furnace', 0) }}</div>
+  </a>
+  <a href="{{ url_for('dies_mgmt.list_dies') }}" class="bg-sky-50 dark:bg-sky-900/20 border border-sky-200 dark:border-sky-800 rounded-xl p-5 hover:shadow-md transition-shadow">
+    <div class="text-xs text-sky-700 dark:text-sky-400 font-semibold uppercase tracking-wider">In Press</div>
+    <div class="text-3xl font-bold text-sky-900 dark:text-sky-100 mt-2">{{ counts.get('In_Press', 0) }}</div>
+  </a>
+  <a href="{{ url_for('dies_mgmt.list_dies') }}" class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-5 hover:shadow-md transition-shadow">
+    <div class="text-xs text-red-700 dark:text-red-400 font-semibold uppercase tracking-wider">Repair</div>
+    <div class="text-3xl font-bold text-red-900 dark:text-red-100 mt-2">{{ (counts.get('Repair', 0) or 0) + (counts.get('Rework', 0) or 0) }}</div>
+  </a>
+</div>
+
+{% if dies %}
+<div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
+  <div class="overflow-x-auto">
+    <table class="min-w-full divide-y divide-slate-200 dark:divide-slate-700">
+      <thead class="bg-slate-50 dark:bg-slate-900/50">
+        <tr>
+          <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase">Die Code</th>
+          <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase">Profile</th>
+          <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase">Alloy</th>
+          <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase">Type</th>
+          <th class="px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase">Press Count</th>
+          <th class="px-4 py-3 text-center text-xs font-semibold text-slate-500 uppercase">Status</th>
+          <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase">Location</th>
+          <th class="px-4 py-3"></th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-slate-200 dark:divide-slate-700">
+        {% for d in dies %}
+        {% set st = d.status or 'Available' %}
+        <tr class="hover:bg-slate-50 dark:hover:bg-slate-700/50">
+          <td class="px-4 py-3 text-sm font-semibold text-slate-900 dark:text-slate-50 font-mono">{{ d.die_code }}</td>
+          <td class="px-4 py-3 text-sm text-slate-600 dark:text-slate-400">{{ d.profile_code or '—' }}</td>
+          <td class="px-4 py-3 text-sm text-slate-600 dark:text-slate-400">{{ d.alloy or '—' }}</td>
+          <td class="px-4 py-3 text-sm text-slate-600 dark:text-slate-400">{{ d.die_type or '—' }}</td>
+          <td class="px-4 py-3 text-sm text-right text-slate-700 dark:text-slate-300">
+            {{ d.press_count or 0 }}{% if d.press_count_limit %}<span class="text-slate-400"> / {{ d.press_count_limit }}</span>{% endif %}
+          </td>
+          <td class="px-4 py-3 text-center">
+            {% if st == 'Available' %}<span class="px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300">Available</span>
+            {% elif st == 'In_Furnace' %}<span class="px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300">In Furnace</span>
+            {% elif st == 'In_Press' %}<span class="px-2 py-0.5 rounded-full text-xs font-medium bg-sky-100 dark:bg-sky-900/30 text-sky-700 dark:text-sky-300">In Press</span>
+            {% elif st in ['Repair','Rework'] %}<span class="px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300">{{ st }}</span>
+            {% elif st == 'Retired' %}<span class="px-2 py-0.5 rounded-full text-xs font-medium bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300">Retired</span>
+            {% else %}<span class="px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-400">{{ st }}</span>
+            {% endif %}
+          </td>
+          <td class="px-4 py-3 text-sm text-slate-600 dark:text-slate-400">{{ d.location or '—' }}</td>
+          <td class="px-4 py-3 text-right">
+            <a href="{{ url_for('dies_mgmt.detail', id=d.id) }}" class="text-indigo-600 dark:text-indigo-400 hover:underline text-sm font-medium">View</a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% else %}
+<div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-12 text-center">
+  <h3 class="text-lg font-medium text-slate-900 dark:text-slate-50">No dies registered</h3>
+  <p class="mt-2 text-sm text-slate-500 dark:text-slate-400">Create your first die record to begin lifecycle tracking.</p>
+</div>
+{% endif %}
+{% endblock %}

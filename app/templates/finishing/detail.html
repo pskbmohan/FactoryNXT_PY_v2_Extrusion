@@ -1,0 +1,111 @@
+{% extends "layout.html" %}
+{% block title %}Finishing Order {{ order.order_number }}{% endblock %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto">
+  <div class="flex items-center justify-between mb-6">
+    <div>
+      <h1 class="text-2xl font-bold text-slate-900 dark:text-slate-50">Finishing Order {{ order.order_number }}</h1>
+      <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">
+        {{ order.process_type.name if order.process_type else '—' }} · WO {{ order.work_order.order_number if order.work_order else '—' }}
+      </p>
+    </div>
+    <a href="{{ url_for('finishing.list_orders') }}" class="px-4 py-2 text-slate-600 dark:text-slate-400 text-sm font-medium hover:underline">Back</a>
+  </div>
+
+  <!-- Summary row -->
+  <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+    <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-5 shadow-sm">
+      <div class="text-xs text-slate-500 uppercase font-medium">Status</div>
+      <div class="mt-1">
+        {% if order.status == 'pending' %}<span class="px-2 py-1 rounded-full text-xs font-semibold bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300">PENDING</span>
+        {% elif order.status == 'running' %}<span class="px-2 py-1 rounded-full text-xs font-semibold bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300">RUNNING</span>
+        {% elif order.status == 'completed' %}<span class="px-2 py-1 rounded-full text-xs font-semibold bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300">COMPLETED</span>
+        {% elif order.status == 'rejected' %}<span class="px-2 py-1 rounded-full text-xs font-semibold bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300">REJECTED</span>
+        {% endif %}
+      </div>
+      <div class="text-xs text-slate-400 mt-2">Seq {{ order.sequence }}</div>
+    </div>
+    <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-5 shadow-sm">
+      <div class="text-xs text-slate-500 uppercase font-medium">PLC Command</div>
+      <div class="mt-1">
+        {% if order.plc_ack_status == 'ACK' %}<span class="px-2 py-1 rounded-full text-xs font-semibold bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300">ACK</span>
+        {% elif order.plc_ack_status == 'NACK' %}<span class="px-2 py-1 rounded-full text-xs font-semibold bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300">NACK</span>
+        {% elif order.plc_ack_status == 'PENDING' %}<span class="px-2 py-1 rounded-full text-xs font-semibold bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300">PENDING</span>
+        {% else %}<span class="text-slate-400 text-sm">n/a</span>{% endif %}
+      </div>
+      <div class="text-xs text-slate-400 mt-2">{{ order.process_type.code if order.process_type else '—' }}{% if order.process_type and order.process_type.requires_plc_instruction %} · PLC{% endif %}</div>
+    </div>
+    <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-5 shadow-sm">
+      <div class="text-xs text-slate-500 uppercase font-medium">Container</div>
+      <div class="text-xl font-bold text-slate-900 dark:text-slate-50 mt-1 font-mono">{{ order.container.container_code if order.container else '—' }}</div>
+      <div class="text-xs text-slate-400 mt-2">Operator: {{ order.operator_id or '—' }}</div>
+    </div>
+    <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-5 shadow-sm">
+      <div class="text-xs text-slate-500 uppercase font-medium">Timestamps</div>
+      <div class="text-xs text-slate-600 dark:text-slate-400 mt-1 space-y-1">
+        <div class="flex justify-between"><span>Created</span><span class="font-medium">{{ order.created_at.strftime('%H:%M') if order.created_at else '—' }}</span></div>
+        <div class="flex justify-between"><span>Started</span><span class="font-medium">{{ order.started_at.strftime('%H:%M') if order.started_at else '—' }}</span></div>
+        <div class="flex justify-between"><span>Completed</span><span class="font-medium">{{ order.completed_at.strftime('%H:%M') if order.completed_at else '—' }}</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Process parameters -->
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+    <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-6 shadow-sm">
+      <h3 class="text-sm font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-4">Process Parameters</h3>
+      {% if order.parameters %}
+      <dl class="space-y-1 text-sm">
+        {% for k, v in order.parameters.items() %}
+        <div class="flex justify-between">
+          <dt class="text-slate-500 dark:text-slate-400">{{ k }}</dt>
+          <dd class="font-semibold text-slate-900 dark:text-slate-50">{{ v }}</dd>
+        </div>
+        {% endfor %}
+      </dl>
+      {% else %}
+      <p class="text-sm text-slate-500 dark:text-slate-400">No parameters recorded.</p>
+      {% endif %}
+    </div>
+    <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-6 shadow-sm">
+      <h3 class="text-sm font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-4">PLC Command</h3>
+      {% if order.plc_command %}
+      <pre class="text-xs font-mono bg-slate-50 dark:bg-slate-900/30 p-3 rounded border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 whitespace-pre-wrap">{{ order.plc_command|tojson(indent=2) }}</pre>
+      {% else %}
+      <p class="text-sm text-slate-500 dark:text-slate-400">No PLC command issued.</p>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Actions -->
+  <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-6 shadow-sm">
+    <h3 class="text-sm font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-4">Operator Actions</h3>
+    <div class="flex flex-wrap gap-2">
+      {% if order.status == 'pending' %}
+      <form method="post" action="{{ url_for('finishing.start', id=order.id) }}">
+        <button type="submit" class="px-4 py-2 bg-emerald-600 text-white text-sm font-medium rounded-lg hover:bg-emerald-700">Start →</button>
+      </form>
+      {% endif %}
+      {% if order.status in ['pending','running'] %}
+      <form method="post" action="{{ url_for('finishing.complete', id=order.id) }}" class="flex gap-2">
+        <input type="text" name="actual_parameters_json" placeholder='Actual parameters JSON (optional)' class="px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-50 text-sm w-80 font-mono">
+        <button type="submit" class="px-4 py-2 bg-sky-600 text-white text-sm font-medium rounded-lg hover:bg-sky-700">Complete</button>
+      </form>
+      <form method="post" action="{{ url_for('finishing.reject', id=order.id) }}" onsubmit="return confirm('Reject and create NCR?')">
+        <input type="hidden" name="remarks" value="Rejected by operator">
+        <button type="submit" class="px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-lg hover:bg-red-700">Reject → NCR</button>
+      </form>
+      {% endif %}
+      {% if order.status in ['completed','rejected'] %}
+      <div class="text-sm text-slate-500 dark:text-slate-400 py-2">Order is closed.</div>
+      {% endif %}
+    </div>
+    {% if order.remarks %}
+    <div class="mt-4 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg text-sm text-amber-800 dark:text-amber-200">
+      <strong>Remarks:</strong> {{ order.remarks }}
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

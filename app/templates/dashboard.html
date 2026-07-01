@@ -281,5 +281,130 @@
       </div>
     </div>
   </div>
+
+  <!-- ═══ EXTRUSION OPERATION WIDGETS ═══ -->
+  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+    <!-- 1. Alloy Stock Board -->
+    <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-6 shadow-sm">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-sm font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Alloy Stock</h3>
+        <a href="{{ url_for('material_receipt.alloy_stock') }}" class="text-xs text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 font-medium">View all &rarr;</a>
+      </div>
+      {% if alloy_stock %}
+      <div class="space-y-1.5 max-h-48 overflow-y-auto">
+        {% for a in alloy_stock %}
+        <div class="flex items-center justify-between py-1">
+          <div class="flex items-center gap-2 min-w-0">
+            <span class="text-sm font-semibold text-indigo-600 dark:text-indigo-400">{{ a.alloy_code }}</span>
+            <span class="text-xs text-slate-500 dark:text-slate-400 truncate">{{ a.alloy_name }}</span>
+          </div>
+          <span class="text-sm font-bold text-slate-900 dark:text-slate-50 tabular-nums whitespace-nowrap ml-2">{{ '%.0f'|format(a.qty) }}</span>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <p class="text-sm text-slate-500 dark:text-slate-400 text-center py-4">No alloy stock recorded</p>
+      {% endif %}
+    </div>
+
+    <!-- 2. Die Store Status -->
+    <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-6 shadow-sm">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-sm font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Die Store</h3>
+        <a href="{{ url_for('dies_mgmt.list_dies') }}" class="text-xs text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 font-medium">View all &rarr;</a>
+      </div>
+      <div class="grid grid-cols-2 gap-3">
+        <div class="p-3 rounded-lg bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-100 dark:border-emerald-800">
+          <div class="text-xs text-emerald-700 dark:text-emerald-400 font-medium">Available</div>
+          <div class="text-2xl font-bold text-emerald-900 dark:text-emerald-100 mt-1">{{ die_store.available }}</div>
+        </div>
+        <div class="p-3 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-800">
+          <div class="text-xs text-amber-700 dark:text-amber-400 font-medium">In Furnace</div>
+          <div class="text-2xl font-bold text-amber-900 dark:text-amber-100 mt-1">{{ die_store.in_furnace }}</div>
+        </div>
+        <div class="p-3 rounded-lg bg-sky-50 dark:bg-sky-900/20 border border-sky-100 dark:border-sky-800">
+          <div class="text-xs text-sky-700 dark:text-sky-400 font-medium">In Press</div>
+          <div class="text-2xl font-bold text-sky-900 dark:text-sky-100 mt-1">{{ die_store.in_press }}</div>
+        </div>
+        <div class="p-3 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-800">
+          <div class="text-xs text-red-700 dark:text-red-400 font-medium">Repair</div>
+          <div class="text-2xl font-bold text-red-900 dark:text-red-100 mt-1">{{ die_store.repair }}</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 3. Furnace Status -->
+    <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-6 shadow-sm">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-sm font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Furnaces</h3>
+        <a href="{{ url_for('furnace.list_furnaces') }}" class="text-xs text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 font-medium">View all &rarr;</a>
+      </div>
+      <div class="space-y-2 max-h-48 overflow-y-auto">
+        {% for f in furnaces_status %}
+        <div class="flex items-center justify-between p-2 rounded-lg bg-slate-50 dark:bg-slate-900/30">
+          <div class="min-w-0">
+            <div class="text-sm font-medium text-slate-900 dark:text-slate-50 truncate">{{ f.name }}</div>
+            {% if f.active_prog %}
+            <div class="text-xs text-slate-500 dark:text-slate-400">{{ f.active_prog.name }}</div>
+            {% endif %}
+          </div>
+          <div class="flex items-center gap-2 whitespace-nowrap">
+            {% if f.status == 'idle' %}<span class="px-2 py-0.5 rounded text-xs font-semibold bg-slate-200 dark:bg-slate-700 text-slate-600">IDLE</span>
+            {% elif f.status == 'heating' %}<span class="px-2 py-0.5 rounded text-xs font-semibold bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300">HEAT</span>
+            {% elif f.status == 'cooling' %}<span class="px-2 py-0.5 rounded text-xs font-semibold bg-sky-100 dark:bg-sky-900/30 text-sky-700 dark:text-sky-300">COOL</span>
+            {% elif f.status == 'fault' %}<span class="px-2 py-0.5 rounded text-xs font-semibold bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300">FAULT</span>
+            {% else %}<span class="px-2 py-0.5 rounded text-xs font-semibold bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300">{{ f.status|upper }}</span>
+            {% endif %}
+            {% if f.active_prog %}<span class="text-xs font-semibold text-indigo-600 dark:text-indigo-400">{{ f.active_prog.pct }}%</span>{% endif %}
+          </div>
+        </div>
+        {% else %}
+        <p class="text-sm text-slate-500 dark:text-slate-400 text-center py-4">No furnaces active</p>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- 4. Finishing Queue -->
+    <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-6 shadow-sm">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-sm font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Finishing Queue</h3>
+        <a href="{{ url_for('finishing.list_orders') }}" class="text-xs text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 font-medium">View all &rarr;</a>
+      </div>
+      {% if finishing_queue %}
+      <div class="space-y-1.5 max-h-48 overflow-y-auto">
+        {% for f in finishing_queue %}
+        <div class="flex items-center justify-between py-1">
+          <div class="text-sm font-medium text-slate-700 dark:text-slate-300 truncate">{{ f.name }}</div>
+          <span class="text-sm font-bold tabular-nums {% if f.pending > 0 %}text-indigo-600 dark:text-indigo-400{% else %}text-slate-400{% endif %}">{{ f.pending }}</span>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <p class="text-sm text-slate-500 dark:text-slate-400 text-center py-4">No finishing processes defined</p>
+      {% endif %}
+    </div>
+
+    <!-- 5. Shipments Today -->
+    <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-6 shadow-sm">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-sm font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Shipments Today</h3>
+        <a href="{{ url_for('logistics.shipments_list') }}" class="text-xs text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 font-medium">View all &rarr;</a>
+      </div>
+      <div class="grid grid-cols-2 gap-3">
+        <div class="p-3 rounded-lg bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-100 dark:border-indigo-800">
+          <div class="text-xs text-indigo-700 dark:text-indigo-400 font-medium">Scheduled</div>
+          <div class="text-2xl font-bold text-indigo-900 dark:text-indigo-100 mt-1">{{ shipments_today_count or 0 }}</div>
+        </div>
+        <div class="p-3 rounded-lg {% if (weight_checks_pending or 0) > 0 %}bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-800{% else %}bg-slate-50 dark:bg-slate-900/30 border border-slate-200 dark:border-slate-700{% endif %}">
+          <div class="text-xs text-amber-700 dark:text-amber-400 font-medium">Weight Check</div>
+          <div class="text-2xl font-bold text-amber-900 dark:text-amber-100 mt-1">{{ weight_checks_pending or 0 }}</div>
+        </div>
+      </div>
+      <p class="text-xs text-slate-500 dark:text-slate-400 mt-3">
+        {% if (shipments_today_count or 0) == 0 %}No shipments scheduled today
+        {% else %}{{ shipments_today_count }} shipment{{ 's' if shipments_today_count != 1 else '' }} to ship{% endif %}
+      </p>
+    </div>
+  </div>
 </div>
 </div>{% endblock %}

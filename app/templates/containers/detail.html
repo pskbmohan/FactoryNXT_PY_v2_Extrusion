@@ -1,0 +1,134 @@
+{% extends "layout.html" %}
+{% block title %}Container {{ container.container_code }}{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto">
+  <div class="flex items-center justify-between mb-6">
+    <div>
+      <h1 class="text-2xl font-bold text-slate-900 dark:text-slate-50">{{ container.container_code }}</h1>
+      <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">
+        {{ container.container_type|default('—')|capitalize }} · {{ container.material or '—' }} · location: {{ container.current_location or '—' }}
+      </p>
+    </div>
+    <a href="{{ url_for('containers.list_containers') }}" class="px-4 py-2 text-slate-600 dark:text-slate-400 text-sm font-medium hover:underline">Back</a>
+  </div>
+
+  <!-- Summary cards with actions -->
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+    <!-- Weigh -->
+    <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-5 shadow-sm">
+      <div class="text-xs text-slate-500 uppercase font-medium mb-2">Record Weight</div>
+      <form method="post" action="{{ url_for('containers.weigh', id=container.id) }}" class="space-y-2">
+        <input type="number" step="0.01" name="gross_weight_kg" required placeholder="Gross weight (kg)" class="w-full px-2 py-1.5 border border-slate-300 dark:border-slate-600 rounded text-sm bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-50">
+        <input type="number" step="0.01" name="tare_weight_kg" placeholder="Tare (default {{ '%.2f'|format(container.tare_weight_kg or 0) }})" class="w-full px-2 py-1.5 border border-slate-300 dark:border-slate-600 rounded text-sm bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-50">
+        <div class="grid grid-cols-2 gap-2">
+          <input type="number" step="0.01" name="expected_weight_kg" placeholder="Expected" class="px-2 py-1.5 border border-slate-300 dark:border-slate-600 rounded text-sm bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-50">
+          <input type="text" name="weigh_station" placeholder="Station" class="px-2 py-1.5 border border-slate-300 dark:border-slate-600 rounded text-sm bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-50">
+        </div>
+        <button type="submit" class="w-full text-sm px-3 py-1.5 bg-indigo-600 text-white rounded hover:bg-indigo-700">Weigh</button>
+      </form>
+    </div>
+
+    <!-- Move -->
+    <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-5 shadow-sm">
+      <div class="text-xs text-slate-500 uppercase font-medium mb-2">Move to Location</div>
+      <form method="post" action="{{ url_for('containers.move', id=container.id) }}" class="space-y-2">
+        <input type="text" name="to_location" required placeholder="New location" class="w-full px-2 py-1.5 border border-slate-300 dark:border-slate-600 rounded text-sm bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-50">
+        <input type="text" name="moved_by" placeholder="Moved by" value="Operator" class="w-full px-2 py-1.5 border border-slate-300 dark:border-slate-600 rounded text-sm bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-50">
+        <button type="submit" class="w-full text-sm px-3 py-1.5 bg-sky-600 text-white rounded hover:bg-sky-700">Move</button>
+      </form>
+    </div>
+
+    <!-- Assign WO -->
+    <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-5 shadow-sm">
+      <div class="text-xs text-slate-500 uppercase font-medium mb-2">Assign Work Order</div>
+      <form method="post" action="{{ url_for('containers.assign_wo', id=container.id) }}" class="space-y-2">
+        <select name="wo_id" class="w-full px-2 py-1.5 border border-slate-300 dark:border-slate-600 rounded text-sm bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-50">
+          <option value="">— None (release) —</option>
+          <!-- populated dynamically would need WOs, keep simple -->
+        </select>
+        <button type="submit" class="w-full text-sm px-3 py-1.5 bg-emerald-600 text-white rounded hover:bg-emerald-700">Assign</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Weigh events timeline -->
+  <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden mb-6">
+    <div class="px-6 py-4 border-b border-slate-200 dark:border-slate-700">
+      <h3 class="text-sm font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider">Weigh History</h3>
+    </div>
+    {% if weigh_events %}
+    <div class="overflow-x-auto">
+      <table class="min-w-full divide-y divide-slate-200 dark:divide-slate-700">
+        <thead class="bg-slate-50 dark:bg-slate-900/50">
+          <tr>
+            <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase">Weighed At</th>
+            <th class="px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase">Gross</th>
+            <th class="px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase">Tare</th>
+            <th class="px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase">Net</th>
+            <th class="px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase">Expected</th>
+            <th class="px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase">Variance</th>
+            <th class="px-4 py-3 text-center text-xs font-semibold text-slate-500 uppercase">Status</th>
+            <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase">Station</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-200 dark:divide-slate-700">
+          {% for e in weigh_events %}
+          <tr>
+            <td class="px-4 py-3 text-sm text-slate-600 dark:text-slate-400">{{ e.weighed_at.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+            <td class="px-4 py-3 text-sm text-right text-slate-600 dark:text-slate-400">{{ '%.3f'|format(e.gross_weight_kg) }}</td>
+            <td class="px-4 py-3 text-sm text-right text-slate-600 dark:text-slate-400">{{ '%.3f'|format(e.tare_weight_kg) }}</td>
+            <td class="px-4 py-3 text-sm text-right font-semibold text-slate-900 dark:text-slate-50">{{ '%.3f'|format(e.net_weight_kg) }}</td>
+            <td class="px-4 py-3 text-sm text-right text-slate-600 dark:text-slate-400">{{ '%.3f'|format(e.expected_weight_kg) if e.expected_weight_kg else '—' }}</td>
+            <td class="px-4 py-3 text-sm text-right text-slate-600 dark:text-slate-400">{{ ('%+.2f%%'|format(e.weight_variance_percent)) if e.weight_variance_percent is not none else '—' }}</td>
+            <td class="px-4 py-3 text-center">
+              {% if e.status == 'OK' %}<span class="px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700">OK</span>
+              {% elif e.status == 'OVER' %}<span class="px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 dark:bg-red-900/30 text-red-700">OVER</span>
+              {% elif e.status == 'UNDER' %}<span class="px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 dark:bg-amber-900/30 text-amber-700">UNDER</span>
+              {% else %}<span class="px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 dark:bg-slate-700 text-slate-600">{{ e.status }}</span>{% endif %}
+            </td>
+            <td class="px-4 py-3 text-sm text-slate-600 dark:text-slate-400">{{ e.weigh_station or '—' }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="p-6 text-sm text-slate-500 dark:text-slate-400 text-center">No weigh events recorded.</div>
+    {% endif %}
+  </div>
+
+  <!-- Movement history -->
+  <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
+    <div class="px-6 py-4 border-b border-slate-200 dark:border-slate-700">
+      <h3 class="text-sm font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider">Movement History</h3>
+    </div>
+    {% if movements %}
+    <div class="overflow-x-auto">
+      <table class="min-w-full divide-y divide-slate-200 dark:divide-slate-700">
+        <thead class="bg-slate-50 dark:bg-slate-900/50">
+          <tr>
+            <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase">Moved At</th>
+            <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase">From</th>
+            <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase">To</th>
+            <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase">Moved By</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-200 dark:divide-slate-700">
+          {% for m in movements %}
+          <tr>
+            <td class="px-4 py-3 text-sm text-slate-600 dark:text-slate-400">{{ m.moved_at.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+            <td class="px-4 py-3 text-sm text-slate-600 dark:text-slate-400">{{ m.from_location or '—' }}</td>
+            <td class="px-4 py-3 text-sm text-slate-900 dark:text-slate-50 font-medium">{{ m.to_location }}</td>
+            <td class="px-4 py-3 text-sm text-slate-600 dark:text-slate-400">{{ m.moved_by or '—' }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="p-6 text-sm text-slate-500 dark:text-slate-400 text-center">No movements recorded.</div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

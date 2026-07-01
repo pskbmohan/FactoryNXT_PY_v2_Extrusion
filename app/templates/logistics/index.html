@@ -1,0 +1,78 @@
+{% extends "layout.html" %}
+{% block title %}Logistics & Shipment{% endblock %}
+
+{% block content %}
+<div class="flex items-center justify-between mb-6">
+  <div>
+    <h1 class="text-2xl font-bold text-slate-900 dark:text-slate-50">Logistics</h1>
+    <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Packaging, loading &amp; shipment management</p>
+  </div>
+  <div class="flex gap-2">
+    <a href="{{ url_for('logistics.packaging_queue') }}"
+       class="inline-flex items-center gap-2 px-4 py-2 bg-sky-600 text-white text-sm font-medium rounded-lg hover:bg-sky-700 shadow-sm">Packaging Queue ({{ packaging_count }})</a>
+    <a href="{{ url_for('logistics.create_shipment') }}"
+       class="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 shadow-sm">
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+      New Shipment
+    </a>
+  </div>
+</div>
+
+{% if shipments %}
+<div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
+  <div class="overflow-x-auto">
+    <table class="min-w-full divide-y divide-slate-200 dark:divide-slate-700">
+      <thead class="bg-slate-50 dark:bg-slate-900/50">
+        <tr>
+          <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase">Shipment #</th>
+          <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase">Customer</th>
+          <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase">Carrier</th>
+          <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase">Ship Date</th>
+          <th class="px-4 py-3 text-center text-xs font-semibold text-slate-500 uppercase">Status</th>
+          <th class="px-4 py-3 text-center text-xs font-semibold text-slate-500 uppercase">Weight Check</th>
+          <th class="px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase">Theoretical kg</th>
+          <th class="px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase">Actual kg</th>
+          <th class="px-4 py-3"></th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-slate-200 dark:divide-slate-700">
+        {% for s in shipments %}
+        <tr class="hover:bg-slate-50 dark:hover:bg-slate-700/50">
+          <td class="px-4 py-3 text-sm font-semibold text-slate-900 dark:text-slate-50 font-mono">{{ s.shipment_number }}</td>
+          <td class="px-4 py-3 text-sm text-slate-600 dark:text-slate-400">{{ s.customer_name or '—' }}</td>
+          <td class="px-4 py-3 text-sm text-slate-600 dark:text-slate-400">{{ s.carrier or '—' }}</td>
+          <td class="px-4 py-3 text-sm text-slate-600 dark:text-slate-400">
+            {{ s.actual_ship_date.strftime('%Y-%m-%d') if s.actual_ship_date else (s.scheduled_ship_date.strftime('%Y-%m-%d') if s.scheduled_ship_date else '—') }}
+          </td>
+          <td class="px-4 py-3 text-center">
+            {% if s.status == 'open' %}<span class="px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 dark:bg-slate-700 text-slate-600">Open</span>
+            {% elif s.status == 'loading' %}<span class="px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 dark:bg-amber-900/30 text-amber-700">Loading</span>
+            {% elif s.status == 'weight_check' %}<span class="px-2 py-0.5 rounded-full text-xs font-medium bg-sky-100 dark:bg-sky-900/30 text-sky-700">Weight Check</span>
+            {% elif s.status == 'approved' %}<span class="px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700">Approved</span>
+            {% elif s.status == 'shipped' %}<span class="px-2 py-0.5 rounded-full text-xs font-medium bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700">Shipped</span>
+            {% endif %}
+          </td>
+          <td class="px-4 py-3 text-center">
+            {% if s.weight_check_status == 'OK' %}<span class="text-emerald-600 dark:text-emerald-400 text-xs font-semibold">✓ OK</span>
+            {% elif s.weight_check_status == 'VARIANCE' %}<span class="text-amber-600 dark:text-amber-400 text-xs font-semibold">⚠ VARIANCE</span>
+            {% elif s.weight_check_status == 'HOLD' %}<span class="text-red-600 dark:text-red-400 text-xs font-semibold">✗ HOLD</span>
+            {% else %}<span class="text-slate-400 text-xs">—</span>{% endif %}
+          </td>
+          <td class="px-4 py-3 text-sm text-right text-slate-600 dark:text-slate-400">{{ '%.2f'|format(s.theoretical_total_weight_kg) if s.theoretical_total_weight_kg else '—' }}</td>
+          <td class="px-4 py-3 text-sm text-right text-slate-600 dark:text-slate-400">{{ '%.2f'|format(s.actual_total_weight_kg) if s.actual_total_weight_kg else '—' }}</td>
+          <td class="px-4 py-3 text-right">
+            <a href="{{ url_for('logistics.shipment_detail', id=s.id) }}" class="text-indigo-600 dark:text-indigo-400 hover:underline text-sm font-medium">View</a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% else %}
+<div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-12 text-center">
+  <h3 class="text-lg font-medium text-slate-900 dark:text-slate-50">No shipments yet</h3>
+  <p class="mt-2 text-sm text-slate-500 dark:text-slate-400">Create a shipment to begin packaging &amp; loading.</p>
+</div>
+{% endif %}
+{% endblock %}

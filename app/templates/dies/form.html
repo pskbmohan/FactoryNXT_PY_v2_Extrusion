@@ -1,0 +1,90 @@
+{% extends "layout.html" %}
+{% block title %}{{ 'Edit' if die else 'New' }} Die{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+  <div class="mb-6">
+    <h1 class="text-2xl font-bold text-slate-900 dark:text-slate-50">{{ 'Edit' if die else 'New' }} Die</h1>
+    <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Register a new extrusion die in the store</p>
+  </div>
+
+  <form method="post" class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm p-6 space-y-6">
+    <fieldset>
+      <legend class="text-sm font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-4">Die Identity</legend>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div>
+          <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Die Code *</label>
+          <input type="text" name="die_code" value="{{ die.die_code if die else '' }}" required autofocus
+                 class="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-50 text-sm focus:ring-2 focus:ring-indigo-500 font-mono">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Profile Code</label>
+          <input type="text" name="profile_code" value="{{ die.profile_code if die else '' }}"
+                 class="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-50 text-sm focus:ring-2 focus:ring-indigo-500">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Alloy Designation</label>
+          <input type="text" name="alloy" value="{{ die.alloy if die else '' }}"
+                 class="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-50 text-sm focus:ring-2 focus:ring-indigo-500">
+        </div>
+      </div>
+      <div class="mt-4">
+        <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Description</label>
+        <textarea name="description" rows="2"
+                  class="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-50 text-sm focus:ring-2 focus:ring-indigo-500">{{ die.description if die else '' }}</textarea>
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend class="text-sm font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-4">Manufacturing</legend>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Die Type</label>
+          <select name="die_type"
+                  class="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-50 text-sm focus:ring-2 focus:ring-indigo-500">
+            <option value="">— Select —</option>
+            {% for t in ['solid','hollow','semi-hollow'] %}
+            <option value="{{ t }}" {% if die and die.die_type == t %}selected{% endif %}>{{ t }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Manufacturer</label>
+          <input type="text" name="manufacturer" value="{{ die.manufacturer if die else '' }}"
+                 class="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-50 text-sm focus:ring-2 focus:ring-indigo-500">
+        </div>
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend class="text-sm font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-4">Lifecycle</legend>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div>
+          <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Press Count Limit</label>
+          <input type="number" name="press_count_limit" value="{{ die.press_count_limit if die else '' }}"
+                 class="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-50 text-sm focus:ring-2 focus:ring-indigo-500" placeholder="e.g. 10000">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Life Cycles Total</label>
+          <input type="number" name="life_cycles_total" value="{{ die.life_cycles_total if die else 0 }}"
+                 class="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-50 text-sm focus:ring-2 focus:ring-indigo-500">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Initial Store Location</label>
+          <input type="text" name="location" value="{{ die.location if die else 'Store Rack A' }}"
+                 class="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-50 text-sm focus:ring-2 focus:ring-indigo-500">
+        </div>
+      </div>
+    </fieldset>
+
+    <div class="flex items-center gap-3 pt-4 border-t border-slate-200 dark:border-slate-700">
+      <button type="submit"
+              class="px-6 py-2.5 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 shadow-sm">
+        {{ 'Save Changes' if die else 'Register Die' }}
+      </button>
+      <a href="{{ url_for('dies_mgmt.list_dies') }}"
+         class="px-6 py-2.5 text-slate-600 dark:text-slate-400 text-sm font-medium hover:text-slate-900 dark:hover:text-slate-50">Cancel</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

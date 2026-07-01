@@ -1,0 +1,92 @@
+{% extends "layout.html" %}
+{% block title %}Finishing Processes{% endblock %}
+
+{% block content %}
+<div class="flex items-center justify-between mb-6">
+  <div>
+    <h1 class="text-2xl font-bold text-slate-900 dark:text-slate-50">Finishing Processes</h1>
+    <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Post-extrusion operations: anodizing, cutting, aging, sawing, straightening</p>
+  </div>
+  <a href="{{ url_for('finishing.create_order') }}"
+     class="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 shadow-sm">
+    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+    New Order
+  </a>
+</div>
+
+<!-- Process type queue tiles -->
+{% if process_types %}
+<div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 mb-6">
+  {% for pt in process_types %}
+  <a href="{{ url_for('finishing.operator_screen', process_type_code=pt.code) }}"
+     class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-4 hover:shadow-md transition-shadow">
+    <div class="text-xs text-slate-500 dark:text-slate-400 uppercase font-medium truncate">{{ pt.name }}</div>
+    <div class="text-3xl font-bold text-slate-900 dark:text-slate-50 mt-1">{{ counts.get(pt.id, 0) }}</div>
+    <div class="text-xs text-slate-400 mt-1">pending</div>
+    {% if pt.requires_plc_instruction %}
+    <div class="mt-2 text-[10px] font-semibold px-1.5 py-0.5 rounded bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 inline-block">PLC</div>
+    {% endif %}
+  </a>
+  {% endfor %}
+</div>
+{% endif %}
+
+{% if orders %}
+<div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
+  <div class="overflow-x-auto">
+    <table class="min-w-full divide-y divide-slate-200 dark:divide-slate-700">
+      <thead class="bg-slate-50 dark:bg-slate-900/50">
+        <tr>
+          <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase">Order #</th>
+          <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase">Process</th>
+          <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase">WO</th>
+          <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase">Container</th>
+          <th class="px-4 py-3 text-center text-xs font-semibold text-slate-500 uppercase">Sequence</th>
+          <th class="px-4 py-3 text-center text-xs font-semibold text-slate-500 uppercase">Status</th>
+          <th class="px-4 py-3 text-center text-xs font-semibold text-slate-500 uppercase">PLC</th>
+          <th class="px-4 py-3"></th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-slate-200 dark:divide-slate-700">
+        {% for o in orders %}
+        <tr class="hover:bg-slate-50 dark:hover:bg-slate-700/50">
+          <td class="px-4 py-3 text-sm font-semibold text-slate-900 dark:text-slate-50 font-mono">{{ o.order_number }}</td>
+          <td class="px-4 py-3 text-sm text-slate-600 dark:text-slate-400">{{ o.process_type.name if o.process_type else '—' }}</td>
+          <td class="px-4 py-3 text-sm text-slate-600 dark:text-slate-400">
+            {% if o.work_order %}{{ o.work_order.order_number }}{% else %}—{% endif %}
+          </td>
+          <td class="px-4 py-3 text-sm text-slate-600 dark:text-slate-400 font-mono text-xs">
+            {% if o.container %}{{ o.container.container_code }}{% else %}—{% endif %}
+          </td>
+          <td class="px-4 py-3 text-sm text-center text-slate-600 dark:text-slate-400">{{ o.sequence }}</td>
+          <td class="px-4 py-3 text-center">
+            {% if o.status == 'pending' %}<span class="px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-400">Pending</span>
+            {% elif o.status == 'running' %}<span class="px-2 py-0.5 rounded-full text-xs font-medium bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300">Running</span>
+            {% elif o.status == 'completed' %}<span class="px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300">Completed</span>
+            {% elif o.status == 'rejected' %}<span class="px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300">Rejected</span>
+            {% endif %}
+          </td>
+          <td class="px-4 py-3 text-center">
+            {% if o.process_type and o.process_type.requires_plc_instruction %}
+              {% if o.plc_ack_status == 'ACK' %}<span class="text-emerald-600 text-xs font-semibold">ACK</span>
+              {% elif o.plc_ack_status == 'NACK' %}<span class="text-red-600 text-xs font-semibold">NACK</span>
+              {% elif o.plc_ack_status == 'PENDING' %}<span class="text-amber-500 text-xs font-semibold">PENDING</span>
+              {% else %}<span class="text-slate-400 text-xs font-normal">—</span>{% endif %}
+            {% else %}<span class="text-slate-300 text-xs">n/a</span>{% endif %}
+          </td>
+          <td class="px-4 py-3 text-right">
+            <a href="{{ url_for('finishing.detail', id=o.id) }}" class="text-indigo-600 dark:text-indigo-400 hover:underline text-sm font-medium">View</a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% else %}
+<div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-12 text-center">
+  <h3 class="text-lg font-medium text-slate-900 dark:text-slate-50">No finishing orders yet</h3>
+  <p class="mt-2 text-sm text-slate-500 dark:text-slate-400">Create your first finishing order to begin post-extrusion processing.</p>
+</div>
+{% endif %}
+{% endblock %}

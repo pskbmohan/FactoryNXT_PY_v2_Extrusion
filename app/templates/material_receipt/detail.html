@@ -1,0 +1,113 @@
+{% extends "layout.html" %}
+{% block title %}Receipt {{ receipt.receipt_number }}{% endblock %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto">
+  <div class="flex items-center justify-between mb-6">
+    <div>
+      <h1 class="text-2xl font-bold text-slate-900 dark:text-slate-50">Receipt {{ receipt.receipt_number }}</h1>
+      <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Lot {{ receipt.lot_number }} · {{ receipt.supplier_name or 'Unknown supplier' }}</p>
+    </div>
+    <div class="flex items-center gap-2">
+      <a href="{{ url_for('material_receipt.list_receipts') }}" class="px-4 py-2 text-slate-600 dark:text-slate-400 text-sm font-medium hover:underline">Back to list</a>
+    </div>
+  </div>
+
+  <!-- Receipt summary cards -->
+  <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+    <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-5 shadow-sm">
+      <div class="text-xs text-slate-500 uppercase font-medium">Alloy</div>
+      <div class="text-xl font-bold text-slate-900 dark:text-slate-50 mt-1">
+        {% if receipt.alloy %}{{ receipt.alloy.alloy_name }} <span class="text-xs text-slate-400">({{ receipt.alloy_code }})</span>
+        {% else %}<span class="text-slate-400">—</span>{% endif %}
+      </div>
+    </div>
+    <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-5 shadow-sm">
+      <div class="text-xs text-slate-500 uppercase font-medium">Qty Received</div>
+      <div class="text-xl font-bold text-slate-900 dark:text-slate-50 mt-1">{{ '%.2f'|format(receipt.quantity_received or 0) }} {{ receipt.uom }}</div>
+    </div>
+    <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-5 shadow-sm">
+      <div class="text-xs text-slate-500 uppercase font-medium">Qty Available</div>
+      <div class="text-xl font-bold text-emerald-600 dark:text-emerald-400 mt-1">{{ '%.2f'|format(receipt.quantity_available or 0) }} {{ receipt.uom }}</div>
+    </div>
+    <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-5 shadow-sm">
+      <div class="text-xs text-slate-500 uppercase font-medium">Composition Status</div>
+      <div class="mt-1">
+        {% if receipt.composition_status == 'PASS' %}
+          <span class="inline-flex px-3 py-1 rounded-full text-sm font-semibold bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300">✓ PASS</span>
+        {% elif receipt.composition_status == 'FAIL' %}
+          <span class="inline-flex px-3 py-1 rounded-full text-sm font-semibold bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300">✗ FAIL</span>
+        {% else %}
+          <span class="inline-flex px-3 py-1 rounded-full text-sm font-semibold bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300">PENDING</span>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Composition check table -->
+  <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden mb-6">
+    <div class="px-6 py-4 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between">
+      <h3 class="text-sm font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider">Composition Analysis</h3>
+      <form method="post" action="{{ url_for('material_receipt.verify_composition', id=receipt.id) }}">
+        <button type="submit" class="text-xs px-3 py-1.5 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 rounded-lg hover:bg-amber-200 font-medium">
+          Re-verify
+        </button>
+      </form>
+    </div>
+    {% if spec_elements %}
+    <div class="overflow-x-auto">
+      <table class="min-w-full divide-y divide-slate-200 dark:divide-slate-700">
+        <thead class="bg-slate-50 dark:bg-slate-900/50">
+          <tr>
+            <th class="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase">Element</th>
+            <th class="px-6 py-3 text-right text-xs font-semibold text-slate-500 uppercase">Min %</th>
+            <th class="px-6 py-3 text-right text-xs font-semibold text-slate-500 uppercase">Max %</th>
+            <th class="px-6 py-3 text-right text-xs font-semibold text-slate-500 uppercase">Actual %</th>
+            <th class="px-6 py-3 text-center text-xs font-semibold text-slate-500 uppercase">In Spec?</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-200 dark:divide-slate-700">
+          {% for el in spec_elements %}
+          <tr class="{% if el.in_spec == False %}bg-red-50 dark:bg-red-900/10{% elif el.in_spec == True %}bg-emerald-50 dark:bg-emerald-900/10{% endif %}">
+            <td class="px-6 py-3 text-sm font-medium text-slate-900 dark:text-slate-50">{{ el.element }}</td>
+            <td class="px-6 py-3 text-sm text-right text-slate-500">{{ '%.4f'|format(el.min) if el.min is not none else '—' }}</td>
+            <td class="px-6 py-3 text-sm text-right text-slate-500">{{ '%.4f'|format(el.max) if el.max is not none else '—' }}</td>
+            <td class="px-6 py-3 text-sm text-right font-semibold text-slate-900 dark:text-slate-50">{{ '%.4f'|format(el.actual) if el.actual is not none else '—' }}</td>
+            <td class="px-6 py-3 text-center">
+              {% if el.in_spec is none %}
+                <span class="text-xs text-slate-400">n/a</span>
+              {% elif el.in_spec %}
+                <span class="text-emerald-600 dark:text-emerald-400 font-bold">✓ PASS</span>
+              {% else %}
+                <span class="text-red-600 dark:text-red-400 font-bold">✗ FAIL</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="p-6 text-center text-sm text-slate-500 dark:text-slate-400">
+      No composition data or alloy specification available.
+      {% if not receipt.actual_composition %}
+        <p class="mt-2 text-xs">This receipt has no CoA data recorded. Update via JSON input.</p>
+      {% endif %}
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Details -->
+  <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-6 shadow-sm">
+    <h3 class="text-sm font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-4">Details</h3>
+    <dl class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-3 text-sm">
+      <div class="flex justify-between"><dt class="text-slate-500 dark:text-slate-400">Material Type</dt><dd class="font-medium text-slate-900 dark:text-slate-50">{{ receipt.material_type.name if receipt.material_type else '—' }}</dd></div>
+      <div class="flex justify-between"><dt class="text-slate-500 dark:text-slate-400">Truck Reference</dt><dd class="font-medium text-slate-900 dark:text-slate-50">{{ receipt.truck_reference or '—' }}</dd></div>
+      <div class="flex justify-between"><dt class="text-slate-500 dark:text-slate-400">Storage Location</dt><dd class="font-medium text-slate-900 dark:text-slate-50">{{ receipt.location.name if receipt.location else '—' }}</dd></div>
+      <div class="flex justify-between"><dt class="text-slate-500 dark:text-slate-400">Received By</dt><dd class="font-medium text-slate-900 dark:text-slate-50">{{ receipt.received_by or '—' }}</dd></div>
+      <div class="flex justify-between"><dt class="text-slate-500 dark:text-slate-400">Received At</dt><dd class="font-medium text-slate-900 dark:text-slate-50">{{ receipt.received_at.strftime('%Y-%m-%d %H:%M') if receipt.received_at else '—' }}</dd></div>
+      <div class="flex justify-between"><dt class="text-slate-500 dark:text-slate-400">Notes</dt><dd class="font-medium text-slate-900 dark:text-slate-50">{{ receipt.notes or '—' }}</dd></div>
+    </dl>
+  </div>
+</div>
+{% endblock %}
