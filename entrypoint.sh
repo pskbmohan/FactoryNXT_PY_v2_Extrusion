@@ -3,6 +3,23 @@ set -e
 
 echo "Postgres is ready — starting setup..."
 
+# ── Normalise DATABASE_URL ───────────────────────────────────────────────────
+# DigitalOcean App Platform injects DATABASE_URL as postgres://...
+# SQLAlchemy needs postgresql+psycopg2://  — normalise it once here so
+# both flask db upgrade and the app itself use the correct driver string.
+RAW_URL="${DATABASE_URL:-postgresql+psycopg2://postgres:postgres@localhost:5432/factorynxt}"
+case "$RAW_URL" in
+  postgres://)
+    DB_URL="postgresql+psycopg2://${RAW_URL#postgres://}" ;;
+  postgresql://)
+    DB_URL="postgresql+psycopg2://${RAW_URL#postgresql://}" ;;
+  *)
+    DB_URL="$RAW_URL" ;;
+esac
+export DATABASE_URL="$DB_URL"
+echo "Using DB: ${DATABASE_URL%%@*}@****"
+# ─────────────────────────────────────────────────────────────────────────────
+
 # Init migrations folder if it doesn't exist
 if [ ! -d "migrations" ]; then
   echo "No migrations folder found — running flask db init..."
@@ -13,19 +30,15 @@ fi
 # db.create_all() inside create_app() materialises every SQLAlchemy model
 # table WITHOUT recording any revision in alembic_version. When that
 # happens, flask db upgrade tries to replay every migration from scratch
-# and crashes on the very first CREATE TABLE (bom_items already exists).
+# and crashes on the very first CREATE TABLE.
 #
-# Fix: use Python/SQLAlchemy (always available) to check if bom_items
-# exists AND alembic_version is empty. If so, stamp to the current tip
-# so Alembic skips every migration already applied by db.create_all().
-#
-# NOTE: psql is NOT installed in this Python image, which is why the
-# previous version using psql silently failed.
+# Fix: check if bom_items exists AND alembic_version is empty. If so,
+# stamp to the current tip so Alembic skips already-applied migrations.
 NEED_STAMP=$(python3 - <<'PYEOF'
 import os, sys
 try:
     from sqlalchemy import create_engine, text
-    url = os.environ.get('DATABASE_URL', 'postgresql://postgres:postgres@db:5432/factorynxt')
+    url = os.environ['DATABASE_URL']
     engine = create_engine(url)
     with engine.connect() as conn:
         tbl = conn.execute(text(
@@ -55,6 +68,34 @@ fi
 
 echo "Running flask db upgrade to apply pending migrations..."
 flask db upgrade heads
+
+# ── Auto-seed on fresh database ─────────────────────────────────────────────
+# Check if the DB is empty (no Lines seeded yet). If so, run the full seed
+# script. The seed functions are all idempotent so re-runs are safe.
+NEEDS_SEED=$(python3 - <<'PYEOF'
+import os, sys
+try:
+    from sqlalchemy import create_engine, text
+    url = os.environ['DATABASE_URL']
+    engine = create_engine(url)
+    with engine.connect() as conn:
+        count = conn.execute(text("SELECT COUNT(*) FROM lines")).scalar()
+        print('yes' if count == 0 else 'no')
+except Exception as e:
+    print('no', file=sys.stderr)
+    print(f'seed-check error: {e}', file=sys.stderr)
+    print('no')
+PYEOF
+)
+
+if [ "$NEEDS_SEED" = "yes" ]; then
+  echo "Empty database detected — running seed_data.py..."
+  python scripts/seed_data.py
+  echo "Seed complete."
+else
+  echo "Database already seeded — skipping seed_data.py."
+fi
+# ─────────────────────────────────────────────────────────────────────────────
 
 echo "Starting Flask app on port 5555..."
 exec python -c "from app import create_app; app = create_app(); app.run(host='0.0.0.0', port=5555, debug=True)"

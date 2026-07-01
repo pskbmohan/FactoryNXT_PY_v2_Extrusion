@@ -8,6 +8,7 @@ Two blueprints:
 bp is aliased to aps_resource_bp for backwards-compat with __init__.py.
 """
 from datetime import datetime, timedelta
+import traceback
 
 from flask import Blueprint, jsonify, request, render_template
 from app import db
@@ -33,30 +34,52 @@ def _version_horizon(version):
 
 
 def _entry_to_dict(e):
-    """Serialise an ApsScheduleEntry to a JSON-safe dict."""
-    wo = e.work_order
-    return {
-        'id': str(e.id),
-        'machine_id': e.machine_id,
-        'machine_name': e.machine.name if e.machine else 'Unassigned',
-        'work_order_number': wo.work_order_number if wo else None,
-        'part_number': wo.part_number if wo else None,
-        'product_profile': getattr(wo, 'product_profile', None) if wo else None,
-        'customer_name': getattr(wo, 'customer_name', None) if wo else None,
-        'customer_order_number': getattr(wo, 'customer_order_number', None) if wo else None,
-        'scheduled_start': e.scheduled_start.strftime('%Y-%m-%dT%H:%M:%S'),
-        'scheduled_end':   e.scheduled_end.strftime('%Y-%m-%dT%H:%M:%S'),
-        'duration_min': int((e.scheduled_end - e.scheduled_start).total_seconds() / 60),
-        'priority': e.priority,
-        'status': e.status,
-        'constraint_status': e.constraint_status or 'FEASIBLE',
-        'constraint_reasons': e.constraint_reasons or [],
-        'is_locked': e.is_locked,
-        'locked_by': e.locked_by,
-        'die_code': e.die.die_code if e.die else None,
-        'billet_code': None,
-        'setup_duration_min': e.setup_duration_min or 0,
-    }
+    """Serialise an ApsScheduleEntry to a JSON-safe dict.
+
+    All relationship accesses are null-guarded so that a single entry
+    with a missing FK (machine, die, work_order) does not raise an
+    AttributeError and crash the entire api_gantt response.
+    """
+    try:
+        wo = e.work_order  # may be None if FK is dangling
+
+        # scheduled_start / scheduled_end should never be None, but guard
+        # defensively so strftime doesn't blow up.
+        s_start = e.scheduled_start
+        s_end   = e.scheduled_end
+        if s_start is None or s_end is None:
+            # Skip malformed entry gracefully
+            return None
+
+        duration_min = int((s_end - s_start).total_seconds() / 60)
+
+        return {
+            'id': str(e.id),
+            'machine_id': e.machine_id,
+            'machine_name': e.machine.name if e.machine else 'Unassigned',
+            'work_order_number': wo.work_order_number if wo else None,
+            'part_number': wo.part_number if wo else None,
+            'product_profile': getattr(wo, 'product_profile', None) if wo else None,
+            'customer_name': getattr(wo, 'customer_name', None) if wo else None,
+            'customer_order_number': getattr(wo, 'customer_order_number', None) if wo else None,
+            'scheduled_start': s_start.strftime('%Y-%m-%dT%H:%M:%S'),
+            'scheduled_end':   s_end.strftime('%Y-%m-%dT%H:%M:%S'),
+            'duration_min': duration_min,
+            'priority': e.priority,
+            'status': e.status,
+            'constraint_status': e.constraint_status or 'FEASIBLE',
+            'constraint_reasons': e.constraint_reasons or [],
+            'is_locked': e.is_locked,
+            'locked_by': e.locked_by,
+            'die_code': e.die.die_code if e.die else None,
+            'billet_code': None,
+            'setup_duration_min': e.setup_duration_min or 0,
+        }
+    except Exception:
+        # Log the bad entry and return None so callers can skip it.
+        # This prevents one corrupt row from making the whole Gantt fail.
+        traceback.print_exc()
+        return None
 
 
 def _build_cockpit_context():
@@ -202,8 +225,11 @@ def api_gantt():
 
         entries_by_machine = {}
         for e in entries:
+            d = _entry_to_dict(e)
+            if d is None:          # skip malformed / serialisation-failed entries
+                continue
             mid = str(e.machine_id)
-            entries_by_machine.setdefault(mid, []).append(_entry_to_dict(e))
+            entries_by_machine.setdefault(mid, []).append(d)
 
         return jsonify({
             'version': {
@@ -223,6 +249,7 @@ def api_gantt():
             },
         })
     except Exception as exc:
+        traceback.print_exc()
         return jsonify({'error': str(exc)}), 500
 
 
@@ -430,7 +457,7 @@ def api_move_entry(entry_id):
         ApsScheduleEntry.version_id   == entry.version_id,
     ).all()
     conflicts = [
-        f'Overlaps with WO {o.work_order_id} ({o.scheduled_start}–{o.scheduled_end})'
+        f'Overlaps with WO {o.work_order_id} ({o.scheduled_start}\u2013{o.scheduled_end})'
         for o in overlapping
     ]
     entry.constraint_status  = 'INFEASIBLE' if conflicts else 'FEASIBLE'

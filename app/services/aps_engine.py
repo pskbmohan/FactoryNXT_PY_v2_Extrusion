@@ -69,7 +69,10 @@ DIE_READY_STATUSES = {"Available", "Nitrided", "TestingPassed", "Inspected"}
 BILLET_READY_STATUSES = {"AVAILABLE", "INSPECTED"}
 
 
-# ── Helpers ────────────────────────────────────────────────────────────────────
+# ── Helpers ─────────────────────────────────────────────────────────────────────
+DEFAULT_DATETIME = datetime.min
+
+
 def _snap30(dt: datetime) -> datetime:
     """Round datetime down to nearest 30-minute boundary."""
     minutes = dt.minute if isinstance(dt, datetime) else 0
@@ -93,7 +96,18 @@ def _is_same_day(a: datetime, b: datetime) -> bool:
     return a.date() == b.date()
 
 
-# ── Calendar helpers ───────────────────────────────────────────────────────────
+def _as_datetime(d) -> Optional[datetime]:
+    """Coerce a date or datetime to datetime (midnight UTC). Returns None if None."""
+    if d is None:
+        return None
+    if isinstance(d, datetime):
+        return d
+    if isinstance(d, date):
+        return datetime.combine(d, time.min)
+    return None
+
+
+# ── Calendar helpers ───────────────────────────────────────────────────────────────
 class _ShiftResolver:
     """Resolves per-day working windows for a plant.
 
@@ -139,7 +153,7 @@ class _ShiftResolver:
         ]
 
 
-# ── Public Engine ──────────────────────────────────────────────────────────────
+# ── Public Engine ──────────────────────────────────────────────────────────────────────────
 class ApsEngine:
     """Facade that groups all APS operations.
 
@@ -149,7 +163,7 @@ class ApsEngine:
       3. ``replan(version_id, preserve_locked=True)``  -- replan keeping locked entries
     """
 
-    # ── Work-order generation from customer orders ─────────────────────────
+    # ── Work-order generation from customer orders ─────────────────────────────
     @classmethod
     def generate_work_orders(
         cls,
@@ -257,7 +271,7 @@ class ApsEngine:
             "errors": errors,
         }
 
-    # ── Availability resolver ──────────────────────────────────────────────
+    # ── Availability resolver ──────────────────────────────────────────────────────
     @classmethod
     def available_machines(cls, at: datetime) -> List[Machine]:
         """Return machines considered 'available' at the given instant.
@@ -300,7 +314,7 @@ class ApsEngine:
             q = q.filter((Billet.alloy.is_(None)) | (Billet.alloy == alloy))
         return q.order_by(Billet.billet_code.asc()).all()
 
-    # ── Maintenance / downtime overlay ─────────────────────────────────────
+    # ── Maintenance / downtime overlay ─────────────────────────────────────────────
     @classmethod
     def machine_blocked_windows(
         cls, machine_id: int, horizon_start: datetime, horizon_end: datetime,
@@ -339,7 +353,7 @@ class ApsEngine:
                 blocked.append((pm_start, pm_end))
         return sorted(blocked, key=lambda b: b[0])
 
-    # ── Core scheduler ─────────────────────────────────────────────────────
+    # ── Core scheduler ───────────────────────────────────────────────────────────────
     @classmethod
     def _routing_total_minutes(cls, wo: WorkOrder) -> Optional[float]:
         """Compute total line-cycle-time (minutes) from master routing data.
@@ -845,17 +859,20 @@ class ApsEngine:
                     billet_to_assign.id, 0.0,
                 ) + max(1.0, float(wo.quantity or 1.0))
 
-            # If due date is at risk, log a warning
+            # If due date is at risk, log a warning.
+            # Normalize wo.due_date to datetime before comparing with scheduled_end
+            # (due_date is stored as date; scheduled_end is datetime).
             if wo.due_date and slice_count > 0:
                 last_entry = created_entries[-1]
-                if last_entry.scheduled_end > wo.due_date:
+                due_dt = _as_datetime(wo.due_date)
+                if due_dt and last_entry.scheduled_end > due_dt:
                     cls._log_constraint(
                         version.id, wo.id, last_entry.id,
                         reason_code="DUE_DATE_AT_RISK",
                         message=(
                             f"WO {wo.order_number}: scheduled end "
                             f"{last_entry.scheduled_end:%Y-%m-%d} exceeds due date "
-                            f"{wo.due_date:%Y-%m-%d}."
+                            f"{due_dt:%Y-%m-%d}."
                         ),
                         severity="WARNING",
                         logs=constraint_logs,
@@ -895,7 +912,7 @@ class ApsEngine:
             "constraint_logs": len(constraint_logs),
         }
 
-    # ── Replanner ──────────────────────────────────────────────────────────
+    # ── Replanner ─────────────────────────────────────────────────────────────────
     @classmethod
     def replan(
         cls,
@@ -934,7 +951,7 @@ class ApsEngine:
         db.session.commit()
         return result
 
-    # ── Manual override (move / reassign) ──────────────────────────────────
+    # ── Manual override (move / reassign) ────────────────────────────────────────
     @classmethod
     def move_entry(
         cls,
@@ -1058,7 +1075,7 @@ class ApsEngine:
         db.session.commit()
         return entry
 
-    # ── KPIs + summary ─────────────────────────────────────────────────────
+    # ── KPIs + summary ────────────────────────────────────────────────────────────────
     @classmethod
     def compute_kpis(cls, version_id: Optional[str] = None) -> Dict[str, Any]:
         version = cls._resolve_version(version_id)
@@ -1080,7 +1097,9 @@ class ApsEngine:
                 infeasible += 1
             else:
                 warnings += 1
-            if e.work_order and e.work_order.due_date and e.scheduled_end and e.scheduled_end > e.work_order.due_date:
+            # Normalize due_date to datetime for safe comparison
+            wo_due_dt = _as_datetime(e.work_order.due_date) if e.work_order and e.work_order.due_date else None
+            if wo_due_dt and e.scheduled_end and e.scheduled_end > wo_due_dt:
                 due_at_risk += 1
         total_machines = len(machines)
         horizon_hours = version.planning_horizon_days * 24
@@ -1136,7 +1155,7 @@ class ApsEngine:
             "total": len(logs),
         }
 
-    # ── Gantt data ─────────────────────────────────────────────────────────
+    # ── Gantt data ───────────────────────────────────────────────────────────────────
     @classmethod
     def gantt_data(
         cls, version_id: Optional[str] = None,
@@ -1188,7 +1207,7 @@ class ApsEngine:
             },
         }
 
-    # ── internal helpers ───────────────────────────────────────────────────
+    # ── internal helpers ─────────────────────────────────────────────────────────────────
     @classmethod
     def _resolve_version(cls, version_id: Optional[str]) -> ApsScheduleVersion:
         if version_id:
