@@ -1,7 +1,7 @@
 """Add extrusion modules - complete schema
 
 Revision ID: 20260702_die_ext
-Revises: aps_add_notes_columns
+Revises: aps_add_notes_columns, add_is_active_machines
 Create Date: 2026-07-02
 
 This migration adds all tables required for the 8 extrusion MES modules:
@@ -23,7 +23,7 @@ import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision = '20260702_die_ext'
-down_revision = 'aps_add_notes_columns'
+down_revision = ('aps_add_notes_columns', 'add_is_active_machines')
 branch_labels = None
 depends_on = None
 
