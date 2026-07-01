@@ -62,7 +62,7 @@ PYEOF
 
 if [ "$NEED_STAMP" = "yes" ]; then
   echo "Tables exist but alembic_version is empty — stamping to current head..."
-  flask db stamp aps_add_notes_columns
+  flask db stamp head
 fi
 # ───────────────────────────────────────────────────────────────────────────
 
