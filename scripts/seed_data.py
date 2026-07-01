@@ -1231,6 +1231,751 @@ def seed_extrusion_traceability():
     print(f"  +{len(events)} genealogy events, +{len(traces)} traceability records")
 
 
+def seed_die_lifecycle_extended():
+    """Seed die furnace logs and repair records for existing dies."""
+    from app.models import DieFurnaceLog, DieRepairRecord
+    print("[19] Seeding extended die lifecycle (furnace + repair records) ...")
+    if DieFurnaceLog.query.first() or DieRepairRecord.query.first():
+        print("  skipped")
+        return
+
+    dies = Die.query.all()
+    if not dies:
+        print("  skipped - no dies")
+        return
+
+    furnace_logs = []
+    repair_records = []
+
+    # Create furnace logs for ~40% of dies
+    for die in random.sample(dies, min(len(dies), int(len(dies) * 0.4))):
+        started_at = datetime.utcnow() - timedelta(days=random.randint(1, 60))
+        completed_at = started_at + timedelta(hours=random.randint(2, 8))
+
+        furnace_logs.append(DieFurnaceLog(
+            id=_u(),
+            die_id=die.id,
+            furnace_id=f"FUR-{random.randint(1, 3):02d}",
+            target_temp_celsius=random.choice([480.0, 500.0, 520.0]),
+            actual_temp_celsius=random.choice([478.0, 482.0, 501.0, 519.0]),
+            soak_time_minutes=random.randint(60, 180),
+            started_at=started_at,
+            completed_at=completed_at,
+            status=random.choice(["ready", "ready", "heating"]),
+            operator_id=random.choice(["R.Singh", "S.Menon", "A.Patel"]),
+        ))
+
+    # Create repair records for ~25% of dies
+    repair_types = ["polishing", "welding", "nitriding", "inspection"]
+    for die in random.sample(dies, min(len(dies), int(len(dies) * 0.25))):
+        performed_at = datetime.utcnow() - timedelta(days=random.randint(1, 90))
+
+        repair_records.append(DieRepairRecord(
+            id=_u(),
+            die_id=die.id,
+            repair_type=random.choice(repair_types),
+            description=f"Repair work on {die.die_code}",
+            performed_by=random.choice(["Tech.A", "Tech.B", "Tech.C"]),
+            performed_at=performed_at,
+            cost=round(random.uniform(50.0, 500.0), 2),
+        ))
+
+    db.session.add_all(furnace_logs)
+    db.session.add_all(repair_records)
+    print(f"  +{len(furnace_logs)} die furnace logs, +{len(repair_records)} die repair records")
+
+
+def seed_material_receipt_module():
+    """Seed raw material types, alloy compositions, and material receipts."""
+    from app.models import RawMaterialType, AlloyComposition, MaterialReceipt
+    print("[20] Seeding material receipt module ...")
+    if RawMaterialType.query.first() and AlloyComposition.query.first():
+        print("  skipped")
+        return
+
+    # Raw material types
+    material_types = [
+        RawMaterialType(id=_u(), code="BILLET-6061", name="6061 Aluminum Billet", category="billet", uom="KG"),
+        RawMaterialType(id=_u(), code="BILLET-6063", name="6063 Aluminum Billet", category="billet", uom="KG"),
+        RawMaterialType(id=_u(), code="BILLET-6082", name="6082 Aluminum Billet", category="billet", uom="KG"),
+        RawMaterialType(id=_u(), code="INGOT-A356", name="A356 Aluminum Ingot", category="ingot", uom="KG"),
+        RawMaterialType(id=_u(), code="INGOT-A380", name="A380 Aluminum Ingot", category="ingot", uom="KG"),
+    ]
+    db.session.add_all(material_types)
+
+    # Alloy compositions (industry standard specs)
+    alloy_compositions = [
+        AlloyComposition(
+            id=_u(),
+            alloy_code="AL-6061",
+            alloy_name="Aluminum 6061",
+            composition={
+                "Si": {"min": 0.40, "max": 0.80},
+                "Fe": {"min": 0.0, "max": 0.70},
+                "Cu": {"min": 0.15, "max": 0.40},
+                "Mn": {"min": 0.0, "max": 0.15},
+                "Mg": {"min": 0.80, "max": 1.20},
+                "Cr": {"min": 0.04, "max": 0.35},
+                "Zn": {"min": 0.0, "max": 0.25},
+            },
+            standard="ASTM B209",
+        ),
+        AlloyComposition(
+            id=_u(),
+            alloy_code="AL-6063",
+            alloy_name="Aluminum 6063",
+            composition={
+                "Si": {"min": 0.20, "max": 0.60},
+                "Fe": {"min": 0.0, "max": 0.35},
+                "Cu": {"min": 0.0, "max": 0.10},
+                "Mn": {"min": 0.0, "max": 0.10},
+                "Mg": {"min": 0.45, "max": 0.90},
+                "Cr": {"min": 0.0, "max": 0.10},
+                "Zn": {"min": 0.0, "max": 0.10},
+            },
+            standard="ASTM B209",
+        ),
+        AlloyComposition(
+            id=_u(),
+            alloy_code="AL-6082",
+            alloy_name="Aluminum 6082",
+            composition={
+                "Si": {"min": 0.70, "max": 1.30},
+                "Fe": {"min": 0.0, "max": 0.50},
+                "Cu": {"min": 0.0, "max": 0.10},
+                "Mn": {"min": 0.40, "max": 1.00},
+                "Mg": {"min": 0.60, "max": 1.20},
+                "Cr": {"min": 0.0, "max": 0.25},
+                "Zn": {"min": 0.0, "max": 0.20},
+            },
+            standard="EN 573-3",
+        ),
+    ]
+    db.session.add_all(alloy_compositions)
+    db.session.flush()
+
+    # Material receipts
+    suppliers = ["Alcoa Inc.", "Novelis Corp", "Hydro Aluminum", "Constellium", "Aleris Intl"]
+    receipts = []
+    for i in range(15):
+        alloy = random.choice(alloy_compositions)
+        mat_type = random.choice(material_types)
+        qty = round(random.uniform(500.0, 5000.0), 2)
+        actual_comp = {}
+
+        # Generate actual composition (mostly within spec, some out-of-spec for demo)
+        for element, limits in alloy.composition.items():
+            if random.random() > 0.1:  # 90% in spec
+                actual = round(random.uniform(limits["min"], limits["max"]), 3)
+            else:  # 10% out of spec for testing
+                actual = round(limits["max"] + random.uniform(0.05, 0.20), 3)
+            actual_comp[element] = actual
+
+        receipts.append(MaterialReceipt(
+            id=_u(),
+            receipt_number=f"MR-{202601 + i:05d}",
+            supplier_name=random.choice(suppliers),
+            truck_reference=f"TRK-{random.randint(1000, 9999)}",
+            material_type_id=mat_type.id,
+            alloy_code=alloy.alloy_code,
+            lot_number=f"LOT-{random.randint(100000, 999999)}",
+            quantity_received=qty,
+            quantity_available=qty - round(random.uniform(0, qty * 0.3), 2),
+            uom="KG",
+            actual_composition=actual_comp,
+            composition_status=random.choice(["PASS", "PASS", "PENDING", "FAIL"]),
+            received_by=random.choice(["Operator.A", "Operator.B", "QC.Inspector"]),
+            received_at=datetime.utcnow() - timedelta(days=random.randint(0, 30)),
+            location_id=None,  # No FK to inventory_locations in this module
+            notes=f"Material receipt {i+1}",
+        ))
+
+    db.session.add_all(receipts)
+    print(f"  +{len(material_types)} material types, +{len(alloy_compositions)} alloy compositions, +{len(receipts)} receipts")
+
+
+def seed_coating_schedule_module():
+    """Seeding coating colors and schedule entries."""
+    from app.models import CoatingColor, CoatingScheduleEntry
+    from app.models import WorkOrder
+    print("[21] Seeding coating schedule module ...")
+    if CoatingColor.query.first():
+        print("  skipped")
+        return
+
+    colors = [
+        CoatingColor(id=_u(), color_code="RAL-9010", color_name="Pure White", hex_value="#FFFFFF", ral_code="9010", clean_time_minutes=45),
+        CoatingColor(id=_u(), color_code="RAL-9005", color_name="Jet Black", hex_value="#0A0A0A", ral_code="9005", clean_time_minutes=45),
+        CoatingColor(id=_u(), color_code="RAL-7016", color_name="Anthracite Grey", hex_value="#293133", ral_code="7016", clean_time_minutes=30),
+        CoatingColor(id=_u(), color_code="RAL-9006", color_name="White Aluminium", hex_value="#C8CBC8", ral_code="9006", clean_time_minutes=30),
+        CoatingColor(id=_u(), color_code="RAL-8017", color_name="Chocolate Brown", hex_value="#44322D", ral_code="8017", clean_time_minutes=40),
+        CoatingColor(id=_u(), color_code="RAL-5005", color_name="Signal Blue", hex_value="#004F7F", ral_code="5005", clean_time_minutes=35),
+        CoatingColor(id=_u(), color_code="RAL-6005", color_name="Moss Green", hex_value="#0F4336", ral_code="6005", clean_time_minutes=35),
+    ]
+    db.session.add_all(colors)
+    db.session.flush()
+
+    # Get work orders for coating entries
+    work_orders = WorkOrder.query.filter(WorkOrder.status.in_(["RELEASED", "RUNNING", "COMPLETED"])).limit(20).all()
+    if not work_orders:
+        print("  skipped - no work orders")
+        return
+
+    entries = []
+    for i, wo in enumerate(work_orders[:15]):
+        start = datetime.utcnow() + timedelta(days=random.randint(0, 14), hours=random.randint(0, 8))
+        end = start + timedelta(hours=random.randint(2, 6))
+
+        entries.append(CoatingScheduleEntry(
+            id=_u(),
+            wo_id=wo.id,
+            coating_line_id=f"COAT-LINE-{random.randint(1, 3):02d}",
+            color_id=colors[i % len(colors)].id,
+            color_group_sequence=i + 1,
+            scheduled_start=start,
+            scheduled_end=end,
+            actual_start=start if random.random() > 0.7 else None,
+            actual_end=None,
+            powder_quantity_kg=round(random.uniform(50.0, 200.0), 2),
+            actual_powder_used_kg=None,
+            status=random.choice(["planned", "planned", "planned", "running", "completed"]) if random.random() > 0.3 else "planned",
+        ))
+
+    db.session.add_all(entries)
+    print(f"  +{len(colors)} coating colors, +{len(entries)} schedule entries")
+
+
+def seed_containers_module():
+    """Seed containers, weigh events, and movements."""
+    from app.models import Container, ContainerWeighEvent, ContainerMovement
+    from app.models import WorkOrder
+    print("[22] Seeding container management module ...")
+    if Container.query.first():
+        print("  skipped")
+        return
+
+    containers = []
+    container_types = ["tray", "basket", "rack", "bin"]
+    materials = ["steel", "aluminum", "plastic"]
+    statuses = ["available", "in_use", "in_use", "cleaning", "available"]
+
+    for i in range(25):
+        containers.append(Container(
+            id=_u(),
+            container_code=f"CONT-{1000 + i:04d}",
+            container_type=random.choice(container_types),
+            tare_weight_kg=round(random.uniform(2.0, 15.0), 2),
+            max_capacity_kg=round(random.uniform(100.0, 500.0), 2),
+            max_capacity_units=random.randint(10, 50),
+            status=random.choice(statuses),
+            current_location=f"LOC-{chr(65 + random.randint(0, 5))}-{random.randint(1, 20):02d}",
+            current_wo_id=None,
+            material=random.choice(materials),
+        ))
+
+    db.session.add_all(containers)
+    db.session.flush()
+
+    # Assign some containers to work orders
+    work_orders = WorkOrder.query.filter_by(status="RUNNING").limit(8).all()
+    for i, wo in enumerate(work_orders[:5]):
+        containers[i].current_wo_id = wo.id
+        containers[i].status = "in_use"
+
+    # Create weigh events
+    weigh_events = []
+    for container in containers[:15]:
+        expected = round(random.uniform(100.0, 300.0), 2)
+        gross = expected + container.tare_weight_kg + random.uniform(-5.0, 5.0)
+        net = round(gross - container.tare_weight_kg, 3)
+        variance_pct = round(100 * (net - expected) / expected, 2) if expected > 0 else 0
+
+        weigh_events.append(ContainerWeighEvent(
+            id=_u(),
+            container_id=container.id,
+            wo_id=container.current_wo_id,
+            gross_weight_kg=round(gross, 3),
+            tare_weight_kg=container.tare_weight_kg,
+            net_weight_kg=net,
+            expected_weight_kg=expected,
+            weight_variance_percent=variance_pct,
+            weigh_station=f"STN-{random.randint(1, 5):02d}",
+            operator_id=random.choice(["Oper.A", "Oper.B", "Oper.C"]),
+            weighed_at=datetime.utcnow() - timedelta(hours=random.randint(1, 72)),
+            status="OK" if abs(variance_pct) <= 2 else ("OVER" if variance_pct > 2 else "UNDER"),
+        ))
+
+    db.session.add_all(weigh_events)
+
+    # Create movements
+    movements = []
+    locations = ["STORE", "FURNACE-AREA", "PRESS-AREA", "COATING", "PACKAGING", "SHIPMENT"]
+    for container in containers[:20]:
+        for _ in range(random.randint(1, 4)):
+            movements.append(ContainerMovement(
+                id=_u(),
+                container_id=container.id,
+                from_location=random.choice(locations),
+                to_location=random.choice([loc for loc in locations if loc != container.current_location]),
+                moved_by=random.choice(["Forklift.Op", "Operator.A", "Material.Handler"]),
+                moved_at=datetime.utcnow() - timedelta(hours=random.randint(1, 96)),
+                wo_id=container.current_wo_id,
+            ))
+
+    db.session.add_all(movements)
+    print(f"  +{len(containers)} containers, +{len(weigh_events)} weigh events, +{len(movements)} movements")
+
+
+def seed_furnace_module():
+    """Seed furnaces, heat treatment programs, and sessions."""
+    from app.models import Furnace, HeatTreatmentProgram, FurnaceSession
+    from app.models import WorkOrder
+    print("[23] Seeding furnace operations module ...")
+    if Furnace.query.first():
+        print("  skipped")
+        return
+
+    furnaces = [
+        Furnace(
+            id=_u(),
+            furnace_code="FUR-01",
+            name="Aging Furnace #1",
+            furnace_type="aging",
+            max_temp_celsius=250.0,
+            capacity_kg=2000.0,
+            status=random.choice(["idle", "heating", "idle"]),
+            current_program_id=None,
+            is_active=True,
+        ),
+        Furnace(
+            id=_u(),
+            furnace_code="FUR-02",
+            name="Aging Furnace #2",
+            furnace_type="aging",
+            max_temp_celsius=250.0,
+            capacity_kg=2500.0,
+            status=random.choice(["idle", "soaking", "heating"]),
+            current_program_id=None,
+            is_active=True,
+        ),
+        Furnace(
+            id=_u(),
+            furnace_code="FUR-03",
+            name="Homogenization Furnace",
+            furnace_type="homogenization",
+            max_temp_celsius=600.0,
+            capacity_kg=3000.0,
+            status=random.choice(["idle", "running", "idle"]),
+            current_program_id=None,
+            is_active=True,
+        ),
+        Furnace(
+            id=_u(),
+            furnace_code="FUR-04",
+            name="Solution Heat Treat",
+            furnace_type="solution_heat",
+            max_temp_celsius=550.0,
+            capacity_kg=1500.0,
+            status="idle",
+            current_program_id=None,
+            is_active=True,
+        ),
+    ]
+    db.session.add_all(furnaces)
+
+    # Heat treatment programs
+    programs = [
+        HeatTreatmentProgram(
+            id=_u(),
+            program_code="T5-6061",
+            name="T5 Temper for 6061",
+            alloy_code="AL-6061",
+            temper_designation="T5",
+            stages=[
+                {"name": "Heat", "target_temp": 175, "duration_min": 120},
+                {"name": "Soak", "target_temp": 175, "duration_min": 60},
+                {"name": "Cool", "target_temp": 50, "duration_min": 90},
+            ],
+            total_duration_minutes=270,
+        ),
+        HeatTreatmentProgram(
+            id=_u(),
+            program_code="T6-6061",
+            name="T6 Temper for 6061",
+            alloy_code="AL-6061",
+            temper_designation="T6",
+            stages=[
+                {"name": "Solution", "target_temp": 520, "duration_min": 60},
+                {"name": "Quench", "target_temp": 50, "duration_min": 15},
+                {"name": "Age", "target_temp": 175, "duration_min": 180},
+            ],
+            total_duration_minutes=255,
+        ),
+        HeatTreatmentProgram(
+            id=_u(),
+            program_code="T6-6082",
+            name="T6 Temper for 6082",
+            alloy_code="AL-6082",
+            temper_designation="T6",
+            stages=[
+                {"name": "Solution", "target_temp": 530, "duration_min": 75},
+                {"name": "Quench", "target_temp": 60, "duration_min": 20},
+                {"name": "Age", "target_temp": 180, "duration_min": 200},
+            ],
+            total_duration_minutes=295,
+        ),
+        HeatTreatmentProgram(
+            id=_u(),
+            program_code="HOMO-10",
+            name="Homogenization 10h",
+            alloy_code="AL-6063",
+            temper_designation="F",
+            stages=[
+                {"name": "Ramp", "target_temp": 580, "duration_min": 120},
+                {"name": "Soak", "target_temp": 580, "duration_min": 480},
+                {"name": "Cool", "target_temp": 100, "duration_min": 180},
+            ],
+            total_duration_minutes=780,
+        ),
+    ]
+    db.session.add_all(programs)
+    db.session.flush()
+
+    # Furnace sessions (mix of active and historical)
+    work_orders = WorkOrder.query.filter(WorkOrder.status.in_(["RELEASED", "RUNNING", "COMPLETED"])).limit(15).all()
+    sessions = []
+
+    for i in range(0, min(len(work_orders), 12)):
+        furnace = furnaces[i % len(furnaces)]
+        program = programs[i % len(programs)]
+        wo = work_orders[i]
+
+        started = datetime.utcnow() - timedelta(days=random.randint(0, 10), hours=random.randint(0, 12))
+        completed = started + timedelta(minutes=program.total_duration_minutes) if random.random() > 0.4 else None
+
+        temp_log = []
+        if random.random() > 0.5:  # Some sessions have temperature logs
+            stages = program.stages
+            if stages:
+                for stage in stages:
+                    target = stage["target_temp"]
+                    duration = stage["duration_min"]
+                    # Generate temp readings
+                    for t in range(0, duration, 15):  # every 15 min
+                        temp = target + random.uniform(-10, 10)
+                        temp_log.append({
+                            "timestamp": (started + timedelta(minutes=t)).isoformat(),
+                            "temp": round(temp, 1),
+                            "stage": stage["name"],
+                        })
+
+        sessions.append(FurnaceSession(
+            id=_u(),
+            furnace_id=furnace.id,
+            program_id=program.id,
+            wo_id=wo.id,
+            batch_reference=f"BATCH-{random.randint(1000, 9999)}",
+            loaded_containers=[f"CONT-{1000 + random.randint(0, 24):04d}" for _ in range(random.randint(3, 8))],
+            total_load_kg=round(random.uniform(500.0, 2000.0), 2),
+            status="completed" if completed else (random.choice(["running", "queued"])),
+            current_stage_index=random.randint(0, 2),
+            current_temp_celsius=random.uniform(150.0, 550.0) if not completed else None,
+            started_at=started,
+            completed_at=completed,
+            operator_id=random.choice(["Oper.A", "Oper.B", "Oper.C"]),
+            temperature_log=temp_log if temp_log else None,
+            result=random.choice(["PASS", "PASS", "PASS", "FAIL"]) if completed else None,
+        ))
+
+    db.session.add_all(sessions)
+
+    # Update furnace status based on sessions
+    for furnace in furnaces:
+        active_session = next((s for s in sessions if s.furnace_id == furnace.id and s.status in ["running", "queued"]), None)
+        if active_session:
+            furnace.status = "running"
+            furnace.current_program_id = active_session.program_id
+
+    db.session.commit()
+    print(f"  +{len(furnaces)} furnaces, +{len(programs)} programs, +{len(sessions)} sessions")
+
+
+def seed_finishing_module():
+    """Seed finishing process types and orders."""
+    from app.models import FinishingProcessType, FinishingOrder
+    from app.models import WorkOrder, Container
+    print("[24] Seeding finishing processes module ...")
+    if FinishingProcessType.query.first():
+        print("  skipped")
+        return
+
+    process_types = [
+        FinishingProcessType(
+            id=_u(),
+            code="ANODIZE",
+            name="Anodizing",
+            description="Anodic oxidation for corrosion resistance",
+            requires_plc=False,
+            default_parameters={},
+        ),
+        FinishingProcessType(
+            id=_u(),
+            code="POWDER-COAT",
+            name="Powder Coating",
+            description="Electrostatic powder application",
+            requires_plc=True,
+            default_parameters={"voltage_kV": 60, "current_uA": 50, "spray_duration_min": 3},
+        ),
+        FinishingProcessType(
+            id=_u(),
+            code="CUT",
+            name="Precision Cutting",
+            description="CNC cutting to final dimensions",
+            requires_plc=True,
+            default_parameters={"tolerance_mm": 0.1, "feed_rate_mm_min": 500},
+        ),
+        FinishingProcessType(
+            id=_u(),
+            code="DRILL",
+            name="Drilling",
+            description="Hole drilling operations",
+            requires_plc=True,
+            default_parameters={},
+        ),
+        FinishingProcessType(
+            id=_u(),
+            code="ASSEMBLE",
+            name="Assembly",
+            description="Final assembly operations",
+            requires_plc=False,
+            default_parameters={},
+        ),
+    ]
+    db.session.add_all(process_types)
+    db.session.flush()
+
+    work_orders = WorkOrder.query.filter(WorkOrder.status.in_(["RELEASED", "RUNNING", "COMPLETED"])).limit(20).all()
+    containers = Container.query.filter_by(status="in_use").limit(10).all()
+
+    if not work_orders:
+        print("  skipped - no work orders")
+        return
+
+    orders = []
+    for i, wo in enumerate(work_orders[:15]):
+        process = random.choice(process_types)
+
+        # Generate parameters based on process type
+        if process.default_parameters:
+            params = process.default_parameters.copy()
+            # Add some randomization
+            if "voltage_kV" in params:
+                params["voltage_kV"] = random.randint(55, 65)
+            if "tolerance_mm" in params:
+                params["tolerance_mm"] = round(random.uniform(0.05, 0.15), 2)
+        else:
+            params = {}
+
+        started = datetime.utcnow() - timedelta(hours=random.randint(1, 48)) if random.random() > 0.3 else None
+        completed = started + timedelta(hours=random.randint(1, 4)) if started and random.random() > 0.5 else None
+
+        plc_cmd = None
+        plc_ack = None
+        if process.requires_plc and started:
+            plc_cmd = {"command": "START_PROCESS", "parameters": params, "timestamp": started.isoformat()}
+            plc_ack = "ACK" if random.random() > 0.2 else ("NACK" if random.random() > 0.5 else None)
+
+        orders.append(FinishingOrder(
+            id=_u(),
+            order_number=f"FIN-{202601 + i:05d}",
+            wo_id=wo.id,
+            process_id=process.id,
+            container_id=random.choice(containers).id if containers and random.random() > 0.5 else None,
+            parameters=params,
+            status="pending" if not started else ("in_progress" if not completed else "completed"),
+            started_at=started,
+            completed_at=completed,
+            operator_id=random.choice(["Oper.A", "Oper.B", "Oper.C"]) if started else None,
+            plc_command=plc_cmd,
+            plc_ack_status=plc_ack,
+        ))
+
+    db.session.add_all(orders)
+    print(f"  +{len(process_types)} process types, +{len(orders)} finishing orders")
+
+
+def seed_logistics_module():
+    """Seeding packaging specs, orders, shipments, and shipment lines."""
+    from app.models import PackagingSpec, PackagingOrder, Shipment, ShipmentLine
+    from app.models import WorkOrder
+    print("[25] Seeding logistics module ...")
+    if PackagingSpec.query.first():
+        print("  skipped")
+        return
+
+    # Packaging specifications
+    specs = [
+        PackagingSpec(
+            id=_u(),
+            part_number="PROF-A1",
+            packaging_method="strapped_bundle",
+            units_per_bundle=10,
+            strap_count=3,
+            bundle_weight_kg=round(random.uniform(50.0, 150.0), 2),
+            label_template="PROF-STD",
+            requires_pallet=random.choice([True, False]),
+        ),
+        PackagingSpec(
+            id=_u(),
+            part_number="PROF-B2",
+            packaging_method="wrapped_bundle",
+            units_per_bundle=8,
+            strap_count=2,
+            bundle_weight_kg=round(random.uniform(40.0, 120.0), 2),
+            label_template="PROF-STD",
+            requires_pallet=random.choice([True, False]),
+        ),
+        PackagingSpec(
+            id=_u(),
+            part_number="PROF-C3",
+            packaging_method="boxed",
+            units_per_box=5,
+            strap_count=0,
+            bundle_weight_kg=round(random.uniform(20.0, 60.0), 2),
+            label_template="BOX-STD",
+            requires_pallet=False,
+        ),
+    ]
+    db.session.add_all(specs)
+    db.session.flush()
+
+    work_orders = WorkOrder.query.limit(20).all()
+    if not work_orders:
+        print("  skipped - no work orders")
+        return
+
+    # Packaging orders
+    pkg_orders = []
+    for i, wo in enumerate(work_orders[:15]):
+        spec = random.choice(specs)
+        units = spec.units_per_bundle if hasattr(spec, "units_per_bundle") and spec.units_per_bundle else spec.units_per_box
+
+        pkg_orders.append(PackagingOrder(
+            id=_u(),
+            order_number=f"PKG-{202601 + i:05d}",
+            work_order_id=wo.id,
+            spec_id=spec.id,
+            quantity=units,
+            status=random.choice(["pending", "packed", "released", "shipped"]),
+            theoretical_weight_kg=spec.bundle_weight_kg,
+            actual_weight_kg=round(spec.bundle_weight_kg + random.uniform(-2.0, 2.0), 2) if random.random() > 0.3 else None,
+            packed_at=datetime.utcnow() - timedelta(days=random.randint(0, 5)) if random.random() > 0.5 else None,
+            packed_by=random.choice(["Packer.A", "Packer.B", "Packer.C"]) if random.random() > 0.5 else None,
+            label_printed=random.choice([True, True, False]),
+        ))
+
+    db.session.add_all(pkg_orders)
+    db.session.flush()
+
+    # Shipments
+    shipments = []
+    customers = ["ABC Industries", "XYZ Manufacturing", "Global Tech Corp"]
+    addresses = ["123 Industrial Ave, City A", "456 Factory Rd, City B", "789 Production Blvd, City C"]
+
+    for i in range(5):
+        planned = datetime.utcnow().date() + timedelta(days=random.randint(0, 14))
+        actual = planned if random.random() > 0.7 else None
+
+        shipments.append(Shipment(
+            id=_u(),
+            shipment_number=f"SHIP-{202601 + i:05d}",
+            customer=random.choice(customers),
+            address=random.choice(addresses),
+            planned_ship_date=planned,
+            actual_ship_date=actual,
+            status=random.choice(["pending", "shipped", "pending", "shipped"]),
+            total_packages=random.randint(2, 5),
+            total_weight_theoretical=round(random.uniform(100.0, 500.0), 2),
+            total_weight_actual=round(random.uniform(98.0, 505.0), 2) if random.random() > 0.5 else None,
+        ))
+
+    db.session.add_all(shipments)
+    db.session.flush()
+
+    # Shipment lines (link packages to shipments)
+    lines = []
+    for shipment in shipments[:3]:
+        available_pkgs = [p for p in pkg_orders if p.status in ["packed", "shipped"]][:random.randint(2, 4)]
+        for pkg in available_pkgs:
+            lines.append(ShipmentLine(
+                id=_u(),
+                shipment_id=shipment.id,
+                packaging_order_id=pkg.id,
+                work_order_id=pkg.work_order_id,
+                quantity=pkg.quantity,
+                scanned_by=random.choice(["Loader.A", "Loader.B"]) if pkg.status == "shipped" else None,
+                scanned_at=shipment.actual_ship_date if pkg.status == "shipped" else None,
+            ))
+
+    db.session.add_all(lines)
+    print(f"  +{len(specs)} packaging specs, +{len(pkg_orders)} packaging orders, "
+          f"+{len(shipments)} shipments, +{len(lines)} shipment lines")
+
+
+def seed_cost_price_module():
+    """Seeding cost price configurations for sample parts."""
+    from app.models import CostPriceConfig
+    print("[26] Seeding cost price module ...")
+    if CostPriceConfig.query.first():
+        print("  skipped")
+        return
+
+    configs = []
+    part_numbers = ["PROF-A1", "PROF-B2", "PROF-C3", "TUBE-D4", "PIPE-E5"]
+
+    for pn in part_numbers:
+        material_cost = round(random.uniform(5.0, 15.0), 2)  # $/kg
+        material_weight = round(random.uniform(1.0, 10.0), 2)  # kg
+        machine_rate = round(random.uniform(50.0, 150.0), 2)  # $/hour
+        cycle_time = round(random.uniform(0.01, 0.1), 4)  # hours
+        labor_rate = round(random.uniform(25.0, 50.0), 2)  # $/hour
+        labor_time = round(random.uniform(0.05, 0.25), 4)  # hours
+        energy_kwh = round(random.uniform(0.1, 1.0), 2)
+        energy_rate = round(random.uniform(0.10, 0.20), 2)  # $/kWh
+        overhead = random.choice([10, 12, 15])
+        margin = random.choice([15, 20, 25])
+
+        # Calculate derived costs
+        material_total = material_cost * material_weight
+        machine_total = machine_rate * cycle_time
+        labor_total = labor_rate * labor_time
+        energy_total = energy_kwh * energy_rate
+        subtotal = material_total + machine_total + labor_total + energy_total
+        calculated_cost = round(subtotal * (1 + overhead / 100), 2)
+        break_even = round(calculated_cost * (1 + margin / 100), 2)
+
+        configs.append(CostPriceConfig(
+            id=_u(),
+            part_number=pn,
+            material_cost_per_kg=material_cost,
+            material_weight_kg=material_weight,
+            machine_rate_per_hour=machine_rate,
+            cycle_time_hours=cycle_time,
+            labor_rate_per_hour=labor_rate,
+            labor_hours=labor_time,
+            energy_kwh=energy_kwh,
+            energy_rate_per_kwh=energy_rate,
+            overhead_percent=overhead,
+            margin_percent=margin,
+            calculated_cost=calculated_cost,
+            break_even_price=break_even,
+            currency="USD",
+        ))
+
+    db.session.add_all(configs)
+    print(f"  +{len(configs)} cost price configurations")
+
+
 def main():
     app = create_app()
     with app.app_context():
@@ -1257,6 +2002,15 @@ def main():
         seed_audit_trail()
         seed_extrusion_traceability()
         seed_aps_data()
+        # --- Extrusion modules seed data ---
+        seed_die_lifecycle_extended()
+        seed_material_receipt_module()
+        seed_coating_schedule_module()
+        seed_containers_module()
+        seed_furnace_module()
+        seed_finishing_module()
+        seed_logistics_module()
+        seed_cost_price_module()
         db.session.commit()
 
         print()
