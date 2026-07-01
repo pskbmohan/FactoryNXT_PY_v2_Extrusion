@@ -1,6 +1,6 @@
 """Add extrusion modules - complete schema
 
-Revision ID: 20260702_extrusion_modules
+Revision ID: 20260702_die_ext
 Revises: aps_add_notes_columns
 Create Date: 2026-07-02
 
@@ -22,64 +22,92 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = '20260702_extrusion_modules'
+revision = '20260702_die_ext'
 down_revision = 'aps_add_notes_columns'
 branch_labels = None
 depends_on = None
 
 
+def _column_exists(conn, table, column):
+    """Return True if *column* already exists on *table*."""
+    return conn.execute(sa.text(
+        "SELECT 1 FROM information_schema.columns "
+        "WHERE table_name = :t AND column_name = :c"
+    ), {"t": table, "c": column}).scalar() == 1
+
+
+def _table_exists(conn, table):
+    """Return True if *table* already exists in the public schema."""
+    return conn.execute(sa.text(
+        "SELECT 1 FROM information_schema.tables "
+        "WHERE table_schema = 'public' AND table_name = :t"
+    ), {"t": table}).scalar() == 1
+
+
 def upgrade():
+    conn = op.get_bind()
+
+    def add_column_if_missing(table, col):
+        if not _column_exists(conn, table, col.name):
+            op.add_column(table, col)
+
     # =========================================================================
     # 1. DIE TABLE EXTENSIONS - Add missing columns to existing dies table
     # =========================================================================
-    op.add_column('dies', sa.Column('description', sa.Text(), nullable=True))
-    op.add_column('dies', sa.Column('die_type', sa.String(length=64), nullable=True))
-    op.add_column('dies', sa.Column('manufacturer', sa.String(length=128), nullable=True))
-    op.add_column('dies', sa.Column('manufactured_date', sa.Date(), nullable=True))
-    op.add_column('dies', sa.Column('press_count', sa.Integer(), nullable=True, server_default='0'))
-    op.add_column('dies', sa.Column('press_count_limit', sa.Integer(), nullable=True))
-    op.add_column('dies', sa.Column('repair_count', sa.Integer(), nullable=True, server_default='0'))
-    op.add_column('dies', sa.Column('nitriding_count', sa.Integer(), nullable=True, server_default='0'))
-    op.add_column('dies', sa.Column('last_used_at', sa.DateTime(), nullable=True))
-    op.add_column('dies', sa.Column('last_repaired_at', sa.DateTime(), nullable=True))
-    op.add_column('dies', sa.Column('updated_at', sa.DateTime(), nullable=True))
+    add_column_if_missing('dies', sa.Column('description', sa.Text(), nullable=True))
+    add_column_if_missing('dies', sa.Column('die_type', sa.String(length=64), nullable=True))
+    add_column_if_missing('dies', sa.Column('manufacturer', sa.String(length=128), nullable=True))
+    add_column_if_missing('dies', sa.Column('manufactured_date', sa.Date(), nullable=True))
+    add_column_if_missing('dies', sa.Column('press_count', sa.Integer(), nullable=True, server_default='0'))
+    add_column_if_missing('dies', sa.Column('press_count_limit', sa.Integer(), nullable=True))
+    add_column_if_missing('dies', sa.Column('repair_count', sa.Integer(), nullable=True, server_default='0'))
+    add_column_if_missing('dies', sa.Column('nitriding_count', sa.Integer(), nullable=True, server_default='0'))
+    add_column_if_missing('dies', sa.Column('last_used_at', sa.DateTime(), nullable=True))
+    add_column_if_missing('dies', sa.Column('last_repaired_at', sa.DateTime(), nullable=True))
+    add_column_if_missing('dies', sa.Column('updated_at', sa.DateTime(), nullable=True))
 
     # =========================================================================
-    # 2. DIE FURNACE AND REPAIR LOGS
+    # 2. DIE FURNACE AND REPAIR LOGS (idempotent — skip if already created)
     # =========================================================================
-    op.create_table(
-        'die_furnace_logs',
-        sa.Column('id', sa.String(length=36), nullable=False),
-        sa.Column('die_id', sa.String(length=36), nullable=False),
-        sa.Column('furnace_id', sa.String(length=36), nullable=True),
-        sa.Column('target_temp_celsius', sa.Float(), nullable=True),
-        sa.Column('actual_temp_celsius', sa.Float(), nullable=True),
-        sa.Column('soak_time_minutes', sa.Integer(), nullable=True),
-        sa.Column('started_at', sa.DateTime(), nullable=False),
-        sa.Column('completed_at', sa.DateTime(), nullable=True),
-        sa.Column('status', sa.String(length=32), server_default='heating'),
-        sa.Column('operator_id', sa.String(length=64), nullable=True),
-        sa.ForeignKeyConstraint(['die_id'], ['dies.id']),
-        sa.PrimaryKeyConstraint('id')
-    )
+    if not _table_exists(conn, 'die_furnace_logs'):
+        op.create_table(
+            'die_furnace_logs',
+            sa.Column('id', sa.String(length=36), nullable=False),
+            sa.Column('die_id', sa.String(length=36), nullable=False),
+            sa.Column('furnace_id', sa.String(length=36), nullable=True),
+            sa.Column('target_temp_celsius', sa.Float(), nullable=True),
+            sa.Column('actual_temp_celsius', sa.Float(), nullable=True),
+            sa.Column('soak_time_minutes', sa.Integer(), nullable=True),
+            sa.Column('started_at', sa.DateTime(), nullable=False),
+            sa.Column('completed_at', sa.DateTime(), nullable=True),
+            sa.Column('status', sa.String(length=32), server_default='heating'),
+            sa.Column('operator_id', sa.String(length=64), nullable=True),
+            sa.ForeignKeyConstraint(['die_id'], ['dies.id']),
+            sa.PrimaryKeyConstraint('id')
+        )
 
-    op.create_table(
-        'die_repair_records',
-        sa.Column('id', sa.String(length=36), nullable=False),
-        sa.Column('die_id', sa.String(length=36), nullable=False),
-        sa.Column('repair_type', sa.String(length=32), nullable=True),
-        sa.Column('description', sa.Text(), nullable=True),
-        sa.Column('performed_by', sa.String(length=64), nullable=True),
-        sa.Column('performed_at', sa.DateTime(), nullable=False),
-        sa.Column('cost', sa.Float(), nullable=True),
-        sa.ForeignKeyConstraint(['die_id'], ['dies.id']),
-        sa.PrimaryKeyConstraint('id')
-    )
+    if not _table_exists(conn, 'die_repair_records'):
+        op.create_table(
+            'die_repair_records',
+            sa.Column('id', sa.String(length=36), nullable=False),
+            sa.Column('die_id', sa.String(length=36), nullable=False),
+            sa.Column('repair_type', sa.String(length=32), nullable=True),
+            sa.Column('description', sa.Text(), nullable=True),
+            sa.Column('performed_by', sa.String(length=64), nullable=True),
+            sa.Column('performed_at', sa.DateTime(), nullable=False),
+            sa.Column('cost', sa.Float(), nullable=True),
+            sa.ForeignKeyConstraint(['die_id'], ['dies.id']),
+            sa.PrimaryKeyConstraint('id')
+        )
+
+    def create_table_if_missing(table_name, *args, **kwargs):
+        if not _table_exists(conn, table_name):
+            op.create_table(table_name, *args, **kwargs)
 
     # =========================================================================
     # 3. COST PRICE MODULE
     # =========================================================================
-    op.create_table(
+    create_table_if_missing(
         'cost_price_configs',
         sa.Column('id', sa.String(length=36), nullable=False),
         sa.Column('part_number', sa.String(length=64), nullable=False),
@@ -105,7 +133,7 @@ def upgrade():
     # =========================================================================
     # 4. MATERIAL RECEIPT MODULE
     # =========================================================================
-    op.create_table(
+    create_table_if_missing(
         'raw_material_types',
         sa.Column('id', sa.String(length=36), nullable=False),
         sa.Column('code', sa.String(length=64), nullable=False),
@@ -116,7 +144,7 @@ def upgrade():
         sa.UniqueConstraint('code')
     )
 
-    op.create_table(
+    create_table_if_missing(
         'alloy_compositions',
         sa.Column('id', sa.String(length=36), nullable=False),
         sa.Column('alloy_code', sa.String(length=64), nullable=False),
@@ -128,7 +156,7 @@ def upgrade():
         sa.UniqueConstraint('alloy_code')
     )
 
-    op.create_table(
+    create_table_if_missing(
         'material_receipts',
         sa.Column('id', sa.String(length=36), nullable=False),
         sa.Column('receipt_number', sa.String(length=64), nullable=False),
@@ -156,7 +184,7 @@ def upgrade():
     # =========================================================================
     # 5. COATING SCHEDULE MODULE
     # =========================================================================
-    op.create_table(
+    create_table_if_missing(
         'coating_colors',
         sa.Column('id', sa.String(length=36), nullable=False),
         sa.Column('color_code', sa.String(length=64), nullable=False),
@@ -168,7 +196,7 @@ def upgrade():
         sa.UniqueConstraint('color_code')
     )
 
-    op.create_table(
+    create_table_if_missing(
         'coating_schedule_entries',
         sa.Column('id', sa.String(length=36), nullable=False),
         sa.Column('wo_id', sa.String(length=36), nullable=False),
@@ -191,7 +219,7 @@ def upgrade():
     # =========================================================================
     # 6. CONTAINER MANAGEMENT MODULE
     # =========================================================================
-    op.create_table(
+    create_table_if_missing(
         'containers',
         sa.Column('id', sa.String(length=36), nullable=False),
         sa.Column('container_code', sa.String(length=64), nullable=False),
@@ -209,7 +237,7 @@ def upgrade():
         sa.UniqueConstraint('container_code')
     )
 
-    op.create_table(
+    create_table_if_missing(
         'container_weigh_events',
         sa.Column('id', sa.String(length=36), nullable=False),
         sa.Column('container_id', sa.String(length=36), nullable=False),
@@ -228,7 +256,7 @@ def upgrade():
         sa.PrimaryKeyConstraint('id')
     )
 
-    op.create_table(
+    create_table_if_missing(
         'container_movements',
         sa.Column('id', sa.String(length=36), nullable=False),
         sa.Column('container_id', sa.String(length=36), nullable=False),
@@ -245,7 +273,7 @@ def upgrade():
     # =========================================================================
     # 7. FURNACE OPERATIONS MODULE
     # =========================================================================
-    op.create_table(
+    create_table_if_missing(
         'furnaces',
         sa.Column('id', sa.String(length=36), nullable=False),
         sa.Column('furnace_code', sa.String(length=64), nullable=False),
@@ -261,7 +289,7 @@ def upgrade():
         sa.UniqueConstraint('furnace_code')
     )
 
-    op.create_table(
+    create_table_if_missing(
         'heat_treatment_programs',
         sa.Column('id', sa.String(length=36), nullable=False),
         sa.Column('program_code', sa.String(length=64), nullable=False),
@@ -275,7 +303,7 @@ def upgrade():
         sa.UniqueConstraint('program_code')
     )
 
-    op.create_table(
+    create_table_if_missing(
         'furnace_sessions',
         sa.Column('id', sa.String(length=36), nullable=False),
         sa.Column('furnace_id', sa.String(length=36), nullable=False),
@@ -302,7 +330,7 @@ def upgrade():
     # =========================================================================
     # 8. FINISHING PROCESSES MODULE
     # =========================================================================
-    op.create_table(
+    create_table_if_missing(
         'finishing_process_types',
         sa.Column('id', sa.String(length=36), nullable=False),
         sa.Column('code', sa.String(length=64), nullable=False),
@@ -314,7 +342,7 @@ def upgrade():
         sa.UniqueConstraint('code')
     )
 
-    op.create_table(
+    create_table_if_missing(
         'finishing_orders',
         sa.Column('id', sa.String(length=36), nullable=False),
         sa.Column('order_number', sa.String(length=64), nullable=False),
@@ -341,7 +369,7 @@ def upgrade():
     # =========================================================================
     # 9. LOGISTICS MODULE
     # =========================================================================
-    op.create_table(
+    create_table_if_missing(
         'packaging_specs',
         sa.Column('id', sa.String(length=36), nullable=False),
         sa.Column('part_number', sa.String(length=64), nullable=False),
@@ -354,7 +382,7 @@ def upgrade():
         sa.PrimaryKeyConstraint('id')
     )
 
-    op.create_table(
+    create_table_if_missing(
         'packaging_orders',
         sa.Column('id', sa.String(length=36), nullable=False),
         sa.Column('wo_id', sa.String(length=36), nullable=False),
@@ -377,7 +405,7 @@ def upgrade():
         sa.UniqueConstraint('barcode')
     )
 
-    op.create_table(
+    create_table_if_missing(
         'shipments',
         sa.Column('id', sa.String(length=36), nullable=False),
         sa.Column('shipment_number', sa.String(length=64), nullable=False),
@@ -397,7 +425,7 @@ def upgrade():
         sa.UniqueConstraint('shipment_number')
     )
 
-    op.create_table(
+    create_table_if_missing(
         'shipment_lines',
         sa.Column('id', sa.String(length=36), nullable=False),
         sa.Column('shipment_id', sa.String(length=36), nullable=False),
