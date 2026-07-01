@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1122">
+<title>FactoryNXT — CEO Flyer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --indigo: #4f46e5;
+    --indigo-hover: #4338ca;
+    --indigo-soft: #eef2ff;
+    --navy: #0b1020;
+    --slate-900: #0f172a;
+    --slate-700: #334155;
+    --slate-600: #475569;
+    --slate-500: #64748b;
+    --slate-400: #94a3b8;
+    --slate-300: #cbd5e1;
+    --slate-200: #e2e8f0;
+    --slate-100: #f1f5f9;
+    --slate-50: #f8fafc;
+    --white: #ffffff;
+  }
+
+  html, body {
+    width: 1122px;
+    height: 794px;
+    overflow: hidden;
+    background: var(--white);
+    color: var(--slate-900);
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* ── A4 LANDSCAPE PAGE ── */
+  .page {
+    width: 1122px;
+    height: 794px;
+    display: flex;
+    flex-direction: column;
+    padding: 32px 40px 22px;
+    background: var(--white);
+  }
+
+  /* ── HEADER ── */
+  .header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-shrink: 0;
+    padding-bottom: 14px;
+    border-bottom: 2.5px solid var(--indigo);
+    margin-bottom: 14px;
+  }
+
+  .logo-area {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .logo-text {
+    font-size: 24px;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+    color: var(--indigo-hover);
+  }
+
+  .header-right {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+  }
+
+  .tagline {
+    font-size: 9px;
+    font-weight: 500;
+    letter-spacing: 2.5px;
+    text-transform: uppercase;
+    color: var(--slate-500);
+  }
+
+  .version-badge {
+    font-size: 8px;
+    font-weight: 600;
+    padding: 4px 12px;
+    border-radius: 3px;
+    background: var(--indigo-soft);
+    color: var(--indigo);
+  }
+
+  /* ── HERO ── */
+  .hero {
+    flex-shrink: 0;
+    text-align: center;
+    padding: 8px 0 14px;
+  }
+
+  .hero h1 {
+    font-size: 26px;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+    color: var(--slate-900);
+    line-height: 1.2;
+    margin-bottom: 14px;
+  }
+
+  .hero h1 span {
+    color: var(--indigo);
+  }
+
+  .hero-stats {
+    display: flex;
+    justify-content: center;
+    gap: 40px;
+  }
+
+  .stat {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--slate-600);
+    letter-spacing: 0.2px;
+  }
+
+  .stat-num {
+    font-size: 22px;
+    font-weight: 800;
+    color: var(--indigo);
+    line-height: 1;
+  }
+
+  .stat:nth-child(2) .stat-num { color: #059669; }
+  .stat:nth-child(3) .stat-num { color: var(--slate-700); }
+
+  /* ── FEATURES GRID ── fills ALL remaining height */
+  .features {
+    flex: 1;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0 22px;
+    overflow: hidden;
+    min-height: 0;
+  }
+
+  .col {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+
+  .col-header {
+    flex-shrink: 0;
+    padding: 6px 0 6px;
+    border-bottom: 2px solid var(--indigo);
+    margin-bottom: 4px;
+  }
+
+  .col-header h2 {
+    font-size: 9.5px;
+    font-weight: 800;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--indigo);
+  }
+
+  .col:nth-child(2) .col-header { border-bottom-color: #059669; }
+  .col:nth-child(2) .col-header h2 { color: #059669; }
+  .col:nth-child(3) .col-header { border-bottom-color: #d97706; }
+  .col:nth-child(3) .col-header h2 { color: #d97706; }
+  .col:nth-child(4) .col-header { border-bottom-color: var(--slate-500); }
+  .col:nth-child(4) .col-header h2 { color: var(--slate-500); }
+
+  /* features-list uses flex:1 so each item stretches equally */
+  .features-list {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* Each feature-item flex-grows to fill column height */
+  .feature-item {
+    flex: 1;
+    display: grid;
+    grid-template-columns: 24px 1fr;
+    grid-template-rows: auto 1fr;
+    gap: 2px 10px;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--slate-200);
+    align-items: center;
+    min-height: 0;
+  }
+
+  .feature-item:last-child {
+    border-bottom: none;
+  }
+
+  .feature-icon {
+    grid-row: 1 / 3;
+    text-align: center;
+    font-size: 18px;
+    line-height: 1;
+    align-self: center;
+  }
+
+  .feature-title {
+    font-size: 10.5px;
+    font-weight: 700;
+    color: var(--slate-900);
+    letter-spacing: -0.1px;
+    align-self: end;
+    line-height: 1.2;
+  }
+
+  .feature-desc {
+    font-size: 8.8px;
+    font-weight: 400;
+    color: var(--slate-500);
+    line-height: 1.35;
+    align-self: start;
+  }
+
+  /* ── FOOTER ── */
+  .footer {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-top: 10px;
+    border-top: 1.5px solid var(--slate-300);
+    margin-top: 12px;
+  }
+
+  .tech-badges {
+    display: flex;
+    gap: 6px;
+  }
+
+  .tech-badge {
+    font-size: 7.5px;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+    padding: 3px 10px;
+    border-radius: 2px;
+    background: var(--slate-100);
+    color: var(--slate-600);
+    border: 1px solid var(--slate-200);
+  }
+
+  .coverage {
+    font-size: 8px;
+    color: var(--slate-500);
+    letter-spacing: 0.2px;
+  }
+
+  .coverage strong {
+    color: var(--slate-700);
+    font-weight: 600;
+  }
+
+  .cta-area {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .cta-btn {
+    display: inline-block;
+    padding: 6px 20px;
+    border-radius: 4px;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    color: var(--white);
+    background: var(--indigo);
+    text-decoration: none;
+  }
+
+  .website {
+    font-size: 8.5px;
+    color: var(--slate-500);
+    font-weight: 500;
+  }
+
+  /* ── PRINT: A4 LANDSCAPE EXACT FIT ── */
+  @media print {
+    @page {
+      size: A4 landscape;
+      margin: 0;
+    }
+    html, body {
+      width: 297mm;
+      height: 210mm;
+      background: white;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+    .page {
+      width: 297mm;
+      height: 210mm;
+    }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- ═══ HEADER ═══ -->
+  <header class="header">
+    <div class="logo-area">
+      <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect width="32" height="32" rx="6" fill="#4f46e5"/>
+        <path d="M8 10h10M8 16h14M8 22h10" stroke="white" stroke-width="2.2" stroke-linecap="round"/>
+        <circle cx="24" cy="10" r="2.5" fill="white"/>
+        <circle cx="26" cy="16" r="2.5" fill="white" opacity="0.7"/>
+        <circle cx="22" cy="22" r="2.5" fill="white" opacity="0.7"/>
+      </svg>
+      <span class="logo-text">FactoryNXT</span>
+    </div>
+    <div class="header-right">
+      <span class="tagline">The Next Generation Manufacturing Execution System</span>
+      <span class="version-badge">Enterprise v2.0</span>
+    </div>
+  </header>
+
+  <!-- ═══ HERO ═══ -->
+  <section class="hero">
+    <h1>Complete Manufacturing Intelligence — <span>From Shop Floor to C-Suite</span></h1>
+    <div class="hero-stats">
+      <div class="stat"><span class="stat-num">32+</span> Integrated Modules</div>
+      <div class="stat"><span class="stat-num">OEE</span> Real-Time Tracking</div>
+      <div class="stat"><span class="stat-num">100%</span> End-to-End Traceability</div>
+    </div>
+  </section>
+
+  <!-- ═══ FEATURE GRID (fills ALL remaining space) ═══ -->
+  <div class="features">
+
+    <!-- Column 1: Production Core -->
+    <div class="col">
+      <div class="col-header"><h2>Production Core</h2></div>
+      <div class="features-list">
+        <div class="feature-item">
+          <span class="feature-icon">🏭</span>
+          <span class="feature-title">Work Order Management</span>
+          <span class="feature-desc">Full lifecycle DRAFT→COMPLETED with Gantt scheduling and real-time status tracking across all stages</span>
+        </div>
+        <div class="feature-item">
+          <span class="feature-icon">📋</span>
+          <span class="feature-title">BOM & Routing</span>
+          <span class="feature-desc">Visual drag-and-drop routing builder with hierarchical Bill of Materials management</span>
+        </div>
+        <div class="feature-item">
+          <span class="feature-icon">🔧</span>
+          <span class="feature-title">Stations & Operations</span>
+          <span class="feature-desc">Workstation management with per-serial number operation transaction audit trail</span>
+        </div>
+        <div class="feature-item">
+          <span class="feature-icon">📦</span>
+          <span class="feature-title">Inventory Management</span>
+          <span class="feature-desc">Multi-location stock with RoHS/REACH/MSD compliance tracking and shelf life alerts</span>
+        </div>
+        <div class="feature-item">
+          <span class="feature-icon">🎛️</span>
+          <span class="feature-title">Kitting</span>
+          <span class="feature-desc">Kit picking and component verification tied directly to each Work Order in production</span>
+        </div>
+        <div class="feature-item">
+          <span class="feature-icon">📅</span>
+          <span class="feature-title">Scheduling</span>
+          <span class="feature-desc">Shift calendars, production schedules and SMT line capacity planning tools</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Column 2: Quality & Compliance -->
+    <div class="col">
+      <div class="col-header"><h2>Quality & Compliance</h2></div>
+      <div class="features-list">
+        <div class="feature-item">
+          <span class="feature-icon">🔍</span>
+          <span class="feature-title">NCR Management</span>
+          <span class="feature-desc">Non-conformance reports with severity levels, quarantine workflow and disposition tracking</span>
+        </div>
+        <div class="feature-item">
+          <span class="feature-icon">✅</span>
+          <span class="feature-title">Quality Extended</span>
+          <span class="feature-desc">CAPA workflows, inspection plans, golden boards and PPAP records in one module</span>
+        </div>
+        <div class="feature-item">
+          <span class="feature-icon">📊</span>
+          <span class="feature-title">OEE Analytics</span>
+          <span class="feature-desc">Availability, performance and quality scoring with automated downtime event capture</span>
+        </div>
+        <div class="feature-item">
+          <span class="feature-icon">🔗</span>
+          <span class="feature-title">Traceability</span>
+          <span class="feature-desc">Full ascending and descending genealogy trace with complete component history</span>
+        </div>
+        <div class="feature-item">
+          <span class="feature-icon">🧬</span>
+          <span class="feature-title">Genealogy</span>
+          <span class="feature-desc">Board-level genealogy events and repair records tracked per individual serial number</span>
+        </div>
+        <div class="feature-item">
+          <span class="feature-icon">🔬</span>
+          <span class="feature-title">PCB Production</span>
+          <span class="feature-desc">Panel, board and unit history management designed for SMT assembly lines</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Column 3: Smart Manufacturing -->
+    <div class="col">
+      <div class="col-header"><h2>Smart Manufacturing</h2></div>
+      <div class="features-list">
+        <div class="feature-item">
+          <span class="feature-icon">💰</span>
+          <span class="feature-title">Cost Price Calculator</span>
+          <span class="feature-desc">Break-even pricing engine with material, machine, labor and energy cost breakdown</span>
+        </div>
+        <div class="feature-item">
+          <span class="feature-icon">🪨</span>
+          <span class="feature-title">Raw Material Receipt</span>
+          <span class="feature-desc">Billet and lot intake with alloy composition tolerance verification against specs</span>
+        </div>
+        <div class="feature-item">
+          <span class="feature-icon">🔩</span>
+          <span class="feature-title">Dies Management</span>
+          <span class="feature-desc">Die store tracking, furnace status monitoring, press count limits and repair lifecycle</span>
+        </div>
+        <div class="feature-item">
+          <span class="feature-icon">🎨</span>
+          <span class="feature-title">Coating Scheduler</span>
+          <span class="feature-desc">Color-wheel grouping for powder coating optimization with integrated savings calculator</span>
+        </div>
+        <div class="feature-item">
+          <span class="feature-icon">📦</span>
+          <span class="feature-title">Containers Management</span>
+          <span class="feature-desc">Real-time location tracking with tare/gross weighing and complete movement audit log</span>
+        </div>
+        <div class="feature-item">
+          <span class="feature-icon">🔥</span>
+          <span class="feature-title">Furnace / Heat Treatment</span>
+          <span class="feature-desc">Multi-stage heat treatment programs with temperature logging and batch management</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Column 4: Enterprise & Integration -->
+    <div class="col">
+      <div class="col-header"><h2>Enterprise & Integration</h2></div>
+      <div class="features-list">
+        <div class="feature-item">
+          <span class="feature-icon">🔗</span>
+          <span class="feature-title">ERP Integrations</span>
+          <span class="feature-desc">Bidirectional ERP synchronization with webhook triggers and API key management</span>
+        </div>
+        <div class="feature-item">
+          <span class="feature-icon">🛠️</span>
+          <span class="feature-title">Maintenance</span>
+          <span class="feature-desc">Preventive maintenance schedules, detailed logs and calibration record tracking</span>
+        </div>
+        <div class="feature-item">
+          <span class="feature-icon">🖥️</span>
+          <span class="feature-title">Machines & Alarms</span>
+          <span class="feature-desc">Machine and line management with real-time alarm tracking and escalation workflows</span>
+        </div>
+        <div class="feature-item">
+          <span class="feature-icon">🔐</span>
+          <span class="feature-title">Admin</span>
+          <span class="feature-desc">Users, roles, plants and multi-site management with role-based access controls</span>
+        </div>
+        <div class="feature-item">
+          <span class="feature-icon">🚚</span>
+          <span class="feature-title">Logistics & Shipments</span>
+          <span class="feature-desc">Packaging, weight checks, truck loading coordination and electronic shipment approval</span>
+        </div>
+        <div class="feature-item">
+          <span class="feature-icon">🧵</span>
+          <span class="feature-title">SMT Materials</span>
+          <span class="feature-desc">Feeder reel, solder paste lot and stencil lifecycle management for line operations</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ═══ FOOTER ═══ -->
+  <footer class="footer">
+    <div class="tech-badges">
+      <span class="tech-badge">Flask / Python</span>
+      <span class="tech-badge">PostgreSQL</span>
+      <span class="tech-badge">Docker Ready</span>
+      <span class="tech-badge">REST API</span>
+    </div>
+    <div class="coverage">
+      Covering: <strong>Aluminum Extrusion</strong> · <strong>PCB / SMT</strong> · <strong>Discrete Mfg</strong> · <strong>Process Industries</strong>
+    </div>
+    <div class="cta-area">
+      <a href="#" class="cta-btn">Request Demo</a>
+      <span class="website">factorynxt.com</span>
+    </div>
+  </footer>
+
+</div>
+</body>
+</html>
