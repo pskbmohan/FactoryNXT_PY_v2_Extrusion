@@ -138,7 +138,11 @@ def oee():
         else:
             # Fallback demo values (deterministic per machine)
             import hashlib
-            seed = int(hashlib.md5(m.id.encode()).hexdigest()[:8], 16) % 100
+            # m.id may be int (Machine table) — stringify before hashing
+            try:
+                seed = int(hashlib.md5(str(m.id).encode()).hexdigest()[:8], 16) % 100
+            except Exception:
+                seed = 0
             availability = 0.82 + (seed % 16) / 100.0
             performance = 0.78 + (seed % 20) / 100.0
             quality = 0.92 + (seed % 8) / 100.0
@@ -260,24 +264,67 @@ def die_lifecycle():
 def downtime():
     if "username" not in session:
         return redirect(url_for("auth.login"))
-    events = (
+
+    models_events = (
         DowntimeEvent.query.order_by(DowntimeEvent.started_at.desc()).limit(200).all()
     )
 
-    # Compute summary stats
-    total_downtime_min = sum(int(ev.duration_min or 0) for ev in events)
+    # The model uses reason_code/ended_at/reported_by/machine_id (String) but
+    # the template expects reason/resolved_at/resolved_by/machine_name.
+    # Build a Machine-id -> name index so we can resolve machine_name,
+    # then produce enriched event objects that expose both the legacy names
+    # and a safe ``reason`` fallback.
+    machines = Machine.query.order_by(Machine.name.asc()).all()
+    machine_name_map = {m.id: m.name for m in machines}
+    # Some installs also store machine_id as its name string — add self-mapping
+    for m in machines:
+        machine_name_map[str(m.id)] = m.name
+        machine_name_map[m.name] = m.name
+
+    resolved_events = []
+    for ev in models_events:
+        # Build a tiny namespace that lets Jinja do ``ev.reason`` / ``ev.resolved_at``
+        # etc. while the underlying model still uses the real column names.
+        resolved_at = getattr(ev, "ended_at", None) or getattr(ev, "resolved_at", None)
+        resolved_by = getattr(ev, "reported_by", None) or getattr(ev, "resolved_by", None)
+        reason = (
+            getattr(ev, "reason", None)
+            or getattr(ev, "reason_code", None)
+            or "Unknown"
+        )
+        if getattr(ev, "reason_category", None):
+            reason = f"{ev.reason_category} — {reason}"
+        machine_id = getattr(ev, "machine_id", None)
+        machine_name = machine_name_map.get(machine_id, machine_id or "-")
+
+        # Attach friendly attrs onto the event object for the template.
+        # (We don't mutate the model; these shadow SQLAlchemy descriptor behaviour
+        # only on this instance copy within the route's lifetime.)
+        ev.reason = reason
+        ev.resolved_at = resolved_at
+        ev.resolved_by = resolved_by
+        ev.machine_name = machine_name
+        resolved_events.append(ev)
+
+    events = resolved_events
+
+    # Compute summary stats (use safe getattr everywhere)
+    total_downtime_min = sum(int(getattr(ev, "duration_min", 0) or 0) for ev in events)
     events_count = len(events)
-    resolved = [ev for ev in events if ev.resolved_at and ev.started_at]
+    resolved = [ev for ev in events if getattr(ev, "resolved_at", None) and getattr(ev, "started_at", None)]
     mttr_min = (
         round(
-            sum((ev.resolved_at - ev.started_at).total_seconds() / 60.0 for ev in resolved)
+            sum(
+                (getattr(ev, "resolved_at") - getattr(ev, "started_at")).total_seconds() / 60.0
+                for ev in resolved
+            )
             / max(len(resolved), 1),
             1,
         )
         if resolved
         else 0
     )
-    sorted_events = sorted((e for e in events if e.started_at), key=lambda e: e.started_at)
+    sorted_events = sorted((e for e in events if getattr(e, "started_at", None)), key=lambda e: e.started_at)
     if len(sorted_events) >= 2:
         gaps = [
             (sorted_events[i + 1].started_at - sorted_events[i].started_at).total_seconds() / 60.0
@@ -290,8 +337,8 @@ def downtime():
     # Pareto breakdown
     reason_totals = {}
     for ev in events:
-        key = ev.reason or "Unknown"
-        reason_totals[key] = reason_totals.get(key, 0) + int(ev.duration_min or 0)
+        key = getattr(ev, "reason", None) or "Unknown"
+        reason_totals[key] = reason_totals.get(key, 0) + int(getattr(ev, "duration_min", 0) or 0)
     pareto = [
         {"reason": r, "duration_min": d}
         for r, d in sorted(reason_totals.items(), key=lambda x: -x[1])
