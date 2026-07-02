@@ -1,664 +1,325 @@
 {% extends "layout.html" %}
-
-{% block title %}FactoryNXT · AI Die Visual Inspection{% endblock %}
+{% block title %}AI Die Inspection · FactoryNXT{% endblock %}
 
 {% block head_extra %}
 <style>
-  /* Force industrial dark theme for this demo page */
-  #inspection-demo, #inspection-demo * { color-scheme: dark; }
-  #inspection-demo {
-    background: #05080f;
-    color: #e2e8f0;
-    min-height: calc(100vh - 64px);
-    font-family: 'Inter', system-ui, sans-serif;
-    position: relative;
-    overflow-x: hidden;
-  }
-
-  /* Grid backdrop pattern - PCB / machine-vision feel */
-  #inspection-demo::before {
-    content: "";
-    position: absolute; inset: 0;
-    background-image:
-      linear-gradient(rgba(56,189,248,0.05) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(56,189,248,0.05) 1px, transparent 1px);
-    background-size: 40px 40px;
-    pointer-events: none;
-    mask-image: radial-gradient(ellipse at center, black 40%, transparent 85%);
-  }
-
   .fx-card {
-    background: linear-gradient(180deg, rgba(15,23,42,0.9), rgba(15,23,42,0.7));
-    border: 1px solid rgba(71,85,105,0.5);
+    background: white;
+    border: 1px solid #e2e8f0;
     border-radius: 12px;
-    backdrop-filter: blur(6px);
-    box-shadow: 0 8px 30px -12px rgba(0,0,0,0.6);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
   }
+  .dark .fx-card { background: #1e293b; border-color: #334155; }
 
-  .fx-card-header {
-    display: flex; align-items: center; justify-content: space-between;
-    padding: 14px 18px; border-bottom: 1px solid rgba(71,85,105,0.4);
-    font-size: 12px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase;
-    color: #94a3b8;
-  }
-  .fx-card-header .title-dot {
-    width: 6px; height: 6px; border-radius: 50%;
-    background: #22d3ee; box-shadow: 0 0 8px #22d3ee;
-    display: inline-block; margin-right: 8px; vertical-align: middle;
-  }
-
-  /* Camera / viewport */
-  .viewport {
+  /* Camera viewport */
+  .camera-view {
     position: relative;
-    border-radius: 12px;
-    background:
-      radial-gradient(circle at 50% 45%, #1e293b 0%, #0b1220 55%, #000 100%);
-    padding: 14px;
-    overflow: hidden;
-  }
-  .viewport-stage {
-    position: relative;
-    aspect-ratio: 16/10;
-    border: 1px solid rgba(71,85,105,0.4);
+    background: #111;
     border-radius: 8px;
     overflow: hidden;
-    background:
-      radial-gradient(ellipse at center, #0f172a 0%, #020617 70%);
   }
-  .viewport-scanline {
+  .camera-view svg {
+    width: 100%; height: auto; display: block;
+    transition: filter 0.3s;
+  }
+  .camera-view.scanning svg {
+    filter: brightness(1.2);
+  }
+  .scanline {
     position: absolute; top: 0; left: 0; right: 0; height: 2px;
-    background: linear-gradient(90deg, transparent, #22d3ee 30%, #22d3ee 70%, transparent);
-    box-shadow: 0 0 16px #22d3ee;
-    opacity: 0; pointer-events: none;
+    background: linear-gradient(90deg, transparent, #22d3ee, transparent);
+    opacity: 0;
   }
-  .viewport.scanning .viewport-scanline {
+  .camera-view.scanning .scanline {
     opacity: 1;
     animation: scanmove 2.2s linear infinite;
   }
   @keyframes scanmove {
-    0% { top: 0%; opacity: 0; }
-    8% { opacity: 1; }
-    92% { opacity: 1; }
-    100% { top: 99%; opacity: 0; }
+    0% { top: 0; } 100% { top: 100%; }
   }
-
-  .viewport-corner {
-    position: absolute; width: 20px; height: 20px;
-    border: 2px solid #22d3ee; opacity: 0.75;
-  }
-  .viewport-corner.tl { top: 8px; left: 8px; border-right: 0; border-bottom: 0; }
-  .viewport-corner.tr { top: 8px; right: 8px; border-left: 0; border-bottom: 0; }
-  .viewport-corner.bl { bottom: 8px; left: 8px; border-right: 0; border-top: 0; }
-  .viewport-corner.br { bottom: 8px; right: 8px; border-left: 0; border-top: 0; }
-
-  .viewport-hud {
-    position: absolute; top: 14px; left: 14px;
-    display: flex; gap: 8px; flex-wrap: wrap; z-index: 5;
-    font-size: 11px; font-family: 'JetBrains Mono', 'Consolas', monospace;
-    color: #22d3ee;
-  }
-  .viewport-hud .hud-chip {
-    background: rgba(8,13,24,0.85);
-    border: 1px solid rgba(34,211,238,0.35);
-    padding: 4px 8px; border-radius: 4px;
-    backdrop-filter: blur(4px);
-  }
-  .viewport-hud .hud-chip .dot {
-    width: 6px; height: 6px; border-radius: 50%; background: #ef4444;
-    display: inline-block; margin-right: 6px;
-    animation: blink 1.4s infinite;
-  }
-  @keyframes blink { 0%, 60% { opacity: 1; } 70%, 100% { opacity: 0.25; } }
-
-  .viewport-footer {
-    position: absolute; bottom: 14px; left: 14px; right: 14px;
-    display: flex; justify-content: space-between; align-items: flex-end;
-    font-size: 11px; font-family: 'JetBrains Mono', 'Consolas', monospace;
-    color: #94a3b8; z-index: 5;
-  }
-  .viewport-footer .mono { color: #cbd5e1; }
-
-  /* Die SVG */
-  #die-view { width: 100%; height: 100%; display: block; }
-  .die-plate      { fill: url(#dieMetal); stroke: #475569; stroke-width: 1.2; }
-  .die-pocket     { fill: #0b1220; stroke: #334155; stroke-width: 0.8; }
-  .die-port       { fill: #020617; stroke: #38bdf8; stroke-width: 0.8; opacity: 0.9; }
-  .die-bearing    { fill: none; stroke: rgba(148,163,184,0.35); stroke-width: 0.4; stroke-dasharray: 2 2; }
-  .die-center     { fill: #0f172a; stroke: #475569; stroke-width: 0.6; }
-  .die-grid-line  { stroke: rgba(56,189,248,0.08); stroke-width: 0.3; }
-
-  .viewport.scanning #die-view .die-port { animation: portscan 1.2s ease-in-out infinite; }
-  @keyframes portscan {
-    0%, 100% { fill: #020617; }
-    50%      { fill: #164e63; }
-  }
-
-  /* Defect markers */
-  .defect-marker {
+  .defect-dot {
     position: absolute; transform: translate(-50%, -50%);
+    width: 14px; height: 14px; border-radius: 50%;
+    border: 2px solid; opacity: 0; transition: opacity 0.4s, transform 0.4s;
     pointer-events: auto; cursor: pointer;
-    transition: opacity 0.4s ease, transform 0.4s ease;
-    opacity: 0;
   }
-  .defect-marker.visible { opacity: 1; }
-  .defect-marker .ring {
-    width: 46px; height: 46px; border-radius: 50%;
-    border: 2px solid currentColor;
-    animation: defect-pulse 1.6s ease-out infinite;
-  }
-  .defect-marker .dot {
-    position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-    width: 10px; height: 10px; border-radius: 50%;
-    background: currentColor;
-    box-shadow: 0 0 14px currentColor;
-  }
-  .defect-marker .label {
-    position: absolute; left: 30px; top: -6px;
-    background: rgba(8,13,24,0.95);
-    border: 1px solid currentColor;
-    border-radius: 4px; padding: 4px 8px;
-    font-size: 11px; font-family: monospace; white-space: nowrap;
-    color: currentColor;
-    pointer-events: none;
-  }
-  .defect-marker .label::before {
-    content: ""; position: absolute;
-    left: -4px; top: 10px; width: 0; height: 0;
-    border-top: 4px solid transparent;
-    border-bottom: 4px solid transparent;
-    border-right: 4px solid currentColor;
-  }
-  @keyframes defect-pulse {
-    0%   { transform: scale(0.6); opacity: 1; }
-    100% { transform: scale(1.6); opacity: 0; }
-  }
-
-  /* Severity colors */
-  .sev-low     { color: #facc15; }
-  .sev-medium  { color: #f97316; }
-  .sev-high    { color: #ef4444; }
-  .sev-crit    { color: #dc2626; }
-
-  /* Chips & badges */
-  .fx-chip {
-    display: inline-flex; align-items: center; gap: 6px;
-    padding: 3px 10px; border-radius: 999px;
-    font-size: 11px; font-weight: 600;
-    background: rgba(30,41,59,0.8);
-    border: 1px solid rgba(71,85,105,0.6);
-    color: #cbd5e1;
-  }
-  .fx-chip .led {
-    width: 7px; height: 7px; border-radius: 50%; background: currentColor;
-    box-shadow: 0 0 6px currentColor;
-  }
-  .fx-chip.ok      { color: #22c55e; border-color: rgba(34,197,94,0.3); background: rgba(34,197,94,0.08); }
-  .fx-chip.warn    { color: #f59e0b; border-color: rgba(245,158,11,0.3); background: rgba(245,158,11,0.08); }
-  .fx-chip.danger  { color: #ef4444; border-color: rgba(239,68,68,0.3); background: rgba(239,68,68,0.08); }
-  .fx-chip.info    { color: #22d3ee; border-color: rgba(34,211,238,0.3); background: rgba(34,211,238,0.08); }
-  .fx-chip.neutral { color: #94a3b8; }
-  .fx-chip.pass    { color: #10b981; border-color: rgba(16,185,129,0.4); background: rgba(16,185,129,0.1); }
-  .fx-chip.fail    { color: #ef4444; border-color: rgba(239,68,68,0.4); background: rgba(239,68,68,0.12); }
-  .fx-chip.pending { color: #a78bfa; border-color: rgba(167,139,250,0.4); background: rgba(167,139,250,0.1); }
-
-  /* Summary rows */
-  .sum-row {
-    display: flex; align-items: center; justify-content: space-between;
-    padding: 9px 0; border-bottom: 1px dashed rgba(71,85,105,0.35);
-    font-size: 13px;
-  }
-  .sum-row:last-child { border-bottom: 0; }
-  .sum-row .k { color: #94a3b8; font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; }
-  .sum-row .v { color: #e2e8f0; font-weight: 600; }
-
-  /* Confidence gauge */
-  .gauge {
-    --pct: 0;
-    position: relative;
-    width: 100%; height: 8px;
-    background: rgba(30,41,59,0.8);
-    border-radius: 999px; overflow: hidden;
-  }
-  .gauge > span {
-    display: block; height: 100%;
-    width: calc(var(--pct) * 1%);
-    background: linear-gradient(90deg, #22d3ee 0%, #6366f1 60%, #a855f7 100%);
-    border-radius: 999px;
-    transition: width 1.2s cubic-bezier(.4,.2,.2,1);
-    box-shadow: 0 0 12px rgba(34,211,238,0.5);
-  }
-
-  /* Action buttons */
-  .fx-btn {
-    display: inline-flex; align-items: center; justify-content: center;
-    gap: 8px; padding: 10px 16px;
-    border-radius: 8px; font-size: 13px; font-weight: 600;
-    border: 1px solid transparent;
-    cursor: pointer; transition: all 0.18s ease;
-    background: #1e293b; color: #e2e8f0;
-    color: #cbd5e1;
-  }
-  .fx-btn:hover:not(:disabled) { transform: translateY(-1px); filter: brightness(1.1); }
-  .fx-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-  .fx-btn.primary {
-    background: linear-gradient(180deg, #06b6d4, #0891b2);
-    color: #04151a; border-color: rgba(34,211,238,0.4);
-    box-shadow: 0 6px 18px -6px rgba(6,182,212,0.6);
-  }
-  .fx-btn.primary:hover:not(:disabled) { box-shadow: 0 10px 22px -8px rgba(6,182,212,0.8); }
-  .fx-btn.success { background: linear-gradient(180deg, #10b981, #059669); color: #03221a; border-color: rgba(16,185,129,0.4); }
-  .fx-btn.danger  { background: linear-gradient(180deg, #ef4444, #dc2626); color: #1a0606; border-color: rgba(239,68,68,0.4); }
-  .fx-btn.warn    { background: linear-gradient(180deg, #f59e0b, #d97706); color: #1a1102; border-color: rgba(245,158,11,0.4); }
-  .fx-btn.ghost   { background: transparent; border-color: rgba(71,85,105,0.6); color: #cbd5e1; }
-
-  /* Timeline */
-  .timeline {
-    position: relative; padding-left: 28px;
-  }
-  .timeline::before {
-    content: ""; position: absolute; left: 10px; top: 4px; bottom: 4px;
-    width: 2px; background: linear-gradient(180deg, rgba(34,211,238,0.3), rgba(34,211,238,0.05));
-  }
-  .timeline-item { position: relative; margin-bottom: 12px; }
-  .timeline-item .node {
-    position: absolute; left: -24px; top: 2px;
-    width: 12px; height: 12px; border-radius: 50%;
-    background: #0f172a; border: 2px solid #475569;
-  }
-  .timeline-item.done    .node { background: #10b981; border-color: #10b981; box-shadow: 0 0 10px rgba(16,185,129,0.6); }
-  .timeline-item.active  .node { background: #06b6d4; border-color: #06b6d4; animation: pulse 1.4s infinite; }
-  .timeline-item.warn    .node { background: #f59e0b; border-color: #f59e0b; box-shadow: 0 0 10px rgba(245,158,11,0.6); }
-  .timeline-item.error   .node { background: #ef4444; border-color: #ef4444; box-shadow: 0 0 10px rgba(239,68,68,0.6); }
-  @keyframes pulse {
-    0%, 100% { box-shadow: 0 0 0 0 rgba(6,182,212,0.6); }
-    50%      { box-shadow: 0 0 0 8px rgba(6,182,212,0); }
-  }
-  .timeline-item .time {
-    color: #64748b; font-size: 11px;
-    font-family: 'JetBrains Mono', monospace;
-  }
-  .timeline-item .msg  { color: #e2e8f0; font-size: 13px; }
-  .timeline-item .sub  { color: #94a3b8; font-size: 12px; margin-top: 2px; }
-
-  /* Defect gallery thumbnail cards */
-  .thumb-card {
-    background: #0b1220;
-    border: 1px solid rgba(71,85,105,0.5);
-    border-radius: 8px; overflow: hidden;
-    transition: all 0.2s ease;
-  }
-  .thumb-card:hover { border-color: rgba(34,211,238,0.4); transform: translateY(-2px); }
-  .thumb-card .preview {
-    aspect-ratio: 4/3;
-    background: radial-gradient(circle at 40% 40%, #1e293b, #020617);
-    position: relative;
-  }
-  .thumb-card .preview svg { width: 100%; height: 100%; display: block; }
-  .thumb-card .body { padding: 10px 12px; }
-  .thumb-card .body h4 { font-size: 12px; font-weight: 600; margin: 0; }
-  .thumb-card .body p  { font-size: 11px; color: #94a3b8; margin: 2px 0 0; }
-
-  /* Flash on capture */
-  .viewport.flash .flash-overlay {
-    animation: flash-anim 0.5s ease-out;
+  .defect-dot.visible { opacity: 1; }
+  .defect-dot.critical { border-color: #ef4444; background: rgba(239,68,68,0.25); box-shadow: 0 0 16px rgba(239,68,68,0.5); }
+  .defect-dot.high     { border-color: #f97316; background: rgba(249,115,22,0.2); box-shadow: 0 0 14px rgba(249,115,22,0.4); }
+  .defect-dot.medium   { border-color: #eab308; background: rgba(234,179,8,0.15); box-shadow: 0 0 12px rgba(234,179,8,0.3); }
+  .defect-dot.low      { border-color: #3b82f6; background: rgba(59,130,246,0.15); box-shadow: 0 0 10px rgba(59,130,246,0.3); }
+  .defect-dot .tip {
+    position: absolute; left: calc(100% + 6px); top: 0;
+    background: #1e293b; color: #f1f5f9; padding: 3px 8px; border-radius: 4px;
+    font-size: 11px; white-space: nowrap; pointer-events: none;
+    border: 1px solid #334155;
   }
   .flash-overlay {
     position: absolute; inset: 0; background: #fff;
-    opacity: 0; pointer-events: none; z-index: 20;
-    mix-blend-mode: screen;
+    opacity: 0; pointer-events: none; mix-blend-mode: screen;
   }
-  @keyframes flash-anim {
-    0% { opacity: 0; }
-    20% { opacity: 0.7; }
-    100% { opacity: 0; }
+  .camera-view.flash .flash-overlay { animation: flash-anim 0.5s ease-out; }
+  @keyframes flash-anim { 0%{opacity:0} 20%{opacity:0.7} 100%{opacity:0} }
+
+  /* Confidence bar */
+  .conf-bar { background: #e2e8f0; border-radius: 999px; height: 8px; overflow: hidden; }
+  .dark .conf-bar { background: #334155; }
+  .conf-bar > span {
+    display: block; height: 100%;
+    background: linear-gradient(90deg, #6366f1, #22d3ee);
+    border-radius: 999px; transition: width 1s ease;
   }
+
+  /* Severity meter */
+  .sev-meter { display: flex; gap: 3px; height: 6px; }
+  .sev-meter span { flex: 1; border-radius: 2px; background: #e2e8f0; }
+  .dark .sev-meter span { background: #334155; }
+
+  /* Timeline */
+  .timeline { position: relative; padding-left: 24px; }
+  .timeline::before { content: ""; position: absolute; left: 8px; top: 4px; bottom: 4px; width: 2px; background: #e2e8f0; }
+  .dark .timeline::before { background: #334155; }
+  .tl-item { position: relative; margin-bottom: 10px; }
+  .tl-node {
+    position: absolute; left: -20px; top: 3px;
+    width: 10px; height: 10px; border-radius: 50%;
+    background: white; border: 2px solid #cbd5e1;
+  }
+  .dark .tl-node { background: #1e293b; border-color: #475569; }
+  .tl-item.done    .tl-node { background: #10b981; border-color: #10b981; }
+  .tl-item.active  .tl-node { background: #3b82f6; border-color: #3b82f6; animation: tl-pulse 1.4s infinite; }
+  .tl-item.warn    .tl-node { background: #f59e0b; border-color: #f59e0b; }
+  .tl-item.error   .tl-node { background: #ef4444; border-color: #ef4444; }
+  @keyframes tl-pulse { 0%,100%{box-shadow:0 0 0 0 rgba(59,130,246,0.5)} 50%{box-shadow:0 0 0 6px rgba(59,130,246,0)} }
+
+  /* Status chips */
+  .s-chip {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 3px 10px; border-radius: 999px; font-size: 11px; font-weight: 600;
+  }
+  .s-chip .led { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+  .s-chip.neutral { background: #f1f5f9; color: #64748b; }
+  .dark .s-chip.neutral { background: #334155; color: #94a3b8; }
+  .s-chip.ok      { background: #ecfdf5; color: #059669; }
+  .dark .s-chip.ok { background: rgba(16,185,129,0.15); color: #34d399; }
+  .s-chip.warn    { background: #fffbeb; color: #d97706; }
+  .dark .s-chip.warn { background: rgba(245,158,11,0.12); color: #fbbf24; }
+  .s-chip.danger  { background: #fef2f2; color: #dc2626; }
+  .dark .s-chip.danger { background: rgba(239,68,68,0.12); color: #f87171; }
+  .s-chip.info    { background: #eff6ff; color: #2563eb; }
+  .dark .s-chip.info { background: rgba(59,130,246,0.12); color: #60a5fa; }
+  .s-chip.pass    { background: #ecfdf5; color: #059669; }
+  .dark .s-chip.pass { background: rgba(16,185,129,0.12); color: #34d399; }
+  .s-chip.fail    { background: #fef2f2; color: #dc2626; }
+  .dark .s-chip.fail { background: rgba(239,68,68,0.12); color: #f87171; }
+
+  /* Decision banner */
+  .d-banner { padding: 12px 14px; border-radius: 8px; font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 10px; }
+  .d-banner.pass { background: #ecfdf5; border: 1px solid #6ee7b7; color: #047857; }
+  .d-banner.fail { background: #fef2f2; border: 1px solid #fca5a5; color: #b91c1c; }
+  .dark .d-banner.pass { background: rgba(16,185,129,0.1); border-color: rgba(52,211,153,0.3); color: #34d399; }
+  .dark .d-banner.fail { background: rgba(239,68,68,0.1); border-color: rgba(248,113,113,0.3); color: #f87171; }
 
   /* Toast */
   .fx-toast {
     position: fixed; top: 80px; right: 20px; z-index: 9999;
     min-width: 280px; max-width: 400px;
-    background: #0f172a; border: 1px solid #22d3ee;
+    background: white; border: 1px solid #e2e8f0;
     border-radius: 8px; padding: 14px 16px;
-    box-shadow: 0 20px 40px -12px rgba(0,0,0,0.8);
-    transform: translateX(120%); transition: transform 0.3s ease;
+    box-shadow: 0 10px 30px -8px rgba(0,0,0,0.15);
+    transform: translateX(110%); transition: transform 0.3s ease;
     font-size: 13px;
   }
+  .dark .fx-toast { background: #1e293b; border-color: #334155; color: #e2e8f0; }
   .fx-toast.show { transform: translateX(0); }
-  .fx-toast.success { border-color: #10b981; }
-  .fx-toast.error   { border-color: #ef4444; }
-
-  /* Defect severity meter */
-  .sev-meter {
-    display: flex; gap: 2px; height: 6px;
-  }
-  .sev-meter span {
-    flex: 1; background: #1e293b; border-radius: 2px;
-  }
-  .sev-meter.on-1 span:nth-child(1)                     { background: currentColor; }
-  .sev-meter.on-2 span:nth-child(1),
-  .sev-meter.on-2 span:nth-child(2)                     { background: currentColor; }
-  .sev-meter.on-3 span:nth-child(1),
-  .sev-meter.on-3 span:nth-child(2),
-  .sev-meter.on-3 span:nth-child(3)                     { background: currentColor; }
-  .sev-meter.on-4 span:nth-child(1),
-  .sev-meter.on-4 span:nth-child(2),
-  .sev-meter.on-4 span:nth-child(3),
-  .sev-meter.on-4 span:nth-child(4)                     { background: currentColor; }
-
-  /* Trend sparkline */
-  .spark { fill: none; stroke: currentColor; stroke-width: 1.5; }
-  .spark-area { fill: currentColor; opacity: 0.1; }
+  .fx-toast.success { border-left: 4px solid #10b981; }
+  .fx-toast.error   { border-left: 4px solid #ef4444; }
 
   /* Modal */
-  .fx-modal-backdrop {
+  .fx-modal-bg {
     position: fixed; inset: 0; z-index: 10000;
-    background: rgba(2,6,23,0.75); backdrop-filter: blur(4px);
+    background: rgba(0,0,0,0.4); backdrop-filter: blur(2px);
     display: flex; align-items: center; justify-content: center;
     opacity: 0; pointer-events: none; transition: opacity 0.25s;
   }
-  .fx-modal-backdrop.show { opacity: 1; pointer-events: auto; }
-  .fx-modal {
-    background: #0f172a; border: 1px solid rgba(34,211,238,0.4);
-    border-radius: 12px; padding: 0; max-width: 560px; width: 94%;
-    box-shadow: 0 30px 80px -20px rgba(0,0,0,0.9);
-    transform: translateY(20px); transition: transform 0.3s;
+  .fx-modal-bg.show { opacity: 1; pointer-events: auto; }
+  .fx-modal-box {
+    background: white; border-radius: 12px; max-width: 560px; width: 94%;
+    box-shadow: 0 30px 80px -20px rgba(0,0,0,0.3);
+    transform: translateY(16px); transition: transform 0.3s;
   }
-  .fx-modal-backdrop.show .fx-modal { transform: translateY(0); }
+  .dark .fx-modal-box { background: #1e293b; }
 
-  /* Decision banner */
-  .decision-banner {
-    padding: 12px 14px; border-radius: 8px;
-    font-size: 13px; font-weight: 600;
-    display: flex; align-items: center; gap: 10px;
+  .fx-btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 8px 14px; border-radius: 8px; font-size: 13px; font-weight: 500;
+    border: 1px solid #e2e8f0; background: white; color: #334155;
+    cursor: pointer; transition: all 0.15s;
   }
-  .decision-banner.pass {
-    background: rgba(16,185,129,0.12); border: 1px solid rgba(16,185,129,0.4); color: #34d399;
-  }
-  .decision-banner.fail {
-    background: rgba(239,68,68,0.14); border: 1px solid rgba(239,68,68,0.5); color: #fca5a5;
-  }
+  .dark .fx-btn { background: #1e293b; border-color: #475569; color: #e2e8f0; }
+  .fx-btn:hover:not(:disabled) { background: #f8fafc; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+  .dark .fx-btn:hover:not(:disabled) { background: #334155; }
+  .fx-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+  .fx-btn.primary { background: #4f46e5; border-color: #4f46e5; color: white; }
+  .fx-btn.primary:hover:not(:disabled) { background: #4338ca; }
+  .fx-btn.success { background: #059669; border-color: #059669; color: white; }
+  .fx-btn.danger  { background: #dc2626; border-color: #dc2626; color: white; }
+  .fx-btn.warn    { background: #d97706; border-color: #d97706; color: white; }
 
-  /* Textarea */
   .fx-input {
-    width: 100%; background: #0b1220; border: 1px solid rgba(71,85,105,0.6);
-    border-radius: 6px; color: #e2e8f0; padding: 8px 10px; font-size: 12px;
-    font-family: inherit;
+    width: 100%; background: white; border: 1px solid #e2e8f0;
+    border-radius: 6px; color: #334155; padding: 8px 10px;
+    font-size: 12px; font-family: inherit;
   }
-  .fx-input:focus { outline: none; border-color: #06b6d4; box-shadow: 0 0 0 3px rgba(6,182,212,0.15); }
+  .dark .fx-input { background: #0f172a; border-color: #334155; color: #e2e8f0; }
+  .fx-input:focus { outline: none; border-color: #6366f1; box-shadow: 0 0 0 3px rgba(99,102,241,0.12); }
 
-  /* Small helpers */
-  .mono    { font-family: 'JetBrains Mono', 'Consolas', monospace; }
-  .kbd     { font-family: 'JetBrains Mono', monospace; font-size: 11px; background: #020617; padding: 2px 6px;
-             border-radius: 4px; border: 1px solid #334155; color: #cbd5e1; }
+  /* Defect thumb cards */
+  .d-card {
+    background: white; border: 1px solid #e2e8f0;
+    border-radius: 8px; overflow: hidden; transition: all 0.2s;
+  }
+  .dark .d-card { background: #1e293b; border-color: #334155; }
+  .d-card:hover { border-color: #6366f1; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+  .d-card .d-preview {
+    aspect-ratio: 4/3;
+    background: #f1f5f9;
+    position: relative; display: flex; align-items: center; justify-content: center;
+  }
+  .dark .d-card .d-preview { background: #0f172a; }
+  .d-card .d-preview svg { width: 100%; height: 100%; display: block; }
+  .d-card .d-body { padding: 10px 12px; }
+  .d-card .d-body h4 { font-size: 12px; font-weight: 600; margin: 0; }
+  .d-card .d-body p  { font-size: 11px; color: #94a3b8; margin: 2px 0 0; }
 
-  /* Hide scroll shadow */
-  #main-content { background: #05080f !important; }
+  .sum-row {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 8px 0; border-bottom: 1px solid #f1f5f9;
+    font-size: 13px;
+  }
+  .dark .sum-row { border-bottom-color: #334155; }
+  .sum-row:last-child { border-bottom: 0; }
+  .sum-row .k { color: #64748b; font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; }
+  .dark .sum-row .k { color: #94a3b8; }
+  .sum-row .v { color: #1e293b; font-weight: 600; }
+  .dark .sum-row .v { color: #e2e8f0; }
 </style>
 {% endblock %}
 
 
 {% block content %}
-<div id="inspection-demo" class="relative">
+{% set d = inspection_data %}
 
-  {% set inspection = inspection_data %}
+<div class="max-w-7xl mx-auto pb-10">
 
-  <!-- TOP BAR: breadcrumb + primary CTA -->
-  <div class="relative z-10 px-6 lg:px-8 pt-6 pb-4 flex flex-col md:flex-row md:items-center gap-4">
-    <div class="flex items-center gap-3 text-xs text-slate-400">
-      <a href="{{ url_for('dies_mgmt.list_dies') }}" class="hover:text-white">Tool Shop</a>
-      <span class="opacity-50">/</span>
-      <a href="{{ url_for('dies_mgmt.list_dies') }}" class="hover:text-white">Dies</a>
-      <span class="opacity-50">/</span>
-      <span class="text-cyan-400 font-semibold tracking-wide">AI Visual Inspection</span>
+  <!-- Breadcrumb -->
+  <nav class="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400 mb-4">
+    <a href="{{ url_for('dies_mgmt.list_dies') }}" class="hover:text-indigo-600 dark:hover:text-indigo-400">Dies</a>
+    <span class="opacity-50">/</span>
+    <span class="text-indigo-600 dark:text-indigo-400 font-semibold">AI Visual Inspection</span>
+  </nav>
+
+  <!-- Header -->
+  <div class="flex items-start justify-between mb-6">
+    <div>
+      <h1 class="text-2xl font-bold text-slate-900 dark:text-slate-50">Die Visual Inspection
+        <span class="text-indigo-500">AI</span>
+      </h1>
+      <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">
+        Camera-based defect detection for extrusion dies · capture, analyze and issue maintenance decisions.
+      </p>
     </div>
-
-    <div class="md:ml-auto flex items-center gap-3">
-      <span id="live-clock" class="fx-chip neutral mono">—</span>
-      <span id="system-state-chip" class="fx-chip info"><span class="led"></span><span id="system-state-text">Pre-Inspection</span></span>
-      <span class="fx-chip neutral mono">INSP-{{ inspection.id[-8:]|upper }}</span>
-    </div>
+    <span id="live-clock" class="text-xs mono text-slate-400 bg-slate-100 dark:bg-slate-800 px-2.5 py-1 rounded-full">--</span>
   </div>
 
-  <!-- HEADER -->
-  <div class="relative z-10 px-6 lg:px-8 pb-6">
-    <div class="flex items-end justify-between gap-4 flex-wrap">
-      <div>
-        <h1 class="text-2xl lg:text-3xl font-bold tracking-tight text-white">
-          Die Visual Inspection
-          <span class="text-cyan-400">AI</span>
-        </h1>
-        <p class="mt-2 text-sm text-slate-400 max-w-2xl">
-          Guided camera-based inspection for extrusion dies. Capture the die face, run AI defect detection,
-          review findings and issue a maintenance decision — all from a single workstation.
-        </p>
-      </div>
-      <div class="flex items-center gap-3 text-xs">
-        <span class="text-slate-500">Press Line</span>
-        <span id="press-line-chip" class="fx-chip info">{{ inspection.pressLine }}</span>
-        <span class="text-slate-500">Die</span>
-        <span id="die-id-chip" class="fx-chip info mono">{{ inspection.dieId }}</span>
-      </div>
-    </div>
+  <!-- Status chips row -->
+  <div class="flex flex-wrap items-center gap-3 mb-6">
+    <span id="sys-chip" class="s-chip neutral"><span class="led"></span><span id="sys-chip-text">Pre-Inspection</span></span>
+    <span class="s-chip info mono">INSP-{{ d.id[-8:]|upper }}</span>
+    <span class="text-sm text-slate-400">Press Line</span>
+    <span class="s-chip info">{{ d.pressLine }}</span>
+    <span class="text-sm text-slate-400">Die</span>
+    <span class="s-chip info mono">{{ d.dieId }}</span>
   </div>
-
 
   <!-- MAIN GRID -->
-  <div class="relative z-10 px-6 lg:px-8 grid grid-cols-12 gap-5">
+  <div class="grid grid-cols-12 gap-5">
 
-    <!-- LEFT COLUMN: Camera + Actions -->
-    <section class="col-span-12 xl:col-span-8 flex flex-col gap-5">
+    <!-- LEFT: Camera -->
+    <div class="col-span-12 xl:col-span-8 flex flex-col gap-5">
 
-      <!-- CAMERA VIEWPORT CARD -->
+      <!-- Camera card -->
       <div class="fx-card">
-        <div class="fx-card-header">
-          <div>
-            <span class="title-dot" id="cam-live-dot"></span>
-            <span id="cam-status-text">Camera Standby</span>
-            <span class="text-slate-600">· CAM-01 · 1280×960 · 30fps</span>
+        <div class="px-4 py-3 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" id="cam-live-dot"></span>
+            <span class="text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider">Camera · CAM-01</span>
+            <span class="text-xs text-slate-400">1280×960 · 30fps</span>
           </div>
-          <div class="flex items-center gap-2 text-[10px]">
-            <span class="fx-chip neutral" id="rec-badge"><span class="led" style="background:#64748b;box-shadow:none;"></span>REC</span>
-            <span class="text-slate-500 mono" id="frame-code">FRAME · · ·</span>
-          </div>
+          <span class="text-[10px] mono text-slate-400" id="frame-code">FRAME · · ·</span>
         </div>
-
-        <div class="viewport" id="viewport">
-          <div class="viewport-scanline"></div>
+        <div class="camera-view" id="viewport">
+          <div class="scanline"></div>
           <div class="flash-overlay"></div>
-          <div class="viewport-corner tl"></div>
-          <div class="viewport-corner tr"></div>
-          <div class="viewport-corner bl"></div>
-          <div class="viewport-corner br"></div>
-
-          <div class="viewport-hud">
-            <div class="hud-chip"><span class="dot"></span>LIVE</div>
-            <div class="hud-chip">MODEL · ExtrusionDie-v2.3</div>
-            <div class="hud-chip">ZOOM · 1.4×</div>
-          </div>
-
-          <div class="viewport-stage" id="viewport-stage">
-            <!-- SVG die representation + grid -->
-            <svg id="die-view" viewBox="0 0 800 500" preserveAspectRatio="xMidYMid meet" aria-label="Extrusion die top-down view with AI defect annotations">
-              <title>Extrusion die face — AI inspection view</title>
-              <defs>
-                <linearGradient id="dieMetal" x1="0" x2="1" y1="0" y2="1">
-                  <stop offset="0%"   stop-color="#475569"/>
-                  <stop offset="50%"  stop-color="#334155"/>
-                  <stop offset="100%" stop-color="#1e293b"/>
-                </linearGradient>
-                <radialGradient id="pocketGrad" cx="0.5" cy="0.5" r="0.6">
-                  <stop offset="0%"  stop-color="#1e293b"/>
-                  <stop offset="100%" stop-color="#0b1220"/>
-                </radialGradient>
-                <filter id="metalNoise" x="0" y="0" width="1" height="1">
-                  <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" seed="7"/>
-                  <feColorMatrix values="0 0 0 0 0.6  0 0 0 0 0.7  0 0 0 0 0.9  0 0 0 0.08 0"/>
-                  <feComposite in2="SourceGraphic" operator="in"/>
-                  <feBlend in="SourceGraphic" mode="overlay"/>
-                </filter>
-              </defs>
-
-              <!-- Grid lines -->
-              <g opacity="0.6">
-                <line class="die-grid-line" x1="0" y1="125" x2="800" y2="125"/>
-                <line class="die-grid-line" x1="0" y1="250" x2="800" y2="250"/>
-                <line class="die-grid-line" x1="0" y1="375" x2="800" y2="375"/>
-                <line class="die-grid-line" x1="200" y1="0" x2="200" y2="500"/>
-                <line class="die-grid-line" x1="400" y1="0" x2="400" y2="500"/>
-                <line class="die-grid-line" x1="600" y1="0" x2="600" y2="500"/>
-              </g>
-
-              <!-- Scale markers -->
-              <g font-family="monospace" font-size="10" fill="#334155">
-                <text x="10" y="20">0</text>
-                <text x="395" y="20">200mm</text>
-                <text x="770" y="20">400mm</text>
-                <text x="10" y="260">X</text>
-              </g>
-
-              <!-- Die plate -->
-              <rect class="die-plate" x="180" y="70" width="440" height="360" rx="14"/>
-              <rect x="180" y="70" width="440" height="360" rx="14" fill="#334155" opacity="0.15" filter="url(#metalNoise)"/>
-
-              <!-- Corner bolts -->
-              <g fill="#0b1220" stroke="#64748b" stroke-width="0.8">
-                <circle cx="205"  cy="95"  r="6"/>
-                <circle cx="595"  cy="95"  r="6"/>
-                <circle cx="205"  cy="405" r="6"/>
-                <circle cx="595"  cy="405" r="6"/>
-              </g>
-
-              <!-- Flow pockets / bearing chambers -->
-              <rect class="die-pocket" x="230" y="110" width="340" height="280" rx="10" fill="url(#pocketGrad)"/>
-
-              <!-- Center porthole -->
-              <rect class="die-center" x="360" y="230" width="80" height="40" rx="4"/>
-              <text x="400" y="255" text-anchor="middle" font-family="monospace" font-size="9" fill="#64748b">PORTHOLE</text>
-
-              <!-- Flow channels (dashed lines from center to ports) -->
-              <g class="die-bearing">
-                <line x1="400" y1="250" x2="275" y2="165"/>
-                <line x1="400" y1="250" x2="525" y2="165"/>
-                <line x1="400" y1="250" x2="275" y2="335"/>
-                <line x1="400" y1="250" x2="525" y2="335"/>
-                <line x1="400" y1="250" x2="400" y2="140"/>
-                <line x1="400" y1="250" x2="400" y2="360"/>
-              </g>
-
-              <!-- Extrusion ports -->
-              <g id="die-ports">
-                <ellipse class="die-port" cx="275" cy="165"  rx="32" ry="20"/>
-                <ellipse class="die-port" cx="400" cy="140"  rx="38" ry="18"/>
-                <ellipse class="die-port" cx="525" cy="165"  rx="30" ry="22"/>
-                <ellipse class="die-port" cx="275" cy="335"  rx="28" ry="24"/>
-                <ellipse class="die-port" cx="400" cy="360"  rx="36" ry="20"/>
-                <ellipse class="die-port" cx="525" cy="335"  rx="32" ry="22"/>
-              </g>
-
-              <!-- Bearing lands (dashed outlines around ports) -->
-              <g class="die-bearing">
-                <ellipse cx="275" cy="165" rx="40" ry="28"/>
-                <ellipse cx="400" cy="140" rx="46" ry="26"/>
-                <ellipse cx="525" cy="165" rx="38" ry="30"/>
-                <ellipse cx="275" cy="335" rx="36" ry="32"/>
-                <ellipse cx="400" cy="360" rx="44" ry="28"/>
-                <ellipse cx="525" cy="335" rx="40" ry="30"/>
-              </g>
-
-              <!-- Port labels -->
-              <g font-family="monospace" font-size="9" fill="#475569">
-                <text x="275" y="205" text-anchor="middle">P1</text>
-                <text x="400" y="180" text-anchor="middle">P2</text>
-                <text x="525" y="205" text-anchor="middle">P3</text>
-                <text x="275" y="310" text-anchor="middle">P4</text>
-                <text x="400" y="400" text-anchor="middle">P5</text>
-                <text x="525" y="310" text-anchor="middle">P6</text>
-              </g>
-            </svg>
-
-            <!-- Defect overlays (positioned via JS) -->
-            <div id="defect-overlays" style="position:absolute; inset:0; pointer-events:none;"></div>
-          </div>
-
-          <div class="viewport-footer">
-            <div>
-              SN <span class="mono">CAM-01·FX-INSPECT</span>
-              <span class="opacity-40 px-2">·</span>
-              <span id="cam-temp"><span class="mono">38.4</span>°C</span>
-            </div>
-            <div>
-              <span class="opacity-40">AI</span>
-              <span id="ai-live-status" class="mono" style="color:#22d3ee;">IDLE</span>
-              <span class="opacity-40 px-2">·</span>
-              LAST INF <span class="mono" id="last-inf">—</span>
-            </div>
-          </div>
+          <!-- Die image (SVG) — swapped per scenario -->
+          <svg id="die-img" viewBox="0 0 960 640" preserveAspectRatio="xMidYMid meet">
+            <text x="480" y="320" text-anchor="middle" font-size="18" fill="#475569">Capture a frame to load die view</text>
+          </svg>
+          <!-- Defect dots -->
+          <div id="defect-dots"></div>
         </div>
-
-        <!-- Action Bar -->
-        <div class="p-4 border-t border-slate-700/50 flex flex-wrap items-center gap-3">
-          <button class="fx-btn ghost" id="btn-start"     aria-label="Start Inspection">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 3l14 9-14 9V3z"/></svg>
+        <div class="px-4 py-3 border-t border-slate-200 dark:border-slate-700 flex flex-wrap items-center gap-2">
+          <button class="fx-btn" id="btn-start">
+            <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M5 3l14 9-14 9V3z"/></svg>
             Start Inspection
           </button>
-          <button class="fx-btn primary" id="btn-capture"  aria-label="Capture Frame">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="7" width="18" height="13" rx="2"/><circle cx="12" cy="14" r="4"/></svg>
+          <button class="fx-btn primary" id="btn-capture" disabled>
+            <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="3" y="7" width="18" height="13" rx="2"/><circle cx="12" cy="14" r="4"/></svg>
             Capture Frame
           </button>
-          <button class="fx-btn primary" id="btn-analyze"  disabled aria-label="Run AI Analysis">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v4M12 18v4M2 12h4M18 12h4M4.9 4.9l2.8 2.8M16.3 16.3l2.8 2.8M4.9 19.1l2.8-2.8M16.3 7.7l2.8-2.8"/></svg>
+          <button class="fx-btn primary" id="btn-analyze" disabled>
+            <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M12 2v4M12 18v4M2 12h4M18 12h4M4.9 4.9l2.8 2.8M16.3 16.3l2.8 2.8M4.9 19.1l2.8-2.8M16.3 7.7l2.8-2.8"/></svg>
             Run AI Analysis
           </button>
-
-          <div class="flex-1 min-w-[20px]"></div>
-
-          <button class="fx-btn success" id="btn-pass"     disabled aria-label="Mark as Pass">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 12l5 5L20 7"/></svg>
+          <div class="flex-1"></div>
+          <button class="fx-btn success" id="btn-pass" disabled>
+            <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"><path d="M5 12l5 5L20 7"/></svg>
             Mark Pass
           </button>
-          <button class="fx-btn danger"  id="btn-fail"     disabled aria-label="Mark as Fail">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M6 6l12 12M18 6L6 18"/></svg>
+          <button class="fx-btn danger" id="btn-fail" disabled>
+            <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"><path d="M6 6l12 12M18 6L6 18"/></svg>
             Mark Fail
           </button>
-          <button class="fx-btn warn"    id="btn-ticket"   disabled aria-label="Create Maintenance Ticket">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 3H6a2 2 0 00-2 2v14a2 2 0 002 2h12a2 2 0 002-2V9z"/><path d="M14 3v6h6M9 14h6M9 18h6"/></svg>
+          <button class="fx-btn warn" id="btn-ticket" disabled>
+            <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M14 3H6a2 2 0 00-2 2v14a2 2 0 002 2h12a2 2 0 002-2V9zM14 3v6h6M9 14h6M9 18h6"/></svg>
             Maintenance Ticket
           </button>
         </div>
       </div>
 
-
-      <!-- METADATA + TIMELINE -->
+      <!-- Metadata + Timeline -->
       <div class="grid grid-cols-1 lg:grid-cols-5 gap-5">
-
-        <!-- METADATA -->
+        <!-- Metadata -->
         <div class="fx-card lg:col-span-2">
-          <div class="fx-card-header">
-            <div><span class="title-dot"></span>Die & Inspection Metadata</div>
-            <span class="text-[10px] mono text-slate-500">ID · {{ inspection.id[:12] }}</span>
+          <div class="px-4 py-3 border-b border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+            Die &amp; Inspection Metadata
           </div>
-          <div class="p-4 flex flex-col gap-1 text-sm">
-            <div class="sum-row"><span class="k">Die ID</span>        <span class="v mono">{{ inspection.dieId }}</span></div>
-            <div class="sum-row"><span class="k">Die Type</span>      <span class="v">{{ inspection.dieType }}</span></div>
-            <div class="sum-row"><span class="k">Press Line</span>    <span class="v">{{ inspection.pressLine }}</span></div>
-            <div class="sum-row"><span class="k">Alloy</span>
-              <span class="v flex items-center gap-2">
-                {{ inspection.alloy }}
-                <span class="fx-chip neutral mono" style="padding:1px 6px;">6xxx-T6</span>
-              </span>
-            </div>
-            <div class="sum-row"><span class="k">Shift</span>         <span class="v">{{ inspection.shift }}</span></div>
-            <div class="sum-row"><span class="k">Operator</span>     <span class="v">{{ inspection.operator }}</span></div>
-            <div class="sum-row"><span class="k">Captured At</span>  <span class="v mono" id="captured-at">—</span></div>
-            <div class="sum-row"><span class="k">Press Count</span>   <span class="v mono">12,840 <span class="text-slate-500 text-xs">/ 20,000</span></span></div>
+          <div class="p-4 text-sm">
+            <div class="sum-row"><span class="k">Die ID</span>       <span class="v mono">{{ d.dieId }}</span></div>
+            <div class="sum-row"><span class="k">Die Type</span>     <span class="v">{{ d.dieType }}</span></div>
+            <div class="sum-row"><span class="k">Press Line</span>   <span class="v">{{ d.pressLine }}</span></div>
+            <div class="sum-row"><span class="k">Alloy</span>        <span class="v">{{ d.alloy }} <span class="text-slate-400 text-xs">T6</span></span></div>
+            <div class="sum-row"><span class="k">Shift</span>        <span class="v">{{ d.shift }}</span></div>
+            <div class="sum-row"><span class="k">Operator</span>     <span class="v">{{ d.operator }}</span></div>
+            <div class="sum-row"><span class="k">Captured</span>     <span class="v mono" id="captured-at">—</span></div>
+            <div class="sum-row"><span class="k">Press Count</span>  <span class="v mono">12,840 <span class="text-slate-400 text-xs">/ 20,000</span></span></div>
           </div>
         </div>
-
-        <!-- TIMELINE -->
+        <!-- Timeline -->
         <div class="fx-card lg:col-span-3">
-          <div class="fx-card-header">
-            <div><span class="title-dot"></span>Inspection Event Log</div>
-            <span class="text-[10px] mono text-slate-500" id="event-count">0 events</span>
+          <div class="px-4 py-3 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between">
+            <span class="text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider">Inspection Event Log</span>
+            <span class="text-[10px] mono text-slate-400" id="event-count">0 events</span>
           </div>
           <div class="p-4 max-h-[280px] overflow-y-auto">
             <div class="timeline" id="timeline"></div>
@@ -666,755 +327,576 @@
         </div>
       </div>
 
-
-      <!-- RESULTS: Defect thumbnails + before/after + trend -->
+      <!-- Defect gallery + Trend -->
       <div class="grid grid-cols-12 gap-5">
-
-        <!-- DEFECT THUMBNAILS -->
         <div class="fx-card col-span-12 lg:col-span-7">
-          <div class="fx-card-header">
-            <div><span class="title-dot"></span>Detected Defects</div>
-            <div class="flex items-center gap-3">
-              <span class="mono text-slate-500 text-[10px]" id="defect-summary-count">0 findings</span>
-              <span id="defect-severity-chip" class="fx-chip neutral"><span class="led" style="background:#64748b;box-shadow:none;"></span>No analysis</span>
+          <div class="px-4 py-3 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between">
+            <span class="text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider">Detected Defects</span>
+            <div class="flex items-center gap-2">
+              <span class="text-[10px] mono text-slate-400" id="defect-cnt">0 findings</span>
+              <span id="sev-chip" class="s-chip neutral"><span class="led" style="background:#94a3b8"></span>No analysis</span>
             </div>
           </div>
           <div class="p-4">
             <div class="grid grid-cols-2 md:grid-cols-3 gap-3" id="defect-gallery">
-              <!-- placeholder until analysis runs -->
-              <div class="thumb-card col-span-2 md:col-span-3">
-                <div class="preview flex items-center justify-center">
-                  <div class="text-center text-slate-500 text-xs">
-                    <svg class="mx-auto mb-2 opacity-40" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="7" width="18" height="13" rx="2"/><circle cx="12" cy="14" r="4"/></svg>
-                    No defects detected yet · Run AI Analysis to inspect the die.
+              <div class="d-card col-span-2 md:col-span-3">
+                <div class="d-preview">
+                  <div class="text-center text-slate-400 text-xs px-6">
+                    <svg class="mx-auto mb-2 opacity-30" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="7" width="18" height="13" rx="2"/><circle cx="12" cy="14" r="4"/></svg>
+                    No defects yet · run AI analysis to inspect the die.
                   </div>
                 </div>
               </div>
             </div>
           </div>
         </div>
-
-        <!-- TREND + BEFORE/AFTER -->
+        <!-- Trend -->
         <div class="fx-card col-span-12 lg:col-span-5">
-          <div class="fx-card-header">
-            <div><span class="title-dot"></span>Last 30 Inspections · Trend</div>
-            <span class="text-[10px] mono text-slate-500">rolling</span>
+          <div class="px-4 py-3 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between">
+            <span class="text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider">Last 30 Inspections · Trend</span>
+            <span class="text-[10px] mono text-slate-400">rolling</span>
           </div>
           <div class="p-4">
-            <!-- Before/After mini strip -->
-            <div class="flex gap-2 mb-4">
-              <div class="flex-1 rounded-md overflow-hidden border border-slate-700/60">
-                <div class="bg-slate-900/80 text-[10px] uppercase tracking-wider text-slate-400 px-2 py-1">Before</div>
-                <div class="aspect-[3/2] bg-gradient-to-br from-slate-800 to-slate-950 relative">
-                  <svg viewBox="0 0 120 80" class="w-full h-full">
-                    <rect width="120" height="80" fill="#1e293b"/>
-                    <circle cx="40" cy="35" r="12" fill="#020617" stroke="#334155"/>
-                    <circle cx="80" cy="45" r="10" fill="#020617" stroke="#334155"/>
-                    <text x="60" y="72" font-size="7" text-anchor="middle" fill="#475569">T=0</text>
-                  </svg>
-                </div>
+            <!-- Before / After -->
+            <div class="flex gap-3 mb-4">
+              <div class="flex-1 rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700">
+                <div class="bg-slate-100 dark:bg-slate-800 text-[10px] uppercase tracking-wider text-slate-500 px-2.5 py-1">Before</div>
+                <div class="aspect-[3/2] bg-slate-200 dark:bg-slate-900 flex items-center justify-center text-slate-400 text-xs mono">T−1</div>
               </div>
-              <div class="flex-1 rounded-md overflow-hidden border border-cyan-500/30">
-                <div class="bg-cyan-500/10 text-[10px] uppercase tracking-wider text-cyan-400 px-2 py-1 flex items-center justify-between">
-                  <span>After · AI</span>
-                  <span class="px-1 bg-cyan-400/20 rounded text-cyan-300">live</span>
-                </div>
-                <div class="aspect-[3/2] bg-gradient-to-br from-slate-800 to-slate-950 relative">
-                  <svg viewBox="0 0 120 80" class="w-full h-full">
-                    <rect width="120" height="80" fill="#1e293b"/>
-                    <circle cx="40" cy="35" r="12" fill="#020617" stroke="#334155"/>
-                    <circle cx="80" cy="45" r="10" fill="#020617" stroke="#334155"/>
-                    <circle cx="40" cy="35" r="3" fill="#ef4444"/>
-                    <text x="60" y="72" font-size="7" text-anchor="middle" fill="#475569">T=now</text>
-                  </svg>
-                </div>
+              <div class="flex-1 rounded-lg overflow-hidden border-2 border-indigo-200 dark:border-indigo-800">
+                <div class="bg-indigo-50 dark:bg-indigo-900/30 text-[10px] uppercase tracking-wider text-indigo-600 dark:text-indigo-300 px-2.5 py-1">After · AI</div>
+                <div class="aspect-[3/2] bg-slate-200 dark:bg-slate-900 flex items-center justify-center text-indigo-500 text-xs mono" id="thumb-after">—</div>
               </div>
             </div>
-
-            <!-- Trend stats -->
-            <div class="grid grid-cols-3 gap-3 mt-2">
-              <div class="rounded-md bg-slate-900/50 border border-slate-700/50 p-3">
-                <div class="text-[10px] text-slate-500 uppercase tracking-wider">Pass Rate</div>
-                <div class="text-lg font-bold text-emerald-400 mt-1">92<span class="text-xs text-slate-500">%</span></div>
+            <!-- KPI row -->
+            <div class="grid grid-cols-3 gap-3">
+              <div class="rounded-lg bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-700 p-3">
+                <div class="text-[10px] text-slate-400 uppercase tracking-wider">Pass Rate</div>
+                <div class="text-lg font-bold text-emerald-600 dark:text-emerald-400">92%</div>
               </div>
-              <div class="rounded-md bg-slate-900/50 border border-slate-700/50 p-3">
-                <div class="text-[10px] text-slate-500 uppercase tracking-wider">Avg Defects</div>
-                <div class="text-lg font-bold text-cyan-400 mt-1">0.8</div>
+              <div class="rounded-lg bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-700 p-3">
+                <div class="text-[10px] text-slate-400 uppercase tracking-wider">Avg Defects</div>
+                <div class="text-lg font-bold text-indigo-600 dark:text-indigo-400">0.8</div>
               </div>
-              <div class="rounded-md bg-slate-900/50 border border-slate-700/50 p-3">
-                <div class="text-[10px] text-slate-500 uppercase tracking-wider">Uptime</div>
-                <div class="text-lg font-bold text-amber-400 mt-1">98<span class="text-xs text-slate-500">%</span></div>
+              <div class="rounded-lg bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-700 p-3">
+                <div class="text-[10px] text-slate-400 uppercase tracking-wider">Uptime</div>
+                <div class="text-lg font-bold text-amber-600 dark:text-amber-400">98%</div>
               </div>
             </div>
-
             <!-- Sparkline -->
             <div class="mt-4">
-              <div class="flex items-center justify-between text-[10px] text-slate-500 mb-1">
+              <div class="flex items-center justify-between text-[10px] text-slate-400 mb-1">
                 <span>Defects per inspection</span>
                 <span class="mono">avg 0.8</span>
               </div>
-              <svg viewBox="0 0 260 60" class="w-full h-14 text-emerald-400">
-                <path class="spark-area" d="M0,60 L0,48 8,42 16,46 24,38 32,32 40,40 48,36 56,30 64,34 72,38 80,32 88,28 96,36 104,30 112,26 120,40 128,44 136,38 144,34 152,28 160,22 168,30 176,34 184,28 192,32 200,38 208,26 216,22 224,30 232,36 240,28 248,20 256,24 256,60 Z"/>
-                <path class="spark" d="M0,48 8,42 16,46 24,38 32,32 40,40 48,36 56,30 64,34 72,38 80,32 88,28 96,36 104,30 112,26 120,40 128,44 136,38 144,34 152,28 160,22 168,30 176,34 184,28 192,32 200,38 208,26 216,22 224,30 232,36 240,28 248,20 256,24"/>
+              <svg viewBox="0 0 260 60" class="w-full h-14 text-emerald-500">
+                <path fill="currentColor" fill-opacity="0.08" d="M0,60 L0,48 8,42 16,46 24,38 32,32 40,40 48,36 56,30 64,34 72,38 80,32 88,28 96,36 104,30 112,26 120,40 128,44 136,38 144,34 152,28 160,22 168,30 176,34 184,28 192,32 200,38 208,26 216,22 224,30 232,36 240,28 248,20 256,24 256,60 Z"/>
+                <path fill="none" stroke="currentColor" stroke-width="1.5" d="M0,48 8,42 16,46 24,38 32,32 40,40 48,36 56,30 64,34 72,38 80,32 88,28 96,36 104,30 112,26 120,40 128,44 136,38 144,34 152,28 160,22 168,30 176,34 184,28 192,32 200,38 208,26 216,22 224,30 232,36 240,28 248,20 256,24"/>
               </svg>
             </div>
           </div>
         </div>
       </div>
-    </section>
+    </div>
 
 
-    <!-- RIGHT SIDEBAR: Summary + Decision + Notes -->
-    <aside class="col-span-12 xl:col-span-4 flex flex-col gap-5">
+    <!-- RIGHT SIDEBAR -->
+    <div class="col-span-12 xl:col-span-4 flex flex-col gap-5">
 
-      <!-- INSPECTION STATUS -->
+      <!-- Inspection Status -->
       <div class="fx-card">
-        <div class="fx-card-header">
-          <div><span class="title-dot"></span>Inspection Status</div>
-          <span class="text-[10px] mono">STATUS</span>
-        </div>
+        <div class="px-4 py-3 border-b border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider">Inspection Status</div>
         <div class="p-4 flex flex-col gap-3">
           <div class="flex items-center justify-between">
-            <span class="text-xs text-slate-400 uppercase tracking-wider">Current State</span>
-            <span id="status-chip" class="fx-chip neutral"><span class="led" style="background:#64748b;box-shadow:none;"></span>Awaiting start</span>
+            <span class="text-xs text-slate-500 uppercase tracking-wider">Current State</span>
+            <span id="status-chip" class="s-chip neutral"><span class="led" style="background:#94a3b8"></span>Awaiting start</span>
           </div>
-
-          <div class="sum-row"><span class="k">Inspection ID</span>   <span class="v mono" id="insp-id">INSP-{{ inspection.id[-8:]|upper }}</span></div>
-          <div class="sum-row"><span class="k">AI Model</span>        <span class="v mono text-[11px]">ExtrusionDie-v2.3</span></div>
+          <div class="sum-row"><span class="k">Inspection ID</span><span class="v mono">INSP-{{ d.id[-8:]|upper }}</span></div>
+          <div class="sum-row"><span class="k">AI Model</span><span class="v mono text-[11px]">{{ d.aiModel }}</span></div>
           <div class="sum-row">
             <span class="k">Confidence</span>
-            <span class="v mono" id="confidence-value">—</span>
+            <span class="v mono" id="conf-val">—</span>
           </div>
         </div>
-
-        <!-- Confidence bar -->
         <div class="px-4 pb-4">
-          <div class="gauge" id="confidence-gauge" style="--pct:0;"><span></span></div>
-          <div class="text-[10px] text-slate-600 mt-1 mono">MIN threshold · 0.82</div>
+          <div class="conf-bar" id="conf-bar"><span style="width:0%"></span></div>
+          <div class="text-[10px] text-slate-400 mt-1 mono">MIN threshold · 0.82</div>
         </div>
       </div>
 
-      <!-- SEVERITY + RECOMMENDATION -->
+      <!-- Severity -->
       <div class="fx-card">
-        <div class="fx-card-header">
-          <div><span class="title-dot"></span>Severity & Recommendation</div>
-        </div>
+        <div class="px-4 py-3 border-b border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider">Severity &amp; Recommendation</div>
         <div class="p-4 flex flex-col gap-4">
           <div>
             <div class="flex items-center justify-between mb-1">
-              <span class="text-xs text-slate-400 uppercase tracking-wider">Defect Severity</span>
-              <span id="severity-label" class="mono text-xs text-slate-500">N/A</span>
+              <span class="text-xs text-slate-500 uppercase tracking-wider">Defect Severity</span>
+              <span id="sev-label" class="mono text-xs text-slate-400">N/A</span>
             </div>
-            <div class="sev-meter sev-low" id="sev-meter">
+            <div class="sev-meter" id="sev-meter">
               <span></span><span></span><span></span><span></span><span></span>
             </div>
-            <div class="flex justify-between text-[9px] text-slate-600 mt-1 mono">
+            <div class="flex justify-between text-[9px] text-slate-400 mt-1 mono">
               <span>NONE</span><span>LOW</span><span>MEDIUM</span><span>HIGH</span><span>CRITICAL</span>
             </div>
           </div>
-
-          <div class="rounded-md border border-slate-700/50 bg-slate-900/40 p-3">
+          <div class="rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/40 p-3">
             <div class="text-[10px] uppercase tracking-wider text-slate-500 mb-1">AI Recommendation</div>
-            <div id="recommendation" class="text-sm text-slate-200 leading-snug">
-              No analysis has been run yet. Capture a frame and run AI analysis to receive a recommendation.
-            </div>
+            <div id="recommendation" class="text-sm text-slate-700 dark:text-slate-200 leading-snug">Run AI analysis to receive a recommendation.</div>
           </div>
-
-          <div class="rounded-md border border-cyan-500/20 bg-cyan-500/5 p-3">
-            <div class="text-[10px] uppercase tracking-wider text-cyan-400 mb-1">Next Action</div>
-            <div id="next-action" class="text-sm text-slate-200">
-              <span class="text-cyan-300">Start Inspection</span> to connect the camera and initialize the AI model.
+          <div class="rounded-lg border border-indigo-200 dark:border-indigo-800 bg-indigo-50 dark:bg-indigo-900/20 p-3">
+            <div class="text-[10px] uppercase tracking-wider text-indigo-600 dark:text-indigo-300 mb-1">Next Action</div>
+            <div id="next-action" class="text-sm text-slate-700 dark:text-slate-200">
+              <span class="text-indigo-600 dark:text-indigo-400 font-semibold">Start Inspection</span> to connect the camera.
             </div>
           </div>
         </div>
       </div>
 
-      <!-- DECISION PANEL -->
+      <!-- Decision -->
       <div class="fx-card">
-        <div class="fx-card-header">
-          <div><span class="title-dot"></span>Decision</div>
-        </div>
-        <div class="p-4 flex flex-col gap-3">
-          <div id="decision-banner" class="decision-banner pass">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
+        <div class="px-4 py-3 border-b border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider">Decision</div>
+        <div class="p-4">
+          <div id="decision-banner" class="d-banner pass">
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
             <div>
               <div class="text-[10px] uppercase tracking-wider opacity-70">Decision pending</div>
-              <div class="text-sm">Awaiting operator input · pass/fail</div>
+              <div class="text-sm font-normal">Awaiting operator input · pass/fail</div>
             </div>
           </div>
-          <div class="text-[11px] text-slate-500">
-            A decision is only enabled after AI analysis completes. Critical defects auto-recommend fail.
-          </div>
+          <div class="text-[11px] text-slate-400 mt-2">Decisions enabled after AI analysis completes.</div>
         </div>
       </div>
 
-      <!-- OPERATOR NOTES -->
+      <!-- Notes -->
       <div class="fx-card">
-        <div class="fx-card-header">
-          <div><span class="title-dot"></span>Operator Notes</div>
-        </div>
+        <div class="px-4 py-3 border-b border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider">Operator Notes</div>
         <div class="p-4">
-          <textarea id="operator-notes" class="fx-input" rows="4" placeholder="Add inspection notes, observations, or comments about the die condition..."></textarea>
+          <textarea id="operator-notes" class="fx-input" rows="4"
+            placeholder="Add inspection notes, observations, or comments..."></textarea>
           <div class="mt-2 flex justify-between items-center">
-            <span class="text-[10px] text-slate-500">Stored with inspection record</span>
-            <button class="text-xs text-cyan-400 hover:text-cyan-300 mono" id="btn-save-notes">Save notes</button>
+            <span class="text-[10px] text-slate-400">Stored with record</span>
+            <button class="text-xs text-indigo-600 dark:text-indigo-400 hover:underline mono" id="btn-save-notes">Save notes</button>
           </div>
         </div>
       </div>
-    </aside>
+    </div>
   </div>
-
-  <div class="h-10"></div>
 </div>
 
 
-<!-- TICKET PREVIEW MODAL -->
-<div class="fx-modal-backdrop" id="ticket-modal">
-  <div class="fx-modal" role="dialog" aria-labelledby="ticket-title">
-    <div class="px-5 py-4 border-b border-slate-700/50 flex items-center justify-between">
+<!-- MODAL -->
+<div class="fx-modal-bg" id="ticket-modal">
+  <div class="fx-modal-box">
+    <div class="px-5 py-4 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between">
       <div>
-        <div class="text-[10px] uppercase tracking-wider text-amber-400">Maintenance Ticket Generated</div>
-        <div id="ticket-title" class="text-base font-bold text-white">Ticket #MTNC-xxxx</div>
+        <div class="text-[10px] uppercase tracking-wider text-amber-600 dark:text-amber-400">Maintenance Ticket Generated</div>
+        <div id="ticket-title" class="text-base font-bold text-slate-900 dark:text-slate-50">Ticket #MTNC-xxxx</div>
       </div>
-      <button class="text-slate-400 hover:text-white" id="btn-close-modal" aria-label="Close">×</button>
+      <button class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 text-xl leading-none" id="btn-close-modal">&times;</button>
     </div>
-    <div class="p-5 text-sm flex flex-col gap-3" id="ticket-body">
-      <!-- populated by JS -->
-    </div>
-    <div class="px-5 py-3 border-t border-slate-700/50 flex justify-end gap-2 bg-slate-900/40 rounded-b-xl">
-      <button class="fx-btn ghost" id="btn-cancel-ticket">Close</button>
+    <div class="p-5 text-sm flex flex-col gap-3" id="ticket-body"></div>
+    <div class="px-5 py-3 border-t border-slate-200 dark:border-slate-700 flex justify-end gap-2 bg-slate-50 dark:bg-slate-800/80 rounded-b-xl">
+      <button class="fx-btn" id="btn-cancel-ticket">Close</button>
       <button class="fx-btn primary" id="btn-submit-ticket">Submit to Maintenance</button>
     </div>
   </div>
 </div>
 
 <!-- TOAST -->
-<div id="fx-toast" class="fx-toast">
+<div class="fx-toast" id="fx-toast">
   <div class="flex items-start gap-2">
-    <svg class="mt-0.5" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12l5 5L20 7"/></svg>
-    <div id="fx-toast-msg">Action completed</div>
+    <svg class="w-3.5 h-3.5 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M5 12l5 5L20 7"/></svg>
+    <div id="fx-toast-msg">Done</div>
   </div>
 </div>
 
 
-<!-- MOCK AI DATA + LOGIC -->
 <script>
-  // ── Mock inspection data ──────────────────────────────
-  const INSPECTION = {{ inspection_data | tojson }};
+(function(){
+  const INS = {{ inspection_data | tojson }};
 
-  // Four prebuilt die scenarios
-  const SCENARIOS = {
+  const SCEN = {
     normal: {
-      name: 'Normal',
-      defects: [],
-      confidence: 0.962,
-      severity: 'none',            // none|low|medium|high|critical
-      severityLevel: 0,
-      recommendation: 'Die is within inspection tolerances. No defects detected — return die to press store.',
-      decision: 'pass',
-      summary: 'Clean face · no anomalies found.',
-      overlays: []
+      label: 'Normal',
+      img: '/static/images/die_normal.svg',
+      confidence: 0.962, severity: 'none', severityLevel: 0,
+      recommendation: 'Die is within tolerances. Return to press store.',
+      decision: 'pass', summary: 'No defects detected.',
+      overlays: [],
+      defects: []
     },
     wear: {
-      name: 'Minor Wear',
-      defects: [
-        { id: 'd01', type: 'Wear',  label: 'Bearing land wear',   severity: 'low',    confidence: 0.87, port: 'P1', note: 'Bearing land erosion visible on port P1 — monitor in next cycle.' },
-        { id: 'd02', type: 'Scratch', label: 'Surface scratch',    severity: 'low',    confidence: 0.81, port: 'P4', note: 'Light surface scratch on lower pocket, likely handling damage.' }
-      ],
-      confidence: 0.894,
-      severity: 'low',
-      severityLevel: 1,
-      recommendation: 'Die is acceptable for short runs. Schedule polish during next tool-service window.',
-      decision: 'pass',
-      summary: '2 minor findings · continue operation',
+      label: 'Minor Wear',
+      img: '/static/images/die_wear.svg',
+      confidence: 0.894, severity: 'low', severityLevel: 1,
+      recommendation: 'Bearing land wear on P1. Acceptable for short runs — schedule polish at next service.',
+      decision: 'pass', summary: '2 minor findings.',
       overlays: [
-        { x: 0.34, y: 0.33, type: 'Wear',    sev: 'low'    },
-        { x: 0.34, y: 0.67, type: 'Scratch', sev: 'low'    }
+        { x: 0.31, y: 0.36, type: 'Wear',    sev: 'low', port: 'P1', note: 'Bearing land erosion' },
+        { x: 0.31, y: 0.64, type: 'Scratch', sev: 'low', port: 'P4', note: 'Handling damage — surface scratch' }
+      ],
+      defects: [
+        { type: 'Wear',    label: 'Bearing land wear',  severity: 'low',    confidence: 0.87, note: 'Bearing land erosion on port P1.' },
+        { type: 'Scratch', label: 'Surface scratch',    severity: 'low',    confidence: 0.81, note: 'Light surface scratch, handling damage.' }
       ]
     },
     crack: {
-      name: 'Critical Crack',
-      defects: [
-        { id: 'd10', type: 'Crack',   label: 'Radial crack',        severity: 'critical', confidence: 0.97, port: 'P2', note: 'Through-face radial crack detected emanating from port P2 bearing land — immediate fail.' },
-        { id: 'd11', type: 'Crack',   label: 'Bearing crack',       severity: 'high',     confidence: 0.91, port: 'P5', note: 'Secondary crack detected in lower bearing section.' },
-        { id: 'd12', type: 'Chipping', label: 'Edge chipping',       severity: 'medium',   confidence: 0.88, port: 'P2', note: 'Minor chipping observed adjacent to primary crack site.' }
-      ],
-      confidence: 0.941,
-      severity: 'critical',
-      severityLevel: 4,
-      recommendation: 'FAIL — immediate removal from service. Dispatch to repair shop for weld & re-machining. Do not return to press.',
-      decision: 'fail',
-      summary: '3 findings · 1 critical crack · FAIL',
+      label: 'Critical Crack',
+      img: '/static/images/die_crack.svg',
+      confidence: 0.941, severity: 'critical', severityLevel: 4,
+      recommendation: 'FAIL — immediate removal from service. Dispatch for weld &amp; re-machining.',
+      decision: 'fail', summary: '3 findings · critical crack.',
       overlays: [
-        { x: 0.50, y: 0.28, type: 'Crack',   sev: 'crit'   },
-        { x: 0.50, y: 0.72, type: 'Crack',   sev: 'high'   },
-        { x: 0.50, y: 0.24, type: 'Chipping', sev: 'medium' }
+        { x: 0.48, y: 0.22, type: 'Crack',    sev: 'critical', port: 'P2', note: 'Radial crack' },
+        { x: 0.49, y: 0.68, type: 'Crack',    sev: 'high',     port: 'P5', note: 'Bearing crack' },
+        { x: 0.49, y: 0.24, type: 'Chipping', sev: 'medium',   port: 'P2', note: 'Edge chipping' }
+      ],
+      defects: [
+        { type: 'Crack',    label: 'Radial crack',       severity: 'critical', confidence: 0.97, note: 'Through-face radial crack near P2.' },
+        { type: 'Crack',    label: 'Bearing crack',      severity: 'high',     confidence: 0.91, note: 'Secondary crack in lower bearing.' },
+        { type: 'Chipping', label: 'Edge chipping',      severity: 'medium',   confidence: 0.88, note: 'Chipping adjacent to crack origin.' }
       ]
     },
     contamination: {
-      name: 'Contamination Buildup',
-      defects: [
-        { id: 'd20', type: 'Contamination', label: 'Alloy buildup',         severity: 'medium', confidence: 0.93, port: 'P3', note: 'Alloy buildup inside port P3 flow channel — reduced cross-section observed.' },
-        { id: 'd21', type: 'Clogged Port',  label: 'Clogged flow channel',  severity: 'medium', confidence: 0.89, port: 'P6', note: 'Partial flow blockage on port P6 — run solvent cleaning cycle.' },
-        { id: 'd22', type: 'Alignment',     label: 'Port alignment offset', severity: 'low',    confidence: 0.78, port: 'P3', note: 'Slight port misalignment — verify after cleaning.' }
-      ],
-      confidence: 0.902,
-      severity: 'medium',
-      severityLevel: 2,
-      recommendation: 'MEDIUM · perform ultrasonic cleaning and re-inspect before returning to press. Alignment to be calibrated.',
-      decision: 'pending',
-      summary: '3 findings · contamination + clogging',
+      label: 'Contamination',
+      img: '/static/images/die_contamination.svg',
+      confidence: 0.902, severity: 'medium', severityLevel: 2,
+      recommendation: 'Perform ultrasonic cleaning and re-inspect before returning to press.',
+      decision: 'pending', summary: 'Buildup + clogging on P3 &amp; P6.',
       overlays: [
-        { x: 0.66, y: 0.33, type: 'Contamination', sev: 'medium' },
-        { x: 0.66, y: 0.67, type: 'Clogged Port',  sev: 'medium' },
-        { x: 0.66, y: 0.30, type: 'Alignment',     sev: 'low'    }
+        { x: 0.69, y: 0.36, type: 'Contamination', sev: 'medium', port: 'P3', note: 'Alloy buildup' },
+        { x: 0.69, y: 0.64, type: 'Clogged Port',  sev: 'medium', port: 'P6', note: 'Flow blockage' },
+        { x: 0.69, y: 0.34, type: 'Alignment',     sev: 'low',    port: 'P3', note: 'Port offset' }
+      ],
+      defects: [
+        { type: 'Contamination', label: 'Alloy buildup',        severity: 'medium', confidence: 0.93, note: 'Alloy buildup on port P3.' },
+        { type: 'Clogged Port',  label: 'Flow blockage on P6',  severity: 'medium', confidence: 0.89, note: 'Partial blockage — run cleaning cycle.' },
+        { type: 'Alignment',     label: 'Port alignment offset', severity: 'low',   confidence: 0.78, note: 'Slight offset — verify after cleaning.' }
       ]
     }
   };
 
-  // Default scenario (loaded on page open)
-  let currentScenario = 'wear';  // realistic: operator has just opened the die record
-  let state = {
-    started: false,
-    captured: false,
-    analyzed: false,
-    decision: null,          // 'pass' | 'fail' | null
-    scenario: currentScenario,
-    ticketId: null
-  };
+  let curKey    = 'wear';
+  const STATE   = { started: false, captured: false, analyzed: false, decision: null };
 
-  // ── DOM helpers ───────────────────────────────────────
-  const $ = (q) => document.querySelector(q);
-  const $$ = (q) => document.querySelectorAll(q);
-  const nowStamp = () => {
-    const d = new Date();
-    return d.toTimeString().substring(0, 8);
-  };
-  const nowISO = () => new Date().toISOString().replace('T', ' ').substring(0, 19);
+  const $ = (s) => document.querySelector(s);
+  const nowISO  = () => new Date().toISOString().split('T').join(' ').substring(0,19);
+  const nowTime = () => new Date().toTimeString().substring(0,8);
 
-  const toast = (msg, kind = 'success') => {
+  // Toast
+  function toast(msg, kind) {
     const t = $('#fx-toast');
     $('#fx-toast-msg').textContent = msg;
-    t.className = `fx-toast ${kind} show`;
+    t.className = 'fx-toast ' + (kind||'success') + ' show';
     clearTimeout(toast._t);
     toast._t = setTimeout(() => t.classList.remove('show'), 3000);
-  };
+  }
 
-  // ── Live clock ────────────────────────────────────────
+  // Clock
   const clockEl = $('#live-clock');
-  function tickClock() { clockEl.textContent = new Date().toISOString().substring(11, 19) + ' UTC'; }
-  tickClock(); setInterval(tickClock, 1000);
+  setInterval(() => { clockEl.textContent = new Date().toTimeString().substring(0,8) + ' UTC'; }, 1000);
+  clockEl.textContent = new Date().toTimeString().substring(0,8) + ' UTC';
 
-  // ── Timeline ──────────────────────────────────────────
-  const timeline = $('#timeline');
-  function addEvent(kind, title, sub) {
-    const item = document.createElement('div');
-    item.className = `timeline-item ${kind}`;
-    item.innerHTML = `
-      <span class="node"></span>
-      <div class="flex items-baseline justify-between gap-2">
-        <div class="msg">${title}</div>
-        <div class="time mono">${nowStamp()}</div>
-      </div>
-      ${sub ? `<div class="sub">${sub}</div>` : ''}
-    `;
-    timeline.prepend(item);
-    updateEventCount();
+  // Timeline
+  const TL = $('#timeline');
+  function tl(kind, title, sub) {
+    const d = document.createElement('div');
+    d.className = 'tl-item ' + kind;
+    d.innerHTML = '<span class="tl-node"></span><div style="display:flex;align-items:baseline;justify-content:space-between;gap:8px">' +
+      '<div style="color:#1e293b;font-size:13px" class="dark:text-slate-200">' + title + '</div>' +
+      '<div style="color:#94a3b8;font-size:11px;font-family:monospace">' + nowTime() + '</div>' +
+    '</div>' + (sub ? '<div style="color:#64748b;font-size:12px;margin-top:1px">' + sub + '</div>' : '');
+    TL.prepend(d);
+    $('#event-count').textContent = TL.children.length + ' events';
   }
-  function updateEventCount() {
-    const n = timeline.children.length;
-    $('#event-count').textContent = `${n} event${n !== 1 ? 's' : ''}`;
+  tl('done', 'Inspection record created', 'INSP-' + INS.id.slice(-8).toUpperCase() + ' · ' + INS.operator);
+  tl('done', 'Camera standby', 'CAM-01 connected');
+
+  // Load SVG image
+  function loadDieSVG(key) {
+    const sc = SCEN[key];
+    const svgEl = $('#die-img');
+    // Use <image> or just swap via fetch
+    fetch(sc.img).then(r => r.text()).then(txt => {
+      svgEl.outerHTML = '<div id="die-wrap" style="position:relative;width:100%;aspect-ratio:960/640">' +
+        '<div style="position:absolute;inset:0"><svg id="die-img" viewBox="0 0 960 640" preserveAspectRatio="xMidYMid meet" style="width:100%;height:100%;display:block">' +
+        txt.replace(/^.*?<svg[^>]*>/, '').replace(/<\/svg>$/, '') + '</svg></div>' +
+        '<div id="defect-dots" style="position:absolute;inset:0;pointer-events:none"></div>' +
+        '</div>';
+      renderOverlays(sc.overlays);
+    }).catch(() => { /* leave as-is */ });
   }
 
-  // Initial events (the die record was just opened)
-  addEvent('done', 'Inspection record created',   `INSP-${INSPECTION.id.slice(-8).toUpperCase()} · Operator ${INSPECTION.operator}`);
-  addEvent('done', 'Camera standby',              'CAM-01 connected · CAL-INSPECT-01');
-
-  // ── Overlay rendering ─────────────────────────────────
-  function renderOverlays(overlays) {
-    const stage = $('#viewport-stage');
-    $('#defect-overlays').innerHTML = '';
-    overlays.forEach(o => {
-      const node = document.createElement('div');
-      node.className = `defect-marker sev-${o.sev}`;
-      node.style.left = `${o.x * 100}%`;
-      node.style.top  = `${o.y * 100}%`;
-      node.innerHTML = `
-        <div class="ring"></div>
-        <div class="dot"></div>
-        <div class="label">${o.type.toUpperCase()} · PORT ${o.x < 0.5 ? (o.y<0.5?'P1':'P4') : (o.x > 0.55 ? (o.y<0.5?'P3':'P6') : (o.y<0.5?'P2':'P5'))}</div>
-      `;
-      $('#defect-overlays').appendChild(node);
-      // stagger reveal
-      setTimeout(() => node.classList.add('visible'), 120 + overlays.indexOf(o) * 180);
+  // Overlay dots
+  function renderOverlays(ovs) {
+    const c = $('#defect-dots');
+    if (!c) return;
+    c.innerHTML = '';
+    ovs.forEach((o, i) => {
+      const dot = document.createElement('div');
+      dot.className = 'defect-dot ' + o.sev;
+      dot.style.left = (o.x * 100) + '%';
+      dot.style.top  = (o.y * 100) + '%';
+      dot.title  = o.type + ' · ' + o.port;
+      dot.innerHTML = '<div class="tip">' + o.type.toUpperCase() + ' · PORT ' + o.port + '</div>';
+      c.appendChild(dot);
+      setTimeout(() => dot.classList.add('visible'), 200 + i * 150);
     });
   }
 
-  // ── Defect gallery ────────────────────────────────────
-  // Generates a small SVG "thumbnail" per defect, themed by severity
-  function sevColor(sev) {
-    return ({ low: '#facc15', medium: '#f97316', high: '#ef4444', critical: '#dc2626' })[sev] || '#94a3b8';
+  // Gallery
+  function sevHex(s) {
+    return { low: '#3b82f6', medium: '#eab308', high: '#f97316', critical: '#ef4444' }[s] || '#94a3b8';
   }
-  function defectThumbSVG(defect) {
-    const c = sevColor(defect.severity);
-    // abstract visual: dark background with a defect-type-specific mark
-    const shapes = {
-      'Wear':          `<ellipse cx="60" cy="45" rx="30" ry="14" fill="none" stroke="${c}" stroke-dasharray="2 3"/><path d="M40 45 Q60 35 80 45" stroke="${c}" fill="none" stroke-width="1" opacity="0.8"/>`,
-      'Scratch':       `<path d="M20 70 Q60 30 100 70" stroke="${c}" fill="none" stroke-width="1"/>`,
-      'Crack':         `<path d="M30 20 L45 50 L40 60 L58 80 L52 85" stroke="${c}" fill="none" stroke-width="1.5"/><path d="M45 50 L60 45" stroke="${c}" fill="none" stroke-width="1"/>`,
-      'Chipping':      `<polygon points="55,40 70,48 68,62 54,58" fill="${c}" opacity="0.35" stroke="${c}"/>`,
-      'Contamination': `<path d="M30 50 Q50 20 70 50 Q80 70 60 75 Q40 78 30 50 Z" fill="${c}" opacity="0.25" stroke="${c}"/>`,
-      'Clogged Port':  `<rect x="40" y="30" width="40" height="30" fill="${c}" opacity="0.3"/><circle cx="60" cy="45" r="10" fill="#020617" stroke="${c}"/>`,
-      'Alignment':     `<circle cx="60" cy="45" r="18" fill="none" stroke="${c}"/><circle cx="58" cy="47" r="12" fill="none" stroke="${c}" opacity="0.5"/>`
-    };
-    return `
-      <svg viewBox="0 0 120 90" xmlns="http://www.w3.org/2000/svg">
-        <defs>
-          <linearGradient id="metal${defect.id}" x1="0" x2="1" y1="0" y2="1">
-            <stop offset="0%" stop-color="#334155"/><stop offset="100%" stop-color="#0f172a"/>
-          </linearGradient>
-        </defs>
-        <rect width="120" height="90" fill="url(#metal${defect.id})"/>
-        <circle cx="60" cy="45" r="22" fill="#020617" stroke="#475569"/>
-        ${shapes[defect.type] || ''}
-        <rect x="2" y="2" width="8" height="8" fill="${c}" opacity="0.9"/>
-      </svg>`;
-  }
-  function renderDefectGallery(defects) {
+  function renderGallery(defects) {
     const gal = $('#defect-gallery');
-    $('#defect-summary-count').textContent = `${defects.length} finding${defects.length !== 1 ? 's' : ''}`;
+    $('#defect-cnt').textContent = defects.length + ' finding' + (defects.length !== 1 ? 's' : '');
     if (!defects.length) {
-      gal.innerHTML = `
-        <div class="thumb-card col-span-2 md:col-span-3">
-          <div class="preview flex items-center justify-center">
-            <div class="text-center text-emerald-400 text-sm">
-              <div class="text-4xl mb-2">✓</div>
-              No defects detected · Die passes inspection
-            </div>
-          </div>
-        </div>`;
+      gal.innerHTML = '<div class="d-card col-span-2 md:col-span-3"><div class="d-preview"><div class="text-center text-emerald-500 text-sm"><div style="font-size:2rem;margin-bottom:4px">✓</div>No defects detected</div></div></div>';
       return;
     }
-    gal.innerHTML = defects.map(d => `
-      <div class="thumb-card">
-        <div class="preview">${defectThumbSVG(d)}</div>
-        <div class="body">
-          <h4 style="color:${sevColor(d.severity)};">${d.type}</h4>
-          <p>${d.label} · <span class="mono">${(d.confidence * 100).toFixed(0)}%</span></p>
-          <p class="mt-1 text-[11px]">${d.note}</p>
-        </div>
-      </div>`).join('');
+    gal.innerHTML = defects.map(d => {
+      const c = sevHex(d.severity);
+      return '<div class="d-card"><div class="d-preview">' +
+        '<svg viewBox="0 0 120 90"><rect width="120" height="90" fill="#f1f5f9" class="dark:fill-slate-900"/>' +
+        '<circle cx="60" cy="45" r="20" fill="#e2e8f0" class="dark:fill-slate-700" stroke="' + c + '" stroke-width="1.5"/>' +
+        '<circle cx="60" cy="45" r="3" fill="' + c + '"/></svg></div>' +
+        '<div class="d-body"><h4 style="color:' + c + '">' + d.type + '</h4>' +
+        '<p>' + d.label + ' · <span style="color:#475569;font-family:monospace">' + Math.round(d.confidence * 100) + '%</span></p>' +
+        '<p style="margin-top:2px">' + d.note + '</p></div></div>';
+    }).join('');
+    $('#thumb-after').textContent = defects.length + ' found';
   }
 
-  // ── Severity meter ────────────────────────────────────
-  function updateSeverityMeter(level, label, color) {
-    const m = $('#sev-meter');
-    m.className = `sev-meter ${color} on-${level}`;
-    $('#severity-label').textContent = label.toUpperCase();
-    $('#severity-label').style.color = color;
-  }
-
-  // ── Summary updates ───────────────────────────────────
-  function updateSummary(scenarioKey) {
-    const s = SCENARIOS[scenarioKey];
+  function updateSummary(key) {
+    const sc = SCEN[key];
     // Confidence
-    const conf = s.confidence;
-    $('#confidence-value').textContent = `${conf.toFixed(2)} · ${(conf*100).toFixed(0)}%`;
-    $('#confidence-gauge').style.setProperty('--pct', conf * 100);
+    const pct = Math.round(sc.confidence * 100);
+    $('#conf-val').textContent = sc.confidence.toFixed(3) + ' · ' + pct + '%';
+    $('#conf-bar').querySelector('span').style.width = pct + '%';
 
     // Severity
-    const sevMap = {
-      none:     { label: 'None',     level: 0, color: '#22c55e' },
-      low:      { label: 'Low',      level: 1, color: '#facc15' },
-      medium:   { label: 'Medium',   level: 2, color: '#f97316' },
-      high:     { label: 'High',     level: 3, color: '#ef4444' },
-      critical: { label: 'Critical', level: 4, color: '#dc2626' }
-    };
-    const sm = sevMap[s.severity];
-    updateSeverityMeter(sm.level, sm.label, sm.color);
+    const m = { none:{l:'None',c:'#10b981'}, low:{l:'Low',c:'#eab308'}, medium:{l:'Medium',c:'#f97316'}, high:{l:'High',c:'#f97316'}, critical:{l:'Critical',c:'#ef4444'} };
+    const sm = m[sc.severity];
+    $('#sev-label').textContent = sm.l.toUpperCase();
+    $('#sev-label').style.color = sm.c;
+    const meter = $('#sev-meter');
+    meter.className = 'sev-meter';
+    for (let i = 1; i <= sc.severityLevel; i++) {
+      const sp = document.createElement('span');
+      sp.style.background = sm.c;
+      meter.appendChild(sp);
+    }
+    for (let i = sc.severityLevel; i < 5; i++) {
+      const sp = document.createElement('span');
+      meter.appendChild(sp);
+    }
 
     // Severity chip
-    const chipClass = s.severity === 'none' || s.severity === 'low' ? 'ok' : s.severity === 'medium' ? 'warn' : 'danger';
-    const sevChip = $('#defect-severity-chip');
-    sevChip.className = `fx-chip ${chipClass}`;
-    sevChip.innerHTML = `<span class="led"></span>${s.severity.toUpperCase()}`;
+    const chipMap = { none: 'ok', low: 'ok', medium: 'warn', high: 'danger', critical: 'danger' };
+    $('#sev-chip').className = 's-chip ' + chipMap[sc.severity];
+    $('#sev-chip').innerHTML = '<span class="led"></span>' + sc.severity.toUpperCase();
 
     // Recommendation
-    $('#recommendation').textContent = s.recommendation;
+    $('#recommendation').textContent = sc.recommendation;
 
     // Decision banner
-    if (s.decision === 'pass') {
-      $('#decision-banner').outerHTML = `
-        <div id="decision-banner" class="decision-banner pass">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><path d="M8 12l3 3 5-6"/></svg>
-          <div><div class="text-[10px] uppercase tracking-wider opacity-70">Recommended · Pass</div>
-          <div class="text-sm">Return die to press store · no critical defects</div></div>
-        </div>`;
-    } else if (s.decision === 'fail') {
-      $('#decision-banner').outerHTML = `
-        <div id="decision-banner" class="decision-banner fail">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><path d="M8 8l8 8M16 8l-8 8"/></svg>
-          <div><div class="text-[10px] uppercase tracking-wider opacity-70">Recommended · Fail</div>
-          <div class="text-sm">Remove die from service · create maintenance ticket</div></div>
-        </div>`;
-    } else {
-      // pending decision
+    const db = $('#decision-banner');
+    if (sc.decision === 'pass') {
+      db.outerHTML = '<div id="decision-banner" class="d-banner pass"><svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><path d="M8 12l3 3 5-6"/></svg><div><div class="text-[10px] uppercase tracking-wider opacity-70">Recommended · Pass</div><div style="font-weight:400">Die cleared for return to press store</div></div></div>';
+    } else if (sc.decision === 'fail') {
+      db.outerHTML = '<div id="decision-banner" class="d-banner fail"><svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><path d="M8 8l8 8M16 8l-8 8"/></svg><div><div class="text-[10px] uppercase tracking-wider opacity-70">Recommended · Fail</div><div style="font-weight:400">Remove die from service · create maintenance ticket</div></div></div>';
     }
   }
 
-  function setScenarioChip(name) {
-    const el = document.createElement('span');
-    return el;
-  }
-
-  // ── Scenario picker (top-right in the header) ─────────
-  // Inject a hidden picker for demo purposes (access via console or keyboard)
-  // Keyboard: press 1-4 to demo each scenario
-  document.addEventListener('keydown', (e) => {
-    if (e.target.tagName === 'TEXTAREA' || e.target.tagName === 'INPUT') return;
-    if (e.key === '1') pickScenario('normal');
-    if (e.key === '2') pickScenario('wear');
-    if (e.key === '3') pickScenario('crack');
-    if (e.key === '4') pickScenario('contamination');
-  });
-
-  function pickScenario(key) {
-    if (!state.started) { toast('Start the inspection first', 'error'); return; }
-    state.scenario = key;
-    const sc = SCENARIOS[key];
-    addEvent('warn', `Scenario preset · ${sc.name}`, `Loaded: ${sc.summary}`);
-    renderOverlays(sc.overlays);
-    renderDefectGallery(sc.defects);
-    updateSummary(key);
-    toast(`Scenario · "${sc.name}" loaded`, 'success');
-  }
-
-  // ── Button wiring ─────────────────────────────────────
+  // ─ Buttons ───────────────────────────────────────────
   $('#btn-start').addEventListener('click', () => {
-    if (state.started) return;
-    state.started = true;
-    // camera turns "live"
-    $('#cam-status-text').textContent = 'Camera Live';
-    $('#rec-badge').innerHTML = `<span class="led"></span>REC`;
-    $('#rec-badge').className = 'fx-chip danger';
-    $('#status-chip').innerHTML = `<span class="led"></span>Ready`;
-    $('#status-chip').className = 'fx-chip ok';
-    $('#system-state-text').textContent = 'Camera Live';
-    $('#system-state-chip').className = 'fx-chip ok';
+    if (STATE.started) return;
+    STATE.started = true;
+    $('#sys-chip-text').textContent = 'Camera Live';
+    $('#sys-chip').className = 's-chip ok';
+    $('#status-chip').innerHTML = '<span class="led"></span>Ready';
+    $('#status-chip').className = 's-chip ok';
     $('#captured-at').textContent = nowISO();
-    $('#next-action').innerHTML = `<span class="text-cyan-300">Capture Frame</span> to acquire the die image for AI analysis.`;
+    $('#next-action').innerHTML = '<span class="text-indigo-600 dark:text-indigo-400 font-semibold">Capture Frame</span> to acquire the die image.';
+    $('#btn-capture').disabled = false;
 
-    addEvent('done', 'Camera connected',   'CAM-01 · 1280×960 · gain auto');
-    addEvent('done', 'AI model loaded',    'ExtrusionDie-v2.3 · 48MB · GPU warm');
-    addEvent('active', 'Awaiting capture', 'Position die under camera, then capture frame');
-
-    $('#btn-capture').focus();
-    toast('Camera online · ready to capture', 'success');
+    tl('done', 'Camera connected', 'CAM-01 · 1280×960');
+    tl('active', 'Awaiting capture', 'Position die, then capture frame');
+    toast('Camera online', 'success');
   });
 
   $('#btn-capture').addEventListener('click', () => {
-    if (!state.started) { toast('Start inspection first', 'error'); return; }
-    // flash animation
+    if (!STATE.started || STATE.captured) return;
+    STATE.captured = true;
     const vp = $('#viewport');
     vp.classList.add('flash');
     setTimeout(() => vp.classList.remove('flash'), 600);
-    // mark captured
-    state.captured = true;
     const fc = 'FR-' + Math.random().toString(36).substring(2, 8).toUpperCase();
     $('#frame-code').textContent = 'FRAME · ' + fc;
-    addEvent('done', 'Frame captured', `${fc} · 1280×960 · PNG`);
-    addEvent('active', 'Frame locked', 'Ready for AI analysis');
-    $('#status-chip').innerHTML = `<span class="led"></span>Frame locked`;
-    $('#status-chip').className = 'fx-chip info';
-    $('#next-action').innerHTML = `<span class="text-cyan-300">Run AI Analysis</span> to detect defects on the captured frame.`;
+    tl('done', 'Frame captured', fc);
+    tl('active', 'Frame locked', 'Ready for AI analysis');
+    $('#status-chip').innerHTML = '<span class="led"></span>Frame locked';
+    $('#status-chip').className = 's-chip info';
+    $('#next-action').innerHTML = '<span class="text-indigo-600 dark:text-indigo-400 font-semibold">Run AI Analysis</span> to detect defects.';
     $('#btn-analyze').disabled = false;
-    $('#btn-analyze').focus();
-    toast('Frame captured · ready for AI', 'success');
+
+    // Load the scenario die image
+    loadDieSVG(curKey);
   });
 
   $('#btn-analyze').addEventListener('click', () => {
-    if (!state.captured || state.analyzed) return;
-    // scan animation
-    const vp = $('#viewport');
-    vp.classList.add('scanning');
-    $('#ai-live-status').textContent = 'RUNNING';
-    $('#ai-live-status').style.color = '#f59e0b';
+    if (!STATE.captured || STATE.analyzed) return;
+    STATE.analyzed = true;
+    $('#die-img').closest('.camera-view, #die-wrap')?.classList?.add('scanning');
     $('#btn-analyze').disabled = true;
-    $('#system-state-text').textContent = 'Analyzing…';
-    $('#system-state-chip').className = 'fx-chip warn';
+    $('#sys-chip-text').textContent = 'Analyzing…';
+    $('#sys-chip').className = 's-chip warn';
 
-    addEvent('active', 'AI analysis started', 'Running ExtrusionDie-v2.3 inference');
+    tl('active', 'AI analysis started', 'ExtrusionDie-v2.3 inference');
 
-    // Step-wise events
     const steps = [
-      { t: 600,  ev: ['active', 'Pre-processing',     'ROI extraction · histogram equalization'] },
-      { t: 1400, ev: ['active', 'Segmenting ports',    'Identifying 6 extrusion ports · bearing lands'] },
-      { t: 2300, ev: ['active', 'Detecting defects',   'Confidence threshold 0.80'] },
-      { t: 3200, ev: ['done',   'Inference complete',  'ExtrusionDie-v2.3 · 278ms'] },
-      { t: 3600, ev: ['warn',   'Defects identified',  `${SCENARIOS[state.scenario].defects.length} finding(s) reported`] }
+      [600,  'active', 'Pre-processing',     'ROI extraction · histogram equalization'],
+      [1400, 'active', 'Segmenting ports',    'Identifying 6 extrusion ports + bearing lands'],
+      [2300, 'active', 'Detecting defects',   'Confidence threshold 0.80'],
+      [3200, 'done',   'Inference complete',  'ExtrusionDie-v2.3 · 278ms GPU'],
+      [3600, 'warn',   'Defects identified',  SCEN[curKey].overlays.length + ' finding(s)']
     ];
-    steps.forEach(s => setTimeout(() => {
-      if (Array.isArray(s.ev[0])) s.ev.forEach(e => addEvent(e[0], e[1], e[2]));
-      else addEvent(s.ev[0], s.ev[1], s.ev[2]);
-    }, s.t));
+    steps.forEach(([t, kind, title, sub]) => setTimeout(() => tl(kind, title, sub), t));
 
-    // Finalize
     setTimeout(() => {
-      vp.classList.remove('scanning');
-      $('#ai-live-status').textContent = 'OK';
-      $('#ai-live-status').style.color = '#22d3ee';
-      $('#last-inf').textContent = nowStamp();
-      state.analyzed = true;
-
-      const sc = SCENARIOS[state.scenario];
+      $('#die-img').closest('.camera-view, #die-wrap')?.classList?.remove('scanning');
+      const sc = SCEN[curKey];
       renderOverlays(sc.overlays);
-      renderDefectGallery(sc.defects);
-      updateSummary(state.scenario);
+      renderGallery(sc.defects);
+      updateSummary(curKey);
+      $('#status-chip').innerHTML = '<span class="led"></span>Analysis complete';
+      $('#status-chip').className = (sc.severity === 'critical' || sc.severity === 'high') ? 's-chip danger' : 's-chip ok';
+      $('#sys-chip-text').textContent = 'Analysis complete';
+      $('#sys-chip').className = sc.severity === 'critical' ? 's-chip danger' : 's-chip ok';
 
-      $('#status-chip').innerHTML = `<span class="led"></span>Analysis complete`;
-      $('#status-chip').className = `fx-chip ${sc.severity === 'critical' || sc.severity === 'high' ? 'danger' : 'ok'}`;
-      $('#system-state-text').textContent = 'Analysis complete';
-      $('#system-state-chip').className = `fx-chip ${sc.severity === 'critical' ? 'danger' : 'ok'}`;
+      $('#btn-pass').disabled   = true;
+      $('#btn-fail').disabled   = true;
+      $('#btn-ticket').disabled = true;
 
-      // Enable pass/fail/ticket
-      $('#btn-pass').disabled   = false;
-      $('#btn-fail').disabled   = false;
-      $('#btn-ticket').disabled = sc.decision !== 'fail';
-
-      if (sc.decision === 'pending') {
-        $('#next-action').innerHTML = `Review findings and <span class="text-cyan-300">Mark Pass</span> or <span class="text-cyan-300">Mark Fail</span>.`;
-      } else if (sc.decision === 'fail') {
-        $('#next-action').innerHTML = `<span class="text-red-300 font-semibold">Critical defects detected.</span> <span class="text-cyan-300">Mark Fail</span> and create a maintenance ticket.`;
+      if (sc.decision === 'fail') {
+        $('#btn-pass').disabled  = true;
+        $('#btn-fail').disabled  = false;
+        $('#btn-ticket').disabled = true;
+        $('#next-action').innerHTML = '<span style="color:#dc2626;font-weight:600">Critical defects detected.</span> <span class="text-indigo-600 dark:text-indigo-400">Mark Fail</span> and create maintenance ticket.';
+      } else if (sc.decision === 'pending') {
+        $('#btn-pass').disabled  = false;
+        $('#btn-fail').disabled  = false;
+        $('#btn-ticket').disabled = true;
+        $('#next-action').innerHTML = 'Review findings · <span class="text-indigo-600 dark:text-indigo-400">Mark Pass</span> or <span class="text-indigo-600 dark:text-indigo-400">Mark Fail</span>.';
       } else {
-        $('#next-action').innerHTML = `Die is clean. <span class="text-cyan-300">Mark Pass</span> to return die to store.`;
+        $('#btn-pass').disabled  = false;
+        $('#btn-fail').disabled  = true;
+        $('#btn-ticket').disabled = true;
+        $('#next-action').innerHTML = '<span class="text-indigo-600 dark:text-indigo-400 font-semibold">Mark Pass</span> to return die to store.';
       }
-
       toast('AI analysis complete', 'success');
     }, 3800);
   });
 
-  // ── Pass & Fail ───────────────────────────────────────
+  // Pass / Fail
   $('#btn-pass').addEventListener('click', () => {
-    if (state.decision) return;
-    state.decision = 'pass';
-    $('#decision-banner').outerHTML = `
-      <div id="decision-banner" class="decision-banner pass">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><path d="M8 12l3 3 5-6"/></svg>
-        <div><div class="text-[10px] uppercase tracking-wider opacity-70">Operator Decision · Pass</div>
-        <div class="text-sm">Die cleared for return to press store</div></div>
-      </div>`;
-    $('#status-chip').innerHTML = `<span class="led"></span>PASSED`;
-    $('#status-chip').className = 'fx-chip pass';
-    $('#system-state-text').textContent = 'PASSED';
-    $('#system-state-chip').className = 'fx-chip pass';
-    addEvent('done', 'Operator marked PASS', `by ${INSPECTION.operator}`);
-    $('#btn-pass').disabled  = true;
-    $('#btn-fail').disabled  = true;
-    $('#btn-ticket').disabled = true;
-    $('#next-action').innerHTML = `Inspection complete · record saved to traceability log.`;
-    toast('Inspection PASSED · die cleared', 'success');
+    if (STATE.decision) return;
+    STATE.decision = 'pass';
+    $('#decision-banner').outerHTML = '<div id="decision-banner" class="d-banner pass"><svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><path d="M8 12l3 3 5-6"/></svg><div><div class="text-[10px] uppercase tracking-wider opacity-70">Operator Decision · Pass</div><div style="font-weight:400">Die cleared for return to press store</div></div></div>';
+    $('#status-chip').innerHTML = '<span class="led"></span>PASSED';
+    $('#status-chip').className = 's-chip pass';
+    $('#sys-chip-text').textContent = 'PASSED';
+    $('#sys-chip').className = 's-chip pass';
+    tl('done', 'Operator marked PASS', 'by ' + INS.operator);
+    ['btn-pass','btn-fail','btn-ticket'].forEach(id => $('#'+id).disabled = true);
+    $('#next-action').textContent = 'Inspection complete · record saved.';
+    toast('Inspection PASSED', 'success');
   });
 
   $('#btn-fail').addEventListener('click', () => {
-    if (state.decision) return;
-    state.decision = 'fail';
-    $('#decision-banner').outerHTML = `
-      <div id="decision-banner" class="decision-banner fail">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><path d="M8 8l8 8M16 8l-8 8"/></svg>
-        <div><div class="text-[10px] uppercase tracking-wider opacity-70">Operator Decision · FAIL</div>
-        <div class="text-sm">Die removed from service · maintenance escalation required</div></div>
-      </div>`;
-    $('#status-chip').innerHTML = `<span class="led"></span>FAILED`;
-    $('#status-chip').className = 'fx-chip fail';
-    $('#system-state-text').textContent = 'FAILED';
-    $('#system-state-chip').className = 'fx-chip danger';
-    addEvent('error', 'Operator marked FAIL', 'Die removed from service');
-    addEvent('warn',  'Escalation required', 'Create maintenance ticket to proceed');
-    $('#btn-pass').disabled  = true;
-    $('#btn-fail').disabled  = true;
+    if (STATE.decision) return;
+    STATE.decision = 'fail';
+    $('#decision-banner').outerHTML = '<div id="decision-banner" class="d-banner fail"><svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><path d="M8 8l8 8M16 8l-8 8"/></svg><div><div class="text-[10px] uppercase tracking-wider opacity-70">Operator Decision · FAIL</div><div style="font-weight:400">Die removed from service · maintenance escalation required</div></div></div>';
+    $('#status-chip').innerHTML = '<span class="led"></span>FAILED';
+    $('#status-chip').className = 's-chip fail';
+    $('#sys-chip-text').textContent = 'FAILED';
+    $('#sys-chip').className = 's-chip danger';
+    tl('error', 'Operator marked FAIL', 'Die removed from service');
+    tl('warn',  'Escalation required', 'Create maintenance ticket to proceed');
+    $('#btn-pass').disabled   = true;
+    $('#btn-fail').disabled   = true;
     $('#btn-ticket').disabled = false;
     $('#btn-ticket').focus();
-    $('#next-action').innerHTML = `<span class="text-red-300 font-semibold">Create maintenance ticket</span> to log repair scope.`;
+    $('#next-action').innerHTML = '<span style="color:#dc2626;font-weight:600">Create maintenance ticket</span> to log repair scope.';
     toast('Inspection FAILED · die removed from service', 'error');
   });
 
-  // ── Maintenance ticket ────────────────────────────────
-  $('#btn-ticket').addEventListener('click', () => createTicket());
-
+  // Maintenance ticket
   function createTicket() {
-    const sc = SCENARIOS[state.scenario];
-    const defectSummary = sc.defects.map(d => `<div class="flex justify-between text-xs py-1 border-b border-slate-700/40">
-      <span><span style="color:${sevColor(d.severity)}">●</span> ${d.type} · ${d.label}</span>
-      <span class="mono text-slate-400">${(d.confidence*100).toFixed(0)}%</span>
-    </div>`).join('');
-    const ticketId = 'MTNC-' + Math.random().toString(36).substring(2, 6).toUpperCase();
-    state.ticketId = ticketId;
-
-    $('#ticket-title').textContent = `Ticket #${ticketId}`;
-    $('#ticket-body').innerHTML = `
-      <div class="grid grid-cols-2 gap-3 text-xs">
-        <div>
-          <div class="text-[10px] uppercase tracking-wider text-slate-500">Die ID</div>
-          <div class="mono text-white">${INSPECTION.dieId}</div>
-        </div>
-        <div>
-          <div class="text-[10px] uppercase tracking-wider text-slate-500">Press Line</div>
-          <div class="text-white">${INSPECTION.pressLine}</div>
-        </div>
-        <div>
-          <div class="text-[10px] uppercase tracking-wider text-slate-500">Priority</div>
-          <div class="fx-chip danger" style="width:fit-content;"><span class="led"></span>${sc.severity.toUpperCase()}</div>
-        </div>
-        <div>
-          <div class="text-[10px] uppercase tracking-wider text-slate-500">Inspection Ref</div>
-          <div class="mono text-white">INSP-${INSPECTION.id.slice(-8).toUpperCase()}</div>
-        </div>
-        <div class="col-span-2">
-          <div class="text-[10px] uppercase tracking-wider text-slate-500">Scope (from AI analysis)</div>
-          <div class="mt-1">${defectSummary}</div>
-        </div>
-        <div class="col-span-2">
-          <div class="text-[10px] uppercase tracking-wider text-slate-500">Recommended Action</div>
-          <div class="text-white text-sm leading-snug">${sc.recommendation}</div>
-        </div>
-        <div class="col-span-2 text-slate-500 text-[11px]">
-          Assigned to: <span class="text-slate-300">Die Repair Shop</span> · Est. repair time:
-          <span class="text-slate-300">${sc.severity === 'critical' ? '4–6 hrs' : sc.severity === 'high' ? '2–4 hrs' : sc.severity === 'medium' ? '1–2 hrs' : '30 min'}</span>
-        </div>
-      </div>
-    `;
+    const sc  = SCEN[curKey];
+    const def = sc.defects.map(d => '<div style="display:flex;justify-content:space-between;font-size:12px;padding:3px 0;border-bottom:1px solid #f1f5f9" class="dark:border-slate-700"><span><span style="color:' + sevHex(d.severity) + '">●</span> ' + d.type + ' · ' + d.label + '</span><span style="color:#64748b;font-family:monospace">' + Math.round(d.confidence*100) + '%</span></div>').join('');
+    const id  = 'MTNC-' + Math.random().toString(36).substring(2, 6).toUpperCase();
+    $('#ticket-title').textContent = 'Ticket #' + id;
+    $('#ticket-body').innerHTML =
+      '<div class="grid grid-cols-2 gap-3 text-xs">' +
+      '<div><div class="text-[10px] uppercase tracking-wider text-slate-500">Die ID</div><div class="mono font-semibold text-slate-900 dark:text-slate-50">' + INS.dieId + '</div></div>' +
+      '<div><div class="text-[10px] uppercase tracking-wider text-slate-500">Press Line</div><div class="text-slate-900 dark:text-slate-50 font-semibold">' + INS.pressLine + '</div></div>' +
+      '<div><div class="text-[10px] uppercase tracking-wider text-slate-500">Priority</div><div><span class="s-chip danger"><span class="led"></span>' + sc.severity.toUpperCase() + '</span></div></div>' +
+      '<div><div class="text-[10px] uppercase tracking-wider text-slate-500">Inspection Ref</div><div class="mono text-slate-900 dark:text-slate-50">INSP-' + INS.id.slice(-8).toUpperCase() + '</div></div>' +
+      '<div class="col-span-2"><div class="text-[10px] uppercase tracking-wider text-slate-500">Scope</div><div class="mt-1">' + def + '</div></div>' +
+      '<div class="col-span-2"><div class="text-[10px] uppercase tracking-wider text-slate-500">Recommended Action</div><div style="margin-top:2px;line-height:1.4">' + sc.recommendation + '</div></div>' +
+      '<div class="col-span-2 text-[11px] text-slate-500">Assigned to: Die Repair Shop · Est. time: ' +
+      ({ critical: '4–6 hrs', high: '2–4 hrs', medium: '1–2 hrs', low: '30 min', none: '30 min' }[sc.severity] || '—') +
+      '</div></div>';
     $('#ticket-modal').classList.add('show');
-    addEvent('done', 'Ticket generated', `#${ticketId} · drafted`);
+    tl('done', 'Ticket generated', '#' + id + ' · drafted');
   }
-
+  $('#btn-ticket').addEventListener('click', createTicket);
   $('#btn-close-modal').addEventListener('click', () => $('#ticket-modal').classList.remove('show'));
   $('#btn-cancel-ticket').addEventListener('click', () => $('#ticket-modal').classList.remove('show'));
   $('#btn-submit-ticket').addEventListener('click', () => {
     $('#ticket-modal').classList.remove('show');
-    addEvent('done', 'Ticket submitted', `#${state.ticketId} · routed to Die Repair Shop`);
-    $('#status-chip').innerHTML = `<span class="led"></span>Ticket raised · ${state.ticketId}`;
-    $('#status-chip').className = 'fx-chip warn';
-    $('#system-state-text').textContent = 'In repair queue';
-    $('#system-state-chip').className = 'fx-chip warn';
-    $('#next-action').innerHTML = `Die queued for repair. Tracking · <span class="mono text-cyan-300">${state.ticketId}</span>`;
+    const tid = $('#ticket-title').textContent.replace('Ticket #', '');
+    tl('done', 'Ticket submitted', '#' + tid + ' · routed to Die Repair Shop');
+    $('#status-chip').innerHTML = '<span class="led"></span>' + tid;
+    $('#status-chip').className = 's-chip warn';
+    $('#sys-chip-text').textContent = 'In repair queue';
+    $('#sys-chip').className = 's-chip warn';
+    $('#next-action').innerHTML = 'Die queued for repair · <span class="mono text-indigo-600 dark:text-indigo-400">' + tid + '</span>';
     $('#btn-ticket').disabled = true;
-    toast(`Ticket ${state.ticketId} submitted to maintenance`, 'success');
+    toast('Ticket ' + tid + ' submitted', 'success');
   });
 
-  // ── Save notes ────────────────────────────────────────
+  // Notes save
   $('#btn-save-notes').addEventListener('click', (e) => {
     e.preventDefault();
     const txt = $('#operator-notes').value.trim();
     if (!txt) { toast('Notes are empty', 'error'); return; }
-    addEvent('done', 'Operator notes saved', txt.length > 60 ? txt.substring(0, 57) + '…' : txt);
+    tl('done', 'Operator notes saved', txt.length > 60 ? txt.substring(0, 57) + '…' : txt);
     toast('Notes saved', 'success');
   });
 
-  // ── Initial state for a realistic entry ───────────────
-  // Pre-render the default scenario's defects as soon as the user starts inspection
-  // (so it feels "live" on page load).
-  window.addEventListener('load', () => {
-    $('#captured-at').textContent = nowISO();
+  // Demo shortcut: press 1-4 to demo each scenario (after Start + Capture)
+  document.addEventListener('keydown', (e) => {
+    if (e.target.tagName === 'TEXTAREA' || e.target.tagName === 'INPUT') return;
+    const map = { '1': 'normal', '2': 'wear', '3': 'crack', '4': 'contamination' };
+    if (map[e.key]) {
+      if (!STATE.started) { toast('Start inspection first', 'error'); return; }
+      curKey = map[e.key];
+      tl('warn', 'Scenario preset · ' + SCEN[curKey].label, SCEN[curKey].summary);
+      // If frame already captured, re-run analysis
+      if (STATE.captured) {
+        STATE.analyzed = false;
+        $('#btn-analyze').disabled = false;
+        loadDieSVG(curKey);
+        $('#btn-analyze').click();
+      }
+      toast('Scenario "' + SCEN[curKey].label + '" loaded', 'success');
+    }
   });
+
+})();
 </script>
 {% endblock %}

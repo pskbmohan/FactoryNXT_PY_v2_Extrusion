@@ -1,0 +1,119 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 640">
+  <title>Extrusion Die — Normal (Camera View)</title>
+  <defs>
+    <linearGradient id="metalBody" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#8a8f94"/>
+      <stop offset="30%" stop-color="#6e7276"/>
+      <stop offset="60%" stop-color="#585c60"/>
+      <stop offset="100%" stop-color="#404448"/>
+    </linearGradient>
+    <radialGradient id="pocketDepth" cx="50%" cy="50%" r="60%">
+      <stop offset="0%" stop-color="#2c3034"/>
+      <stop offset="70%" stop-color="#1a1e22"/>
+      <stop offset="100%" stop-color="#0e1114"/>
+    </radialGradient>
+    <radialGradient id="portHole" cx="40%" cy="40%" r="60%">
+      <stop offset="0%" stop-color="#1c2024"/>
+      <stop offset="100%" stop-color="#080910"/>
+    </radialGradient>
+    <filter id="metalTexture" x="0" y="0" width="100%" height="100%">
+      <feTurbulence type="fractalNoise" baseFrequency="1.5" numOctaves="3" seed="42"/>
+      <feColorMatrix values="0 0 0 0 0.55  0 0 0 0 0.57  0 0 0 0 0.6  0 0 0 0.12 0"/>
+      <feComposite in2="SourceGraphic" operator="in"/>
+      <feBlend in="SourceGraphic" mode="multiply"/>
+    </filter>
+    <filter id="softShadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="6" stdDeviation="10" flood-color="#000" flood-opacity="0.35"/>
+    </filter>
+  </defs>
+
+  <!-- Background: camera table surface -->
+  <rect width="960" height="640" fill="#2a2d30"/>
+  <rect x="60" y="40" width="840" height="560" rx="16" fill="#3a3d40" filter="url(#softShadow)"/>
+
+  <!-- Die body -->
+  <rect x="150" y="80" width="660" height="480" rx="20" fill="url(#metalBody)" filter="url(#metalTexture)"/>
+
+  <!-- Die surface machining marks (radial from center) -->
+  <circle cx="480" cy="320" r="280" fill="none" stroke="#7a7e82" stroke-width="0.3" opacity="0.4"/>
+  <circle cx="480" cy="320" r="240" fill="none" stroke="#7a7e82" stroke-width="0.3" opacity="0.3"/>
+  <circle cx="480" cy="320" r="200" fill="none" stroke="#7a7e82" stroke-width="0.3" opacity="0.2"/>
+
+  <!-- Bolt holes at corners -->
+  <g fill="#2c3034" stroke="#4a4e52" stroke-width="1.5">
+    <circle cx="190" cy="120" r="14"/>
+    <circle cx="770" cy="120" r="14"/>
+    <circle cx="190" cy="520" r="14"/>
+    <circle cx="770" cy="520" r="14"/>
+  </g>
+  <g fill="#1a1e22">
+    <circle cx="190" cy="120" r="6"/>
+    <circle cx="770" cy="120" r="6"/>
+    <circle cx="190" cy="520" r="6"/>
+    <circle cx="770" cy="520" r="6"/>
+  </g>
+
+  <!-- Inner pocket (bearing pocket) -->
+  <rect x="220" y="160" width="520" height="320" rx="16" fill="url(#pocketDepth)"/>
+  <rect x="220" y="160" width="520" height="320" rx="16" fill="none" stroke="#3a3e42" stroke-width="1"/>
+
+  <!-- Flow channels (from porthole to ports) -->
+  <g stroke="#3a4044" stroke-width="1.2" stroke-dasharray="4 3" opacity="0.7">
+    <line x1="480" y1="310" x2="295" y2="230"/>
+    <line x1="480" y1="310" x2="480" y2="200"/>
+    <line x1="480" y1="310" x2="665" y2="230"/>
+    <line x1="480" y1="310" x2="295" y2="410"/>
+    <line x1="480" y1="310" x2="480" y2="440"/>
+    <line x1="480" y1="310" x2="665" y2="410"/>
+  </g>
+
+  <!-- Center porthole -->
+  <rect x="435" y="290" width="90" height="50" rx="6" fill="url(#portHole)"/>
+  <rect x="435" y="290" width="90" height="50" rx="6" fill="none" stroke="#4a5054" stroke-width="1"/>
+  <text x="480" y="322" text-anchor="middle" font-family="monospace" font-size="11" fill="#6a7074">PORTHOLE</text>
+
+  <!-- Extrusion ports (6 ports - hollow profile die) -->
+  <g fill="#080910">
+    <!-- Top row ports -->
+    <ellipse cx="295" cy="230" rx="42" ry="28" fill="#0a0c10" stroke="#3a4044" stroke-width="1.2"/>
+    <ellipse cx="480" cy="200" rx="50" ry="22" fill="#0a0c10" stroke="#3a4044" stroke-width="1.2"/>
+    <ellipse cx="665" cy="230" rx="40" ry="30" fill="#0a0c10" stroke="#3a4044" stroke-width="1.2"/>
+    <!-- Bottom row ports -->
+    <ellipse cx="295" cy="410" rx="38" ry="32" fill="#0a0c10" stroke="#3a4044" stroke-width="1.2"/>
+    <ellipse cx="480" cy="440" rx="46" ry="26" fill="#0a0c10" stroke="#3a4044" stroke-width="1.2"/>
+    <ellipse cx="665" cy="410" rx="42" ry="28" fill="#0a0c10" stroke="#3a4044" stroke-width="1.2"/>
+  </g>
+
+  <!-- Bearing land circles (around ports) -->
+  <g fill="none" stroke="#5a6064" stroke-width="1" stroke-dasharray="5 3" opacity="0.6">
+    <ellipse cx="295" cy="230" rx="54" ry="38"/>
+    <ellipse cx="480" cy="200" rx="60" ry="30"/>
+    <ellipse cx="665" cy="230" rx="50" ry="40"/>
+    <ellipse cx="295" cy="410" rx="48" ry="42"/>
+    <ellipse cx="480" cy="440" rx="56" ry="34"/>
+    <ellipse cx="665" cy="410" rx="52" ry="38"/>
+  </g>
+
+  <!-- Port labels -->
+  <g font-family="monospace" font-size="10" fill="#8a9094" opacity="0.7">
+    <text x="295" y="258" text-anchor="middle">P1</text>
+    <text x="480" y="218" text-anchor="middle">P2</text>
+    <text x="665" y="258" text-anchor="middle">P3</text>
+    <text x="295" y="448" text-anchor="middle">P4</text>
+    <text x="480" y="462" text-anchor="middle">P5</text>
+    <text x="665" y="448" text-anchor="middle">P6</text>
+  </g>
+
+  <!-- Scale markers on edges -->
+  <g font-family="monospace" font-size="9" fill="#6a7074" opacity="0.6">
+    <text x="80" y="90">0</text>
+    <text x="470" y="90">200mm</text>
+    <text x="860" y="90">400mm</text>
+    <text x="80" y="325">X</text>
+    <text x="860" y="325">Y</text>
+  </g>
+
+  <!-- Die label plate -->
+  <rect x="720" y="140" width="60" height="20" rx="2" fill="#b0b4b8" opacity="0.6"/>
+  <text x="750" y="154" text-anchor="middle" font-family="monospace" font-size="7" fill="#2a2d30">DIE-0137</text>
+</svg>

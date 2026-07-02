@@ -1,0 +1,126 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 640">
+  <title>Extrusion Die — Minor Wear (Camera View)</title>
+  <defs>
+    <linearGradient id="metalBody" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#868a8e"/>
+      <stop offset="30%" stop-color="#6c7074"/>
+      <stop offset="60%" stop-color="#565a5e"/>
+      <stop offset="100%" stop-color="#3e4246"/>
+    </linearGradient>
+    <radialGradient id="pocketDepth" cx="50%" cy="50%" r="60%">
+      <stop offset="0%" stop-color="#2a2e32"/>
+      <stop offset="70%" stop-color="#181c20"/>
+      <stop offset="100%" stop-color="#0c1014"/>
+    </radialGradient>
+    <radialGradient id="portHole" cx="40%" cy="40%" r="60%">
+      <stop offset="0%" stop-color="#1a1e22"/>
+      <stop offset="100%" stop-color="#060810"/>
+    </radialGradient>
+    <filter id="metalTexture" x="0" y="0" width="100%" height="100%">
+      <feTurbulence type="fractalNoise" baseFrequency="1.5" numOctaves="3" seed="13"/>
+      <feColorMatrix values="0 0 0 0 0.52  0 0 0 0 0.54  0 0 0 0 0.57  0 0 0 0.14 0"/>
+      <feComposite in2="SourceGraphic" operator="in"/>
+      <feBlend in="SourceGraphic" mode="multiply"/>
+    </filter>
+    <filter id="softShadow">
+      <feDropShadow dx="0" dy="6" stdDeviation="10" flood-color="#000" flood-opacity="0.35"/>
+    </filter>
+    <linearGradient id="wearGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#e8a030" stop-opacity="0.35"/>
+      <stop offset="100%" stop-color="#c07020" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="960" height="640" fill="#2a2d30"/>
+  <rect x="60" y="40" width="840" height="560" rx="16" fill="#3a3d40" filter="url(#softShadow)"/>
+
+  <!-- Die body -->
+  <rect x="150" y="80" width="660" height="480" rx="20" fill="url(#metalBody)" filter="url(#metalTexture)"/>
+
+  <!-- Bolt holes -->
+  <g fill="#2c3034" stroke="#4a4e52" stroke-width="1.5">
+    <circle cx="190" cy="120" r="14"/>
+    <circle cx="770" cy="120" r="14"/>
+    <circle cx="190" cy="520" r="14"/>
+    <circle cx="770" cy="520" r="14"/>
+  </g>
+  <g fill="#1a1e22">
+    <circle cx="190" cy="120" r="6"/>
+    <circle cx="770" cy="120" r="6"/>
+    <circle cx="190" cy="520" r="6"/>
+    <circle cx="770" cy="520" r="6"/>
+  </g>
+
+  <!-- Inner pocket -->
+  <rect x="220" y="160" width="520" height="320" rx="16" fill="url(#pocketDepth)"/>
+  <rect x="220" y="160" width="520" height="320" rx="16" fill="none" stroke="#3a3e42" stroke-width="1"/>
+
+  <!-- Flow channels -->
+  <g stroke="#3a4044" stroke-width="1.2" stroke-dasharray="4 3" opacity="0.7">
+    <line x1="480" y1="310" x2="295" y2="230"/>
+    <line x1="480" y1="310" x2="480" y2="200"/>
+    <line x1="480" y1="310" x2="665" y2="230"/>
+    <line x1="480" y1="310" x2="295" y2="410"/>
+    <line x1="480" y1="310" x2="480" y2="440"/>
+    <line x1="480" y1="310" x2="665" y2="410"/>
+  </g>
+
+  <!-- Center porthole -->
+  <rect x="435" y="290" width="90" height="50" rx="6" fill="url(#portHole)"/>
+  <rect x="435" y="290" width="90" height="50" rx="6" fill="none" stroke="#4a5054" stroke-width="1"/>
+
+  <!-- Extrusion ports -->
+  <g fill="#080910">
+    <ellipse cx="295" cy="230" rx="42" ry="28" fill="#0a0c10" stroke="#3a4044"/>
+    <ellipse cx="480" cy="200" rx="50" ry="22" fill="#0a0c10" stroke="#3a4044"/>
+    <ellipse cx="665" cy="230" rx="40" ry="30" fill="#0a0c10" stroke="#3a4044"/>
+    <ellipse cx="295" cy="410" rx="38" ry="32" fill="#0a0c10" stroke="#3a4044"/>
+    <ellipse cx="480" cy="440" rx="46" ry="26" fill="#0a0c10" stroke="#3a4044"/>
+    <ellipse cx="665" cy="410" rx="42" ry="28" fill="#0a0c10" stroke="#3a4044"/>
+  </g>
+
+  <!-- Bearing lands -->
+  <g fill="none" stroke="#5a6064" stroke-width="1" stroke-dasharray="5 3" opacity="0.6">
+    <ellipse cx="295" cy="230" rx="54" ry="38"/>
+    <ellipse cx="480" cy="200" rx="60" ry="30"/>
+    <ellipse cx="665" cy="230" rx="50" ry="40"/>
+    <ellipse cx="295" cy="410" rx="48" ry="42"/>
+    <ellipse cx="480" cy="440" rx="56" ry="34"/>
+    <ellipse cx="665" cy="410" rx="52" ry="38"/>
+  </g>
+
+  <!-- === DEFECT: Wear on P1 bearing land === -->
+  <path d="M260 218 Q295 200 330 218 Q340 230 330 248 Q295 260 260 248 Q250 230 260 218 Z" fill="url(#wearGrad)" stroke="#d4882a" stroke-width="1.2" opacity="0.8"/>
+  <g stroke="#d4882a" stroke-width="0.6" opacity="0.5">
+    <path d="M270 225 L285 220"/>
+    <path d="M272 232 L296 225"/>
+    <path d="M268 240 L290 235"/>
+    <path d="M275 245 L300 240"/>
+  </g>
+  <text x="295" y="275" font-family="monospace" font-size="9" fill="#e8a030" text-anchor="middle" opacity="0.9">WEAR P1</text>
+
+  <!-- === DEFECT: Surface scratch near P4 === -->
+  <path d="M265 395 Q280 408 295 400 Q315 388 335 402 Q348 410 340 418 Q310 415 290 420 Q272 415 265 395" fill="none" stroke="#a0a4a8" stroke-width="1.5" opacity="0.7"/>
+
+  <!-- Port labels -->
+  <g font-family="monospace" font-size="10" fill="#8a9094" opacity="0.7">
+    <text x="295" y="260" text-anchor="middle">P1</text>
+    <text x="480" y="218" text-anchor="middle">P2</text>
+    <text x="665" y="258" text-anchor="middle">P3</text>
+    <text x="295" y="448" text-anchor="middle">P4</text>
+    <text x="480" y="462" text-anchor="middle">P5</text>
+    <text x="665" y="448" text-anchor="middle">P6</text>
+  </g>
+
+  <!-- Scale markers -->
+  <g font-family="monospace" font-size="9" fill="#6a7074" opacity="0.6">
+    <text x="80" y="90">0</text>
+    <text x="470" y="90">200mm</text>
+    <text x="860" y="90">400mm</text>
+  </g>
+
+  <!-- Die label -->
+  <rect x="720" y="140" width="60" height="20" rx="2" fill="#b0b4b8" opacity="0.6"/>
+  <text x="750" y="154" text-anchor="middle" font-family="monospace" font-size="7" fill="#2a2d30">DIE-0137</text>
+</svg>
