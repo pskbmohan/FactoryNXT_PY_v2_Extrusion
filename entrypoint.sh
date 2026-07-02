@@ -26,25 +26,59 @@ if [ ! -d "migrations" ]; then
   flask db init
 fi
 
-# ── Nuclear alembic_version reset ─────────────────────────────────────────
+# ── Nuclear alembic_version reset (direct SQL, not flask db stamp) ───────
 # The migration graph accumulated overlapping branches that repeatedly
-# tripped Alembic's overlap detection on deploy.  The schema is already
-# created by db.create_all() at startup (see app/__init__.py), so the
-# migrations serve only as a version marker going forward.
+# tripped Alembic's overlap detection on deploy. All old migration files
+# have been moved to migrations/_archived_versions/. The schema is already
+# created by db.create_all() at startup (see app/__init__.py).
 #
-# We unconditionally stamp `base_20260701` (the single, clean base marker
-# in migrations/versions/base_20260701.py).  This:
-#   - Corrects any stale alembic_version (e.g. 20260702_die_ext) that
-#     no longer exists in the file tree.
-#   - Is a no-op when alembic_version already == base_20260701.
-#   - Lets flask db upgrade below become a no-op too (already at head).
+# The single base marker base_20260701.py in migrations/versions/ has
+# down_revision=None.  We need alembic_version to point to it.
 #
-# The only way this could ever run an actual upgrade is if a FUTURE
-# migration is added with down_revision='base_20260701' — in which
-# case flask db upgrade will pick it up normally.
+# `flask db stamp base_20260701` cannot be used because Alembic first
+# validates the CURRENT revision against the graph; if it's a stale value
+# like 'aps_add_notes_columns' (whose file is archived), Alembic errors
+# out: "Can't locate revision identified by 'aps_add_notes_columns'".
+#
+# The fix: write directly to the alembic_version table with Python,
+# bypassing Alembic's validation entirely.  We create the table if it
+# doesn't exist (fresh DB).  Then flask db upgrade sees a valid head
+# and no-ops (head == base_20260701 == what we just stamped).
 # ─────────────────────────────────────────────────────────────────────────
-echo "Stamping alembic_version to base_20260701 (nuclear reset)..."
-flask db stamp base_20260701
+echo "Forcing alembic_version to base_20260701 (direct SQL, bypassing Alembic)..."
+python3 - <<'PYEOF'
+import os, sys
+from sqlalchemy import create_engine, text
+
+url = os.environ["DATABASE_URL"]
+engine = create_engine(url)
+target = "base_20260701"
+
+with engine.begin() as conn:
+    # Create table if it doesn't exist
+    conn.execute(text(
+        "CREATE TABLE IF NOT EXISTS alembic_version "
+        "(version_num VARCHAR(32) NOT NULL PRIMARY KEY)"
+    ))
+    # Read current value
+    rows = conn.execute(text("SELECT version_num FROM alembic_version")).fetchall()
+    current = rows[0][0] if rows else None
+
+    if current == target:
+        print(f"alembic_version already at {target}")
+    elif current is None:
+        conn.execute(text(
+            "INSERT INTO alembic_version (version_num) VALUES (:v)"
+        ), {"v": target})
+        print(f"Inserted alembic_version: (empty) -> {target}")
+    else:
+        conn.execute(text(
+            "UPDATE alembic_version SET version_num = :v"
+        ), {"v": target})
+        print(f"Updated alembic_version: {current} -> {target}")
+
+engine.dispose()
+PYEOF
 
 echo "Running flask db upgrade to apply any future migrations..."
 flask db upgrade
