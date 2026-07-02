@@ -1,0 +1,116 @@
+{% extends "docs/base.html" %}
+{% block content %}
+<div class="doc-hero">
+  <div class="doc-hero-icon">📦</div>
+  <div>
+    <h1>Kitting</h1>
+    <p class="doc-hero-sub">Prepare everything a WO needs before it hits the shop floor — dies, billets, containers.</p>
+  </div>
+</div>
+<nav class="breadcrumb">🏠 Home › Logistics › Kitting</nav>
+
+<section>
+  <h2>What is this?</h2>
+  <p>Kitting assembles all the materials and tooling needed for a Work Order before it starts production. Instead of operators searching for dies, billets, or containers mid-production, the kitting team prepares everything in advance. A kit is marked Ready when all components are confirmed present and correct.</p>
+</section>
+
+<div class="screenshot-mockup">
+  <div class="mockup-header">
+    <span class="mockup-dot" style="background:#e94560"></span>
+    <span class="mockup-dot" style="background:#f59e0b"></span>
+    <span class="mockup-dot" style="background:#16a34a"></span>
+    <span>FactoryNXT — Kit Preparation: WO-2026-007</span>
+  </div>
+  <div class="mockup-body">
+    <div style="font-size:0.85rem;background:white;border:1px solid #e2e8f0;border-radius:8px;padding:20px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+        <div>
+          <div style="font-weight:700;font-size:1.1rem;color:#1a1a2e">WO-2026-007</div>
+          <div style="color:#666;font-size:0.85rem">PROF-6063-FH-40X20 | 1,600 pcs | Due: 2026-07-05</div>
+        </div>
+        <div><span class="badge badge-orange">Kit In Progress</span></div>
+      </div>
+
+      <div style="font-weight:700;font-size:1rem;margin-bottom:12px;color:#1a1a2e">Kit Checklist</div>
+      <table class="mock-table" style="font-size:0.8rem">
+        <tr>
+          <th>Component</th><th>Required</th><th>Available</th><th>Status</th>
+        </tr>
+        <tr>
+          <td><strong>Billet 6063 Ø178mm</strong></td>
+          <td>2,880 kg</td>
+          <td style="color:#16a34a;font-weight:600">2,880 kg</td>
+          <td><span class="badge badge-green">✓ Ready</span></td>
+        </tr>
+        <tr>
+          <td><strong>Die: DIE-6063-FH-40X20</strong></td>
+          <td>1</td>
+          <td style="color:#16a34a;font-weight:600">1</td>
+          <td><span class="badge badge-green">✓ Ready</span></td>
+        </tr>
+        <tr>
+          <td><strong>Aging Trays (CTR type)</strong></td>
+          <td>8</td>
+          <td style="color:#c2410c;font-weight:600">5</td>
+          <td><span class="badge badge-orange">⚠ Short</span></td>
+        </tr>
+        <tr>
+          <td><strong>Packaging Material</strong></td>
+          <td>1 set</td>
+          <td style="color:#16a34a;font-weight:600">1 set</td>
+          <td><span class="badge badge-green">✓ Ready</span></td>
+        </tr>
+      </table>
+
+      <div style="margin-top:16px;padding:12px;background:#fffbeb;border-left:4px solid #f59e0b;border-radius:4px;font-size:0.85rem;color:#78350f">
+        <strong>Action Required:</strong> 3 aging trays are missing. Check Container Yard or request from Stretching station.
+      </div>
+
+      <div style="display:flex;gap:10px;margin-top:16px">
+        <button style="flex:1;padding:12px;background:#16a34a;color:white;border:none;border-radius:8px;font-weight:600;font-size:0.9rem;cursor:pointer" disabled>✓ Mark Kit Ready</button>
+        <button style="flex:1;padding:12px;background:#64748b;color:white;border:none;border-radius:8px;font-weight:600;font-size:0.9rem;cursor:pointer">Cancel Kit</button>
+      </div>
+    </div>
+  </div>
+</div>
+<p class="screenshot-caption">📸 The Kit Checklist — verify all components are present before releasing the WO to production.</p>
+
+<section>
+  <h2>How to use it</h2>
+  <ol class="steps">
+    <li><strong>Go to Kitting → Active Kits</strong> from the sidebar.</li>
+    <li><strong>Select a WO to kit</strong> — the system pulls the requirements from the BOM and routing.</li>
+    <li><strong>Gather components:</strong> billets, dies, containers, packaging materials — anything the WO needs.</li>
+    <li><strong>Check off each item</strong> as you collect it — the system updates the Available column.</li>
+    <li><strong>If an item is short</strong> (e.g. not enough containers), the system flags it in orange.</li>
+    <li><strong>When all items are ready</strong>, click "Mark Kit Ready" — the WO can now be released to production.</li>
+  </ol>
+</section>
+
+<section>
+  <h2>Key fields explained</h2>
+  <table class="fields-table">
+    <tr><th>Field</th><th>What it means</th></tr>
+    <tr><td>Component</td><td>What's needed — billet alloy, die, containers, packaging, etc.</td></tr>
+    <tr><td>Required</td><td>How much is needed for this WO — calculated from BOM and quantity.</td></tr>
+    <tr><td>Available</td><td>How much is actually on hand — from inventory.</td></tr>
+    <tr><td>Status</td><td>Ready (green, has enough), Short (orange, needs more), or Missing (red, not found).</td></tr>
+  </table>
+</section>
+
+<div class="tips-box">
+  <h3>💡 Tips</h3>
+  <ul>
+    <li>Kit WOs at least 24 hours before scheduled production — this gives time to find missing items.</li>
+    <li>If a component is consistently short, increase minimum stock levels in <a href="/docs/inventory" style="color:#92400e">Inventory</a>.</li>
+    <li>Never release a WO without a complete kit — mid-production shortages cause delays and quality issues.</li>
+  </ul>
+</div>
+
+<div class="related-links">
+  <h3>Related modules</h3>
+  <a href="/docs/work-orders">→ Work Orders</a>
+  <a href="/docs/bom">→ Bill of Materials (BOM)</a>
+  <a href="/docs/inventory">→ Inventory</a>
+</div>
+{% endblock %}

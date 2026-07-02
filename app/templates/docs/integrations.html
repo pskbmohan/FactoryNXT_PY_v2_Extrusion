@@ -1,0 +1,134 @@
+{% extends "docs/base.html" %}
+{% block content %}
+<div class="doc-hero">
+  <div class="doc-hero-icon">🔗</div>
+  <div>
+    <h1>Integrations & API</h1>
+    <p class="doc-hero-sub">Connect FactoryNXT to external systems — ERP, WhatsApp, barcode scanners, and more.</p>
+  </div>
+</div>
+<nav class="breadcrumb">🏠 Home › System › Integrations & API</nav>
+
+<section>
+  <h2>What is this?</h2>
+  <p>Integrations connect FactoryNXT to external systems — ERP platforms (SAP, Tally), customer order portals, WhatsApp notification gateways, and barcode/RFID scanners. The API page also documents all REST endpoints for developers who want to build custom integrations.</p>
+</section>
+
+<div class="screenshot-mockup">
+  <div class="mockup-header">
+    <span class="mockup-dot" style="background:#e94560"></span>
+    <span class="mockup-dot" style="background:#f59e0b"></span>
+    <span class="mockup-dot" style="background:#16a34a"></span>
+    <span>FactoryNXT — Integration Connectors</span>
+  </div>
+  <div class="mockup-body">
+    <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:14px;font-size:0.85rem">
+      <div style="border:1px solid #e2e8f0;border-radius:8px;padding:16px;background:white">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+          <span style="font-size:1.5rem">✅</span>
+          <div>
+            <div style="font-weight:700;font-size:1rem;color:#1a1a2e">WhatsApp Alerts</div>
+            <div style="color:#666;font-size:0.8rem">via Twilio Gateway</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px">
+          <span class="badge badge-green">Connected</span>
+          <span style="font-size:0.75rem;color:#666">Last sync: 2 mins ago</span>
+        </div>
+        <button style="padding:6px 14px;background:#f0f4ff;color:#3b5bdb;border:none;border-radius:6px;font-weight:600;cursor:pointer;font-size:0.8rem">Configure</button>
+      </div>
+
+      <div style="border:1px solid #e2e8f0;border-radius:8px;padding:16px;background:white">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+          <span style="font-size:1.5rem">🔗</span>
+          <div>
+            <div style="font-weight:700;font-size:1rem;color:#1a1a2e">ERP Sync</div>
+            <div style="color:#666;font-size:0.8rem">SAP Business One — Webhook</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px">
+          <span class="badge badge-green">Active</span>
+          <span style="font-size:0.75rem;color:#666">Last sync: 5 mins ago</span>
+        </div>
+        <button style="padding:6px 14px;background:#f0f4ff;color:#3b5bdb;border:none;border-radius:6px;font-weight:600;cursor:pointer;font-size:0.8rem">Configure</button>
+      </div>
+
+      <div style="border:1px solid #e2e8f0;border-radius:8px;padding:16px;background:white">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+          <span style="font-size:1.5rem">🔗</span>
+          <div>
+            <div style="font-weight:700;font-size:1rem;color:#1a1a2e">Barcode Scanner</div>
+            <div style="color:#666;font-size:0.8rem">Zebra ZD620 — USB HID</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px">
+          <span class="badge badge-green">Connected</span>
+          <span style="font-size:0.75rem;color:#666">Ready</span>
+        </div>
+        <button style="padding:6px 14px;background:#f0f4ff;color:#3b5bdb;border:none;border-radius:6px;font-weight:600;cursor:pointer;font-size:0.8rem">Configure</button>
+      </div>
+
+      <div style="border:1px solid #e2e8f0;border-radius:8px;padding:16px;background:white">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+          <span style="font-size:1.5rem">⚠️</span>
+          <div>
+            <div style="font-weight:700;font-size:1rem;color:#1a1a2e">Email Gateway</div>
+            <div style="color:#666;font-size:0.8rem">SMTP — smtp.factory.com</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px">
+          <span class="badge badge-orange">Needs Config</span>
+          <span style="font-size:0.75rem;color:#666">SMTP credentials missing</span>
+        </div>
+        <button style="padding:6px 14px;background:#f0f4ff;color:#3b5bdb;border:none;border-radius:6px;font-weight:600;cursor:pointer;font-size:0.8rem">Configure</button>
+      </div>
+    </div>
+
+    <div style="margin-top:20px;padding:14px;background:#f0f4ff;border-radius:8px;font-size:0.85rem;color:#374151">
+      <strong>Developer API:</strong> REST endpoints available at <code>/api/v1/</code>. See documentation:
+      <a href="/api/v1/docs" style="color:#3b5bdb;font-weight:600">/api/v1/docs</a>
+    </div>
+  </div>
+</div>
+<p class="screenshot-caption">📸 Integration connectors — status, last sync, and configure buttons for each external system.</p>
+
+<section>
+  <h2>How to use it</h2>
+  <ol class="steps">
+    <li><strong>Go to Integrations → Available Connectors</strong> from the sidebar.</li>
+    <li><strong>Click Configure</strong> on the integration you want to set up.</li>
+    <li><strong>Enter API keys or webhook URLs</strong> — these come from the external system (SAP, Twilio, etc.)</li>
+    <li><strong>Click Test Connection</strong> — green ✅ means it's working; red ❌ means check your credentials.</li>
+    <li><strong>Enable the integration</strong> to start syncing — data will flow automatically.</li>
+    <li><strong>Monitor the sync status</strong> — "Last sync" shows when data was last exchanged.</li>
+  </ol>
+</section>
+
+<section>
+  <h2>Key fields explained</h2>
+  <table class="fields-table">
+    <tr><th>Field</th><th>What it means</th></tr>
+    <tr><td>Connector Name</td><td>What the integration does — WhatsApp Alerts, ERP Sync, Barcode Scanner.</td></tr>
+    <tr><td>Provider</td><td>The platform or service — Twilio, SAP, Zebra, etc.</td></tr>
+    <tr><td>Status</td><td>Connected (working), Active (syncing), Needs Config (setup not complete), or Error (check credentials).</td></tr>
+    <tr><td>Last Sync</td><td>When data was last exchanged — "2 mins ago" means it's working.</td></tr>
+    <tr><td>API Key / Webhook</td><td>Credentials for the external system — keep these secret.</td></tr>
+  </table>
+</section>
+
+<div class="tips-box">
+  <h3>💡 Tips</h3>
+  <ul>
+    <li>Test connections before enabling — a broken integration can cause data sync failures.</li>
+    <li>Monitor "Last sync" — if it's stale (hours old), there may be a connection issue.</li>
+    <li>For custom integrations, use the REST API — all core entities (WOs, dies, inventory) have endpoints.</li>
+  </ul>
+</div>
+
+<div class="related-links">
+  <h3>Related modules</h3>
+  <a href="/docs/kpi-alerts">→ KPI Alerts & Notifications</a>
+  <a href="/docs/admin">→ Admin & Users</a>
+  <a href="/api/v1/docs">→ API Documentation</a>
+</div>
+{% endblock %}

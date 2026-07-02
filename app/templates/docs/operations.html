@@ -1,0 +1,89 @@
+{% extends "docs/base.html" %}
+{% block content %}
+<div class="doc-hero">
+  <div class="doc-hero-icon">🏭</div>
+  <div>
+    <h1>Operations & Shop Floor</h1>
+    <p class="doc-hero-sub">The real-time control panel where operators run the factory.</p>
+  </div>
+</div>
+<nav class="breadcrumb">🏠 Home › Shop Floor › Operations & Shop Floor</nav>
+
+<section>
+  <h2>What is this?</h2>
+  <p>Operations is the real-time shop floor control panel. Operators use this screen to start and stop jobs, log production counts, report downtime, and hand off work between stations. It's the heartbeat of the factory — every piece of aluminium that moves through the plant is tracked here.</p>
+</section>
+
+<div class="screenshot-mockup">
+  <div class="mockup-header">
+    <span class="mockup-dot" style="background:#e94560"></span>
+    <span class="mockup-dot" style="background:#f59e0b"></span>
+    <span class="mockup-dot" style="background:#16a34a"></span>
+    <span>FactoryNXT — Station View: Press #1</span>
+  </div>
+  <div class="mockup-body">
+    <div style="display:flex;gap:12px;align-items:center;margin-bottom:16px;padding:12px;background:#dcfce7;border-radius:8px">
+      <span style="width:12px;height:12px;background:#16a34a;border-radius:50%;display:inline-block;animation:none"></span>
+      <span style="font-weight:700;color:#16a34a;font-size:0.9rem">RUNNING</span>
+      <span style="color:#374151;font-size:0.9rem">— Press #1 — <strong>WO-2026-003</strong> (PROF-6063-FH-40X20)</span>
+    </div>
+    <div class="kpi-row" style="grid-template-columns:repeat(3,1fr)">
+      <div class="kpi-card"><div class="kpi-value">1,240</div><div class="kpi-label">Produced</div></div>
+      <div class="kpi-card"><div class="kpi-value" style="color:#3b5bdb">2,000</div><div class="kpi-label">Target</div></div>
+      <div class="kpi-card"><div class="kpi-value" style="color:#16a34a">62%</div><div class="kpi-label">Complete</div></div>
+    </div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:12px">
+      <button style="padding:10px 18px;background:#16a34a;color:white;border:none;border-radius:8px;font-weight:600;font-size:0.85rem;cursor:pointer">✓ Log Output</button>
+      <button style="padding:10px 18px;background:#c2410c;color:white;border:none;border-radius:8px;font-weight:600;font-size:0.85rem;cursor:pointer">⚠ Report Downtime</button>
+      <button style="padding:10px 18px;background:#3b5bdb;color:white;border:none;border-radius:8px;font-weight:600;font-size:0.85rem;cursor:pointer">→ Complete Step</button>
+      <button style="padding:10px 18px;background:#7c3aed;color:white;border:none;border-radius:8px;font-weight:600;font-size:0.85rem;cursor:pointer">⇄ Transfer</button>
+    </div>
+    <div style="margin-top:16px;background:#f0f4ff;padding:12px;border-radius:8px;font-size:0.85rem;color:#374151">
+      <strong>Current Step:</strong> Extrusion &nbsp;|&nbsp; <strong>Die:</strong> DIE-6063-FH-40X20 &nbsp;|&nbsp; <strong>Billet Lot:</strong> LOT-6063-240601<br>
+      <strong>Operator:</strong> Ravi Kumar &nbsp;|&nbsp; <strong>Shift:</strong> Day A &nbsp;|&nbsp; <strong>Started:</strong> 08:15
+    </div>
+  </div>
+</div>
+<p class="screenshot-caption">📸 The Station View shows the active WO, progress counter, and quick-action buttons for the operator.</p>
+
+<section>
+  <h2>How to use it</h2>
+  <ol class="steps">
+    <li><strong>Operator selects their Station</strong> on login — the screen loads the current WO automatically.</li>
+    <li><strong>Current active WO appears</strong> with part number, target, and progress so far.</li>
+    <li><strong>Tap "Start Production"</strong> to begin the shift timer and mark the job as running.</li>
+    <li><strong>Every hour (or per batch) tap "Log Output"</strong> and enter the piece count. This updates the progress bar and inventory.</li>
+    <li><strong>If the machine stops, tap "Report Downtime"</strong> — select a reason code from the list (die change, maintenance, material shortage, etc.).</li>
+    <li><strong>When all pieces are extruded, tap "Complete Step"</strong> to move the job to the next process (e.g. Aging or Stretching).</li>
+  </ol>
+</section>
+
+<section>
+  <h2>Key fields explained</h2>
+  <table class="fields-table">
+    <tr><th>Field</th><th>What it means</th></tr>
+    <tr><td>Produced / Target</td><td>Live piece count vs the WO quantity. Updates when you log output.</td></tr>
+    <tr><td>Current Step</td><td>Which process step this station is running (Extrusion, Aging, Coating, etc.)</td></tr>
+    <tr><td>Die</td><td>The die currently loaded in the press. Links to Die Management.</td></tr>
+    <tr><td>Billet Lot</td><td>The raw material lot being consumed. Links to Traceability.</td></tr>
+    <tr><td>Operator / Shift</td><td>Who is running this station right now and on which shift.</td></tr>
+  </table>
+</section>
+
+<div class="tips-box">
+  <h3>💡 Tips</h3>
+  <ul>
+    <li>Log output frequently — hourly is better than end-of-shift for accurate OEE.</li>
+    <li>Always use a reason code for downtime — it feeds the OEE analysis later.</li>
+    <li>"Complete Step" automatically moves the WO to the next station defined in the routing.</li>
+  </ul>
+</div>
+
+<div class="related-links">
+  <h3>Related modules</h3>
+  <a href="/docs/process-line">→ Process Line</a>
+  <a href="/docs/production">→ Production Tracking</a>
+  <a href="/docs/dies">→ Die Management</a>
+  <a href="/docs/oee">→ OEE — Machine Efficiency</a>
+</div>
+{% endblock %}

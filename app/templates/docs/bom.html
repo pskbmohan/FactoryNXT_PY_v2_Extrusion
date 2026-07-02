@@ -1,0 +1,109 @@
+{% extends "docs/base.html" %}
+{% block content %}
+<div class="doc-hero">
+  <div class="doc-hero-icon">📋</div>
+  <div>
+    <h1>Bill of Materials (BOM)</h1>
+    <p class="doc-hero-sub">The recipe for each finished profile — part number, alloy, weight, and routing.</p>
+  </div>
+</div>
+<nav class="breadcrumb">🏠 Home › Materials & Inventory › Bill of Materials (BOM)</nav>
+
+<section>
+  <h2>What is this?</h2>
+  <p>The BOM is the recipe for each finished profile. It defines the part number, the alloy required, the unit weight per metre, and all the process steps it must go through. When you create a Work Order, the system looks up the BOM to know exactly what materials to reserve and what routing to follow.</p>
+</section>
+
+<div class="screenshot-mockup">
+  <div class="mockup-header">
+    <span class="mockup-dot" style="background:#e94560"></span>
+    <span class="mockup-dot" style="background:#f59e0b"></span>
+    <span class="mockup-dot" style="background:#16a34a"></span>
+    <span>FactoryNXT — BOM Detail: PROF-6063-FH-40X20</span>
+  </div>
+  <div class="mockup-body">
+    <div style="font-size:0.85rem;background:white;border:1px solid #e2e8f0;border-radius:8px;padding:20px">
+      <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:16px;margin-bottom:20px">
+        <div>
+          <div style="color:#64748b;font-size:0.75rem;text-transform:uppercase;font-weight:600">Part Number</div>
+          <div style="font-weight:700;font-size:1.1rem;color:#1a1a2e">PROF-6063-FH-40X20</div>
+        </div>
+        <div>
+          <div style="color:#64748b;font-size:0.75rem;text-transform:uppercase;font-weight:600">Description</div>
+          <div style="font-weight:600;font-size:1rem">Flat Head Profile 40×20mm</div>
+        </div>
+        <div>
+          <div style="color:#64748b;font-size:0.75rem;text-transform:uppercase;font-weight:600">Alloy</div>
+          <div style="font-weight:700;font-size:1rem;color:#3b5bdb">6063-T5</div>
+        </div>
+        <div>
+          <div style="color:#64748b;font-size:0.75rem;text-transform:uppercase;font-weight:600">Unit Weight</div>
+          <div style="font-weight:700;font-size:1rem">1.8 kg/m</div>
+        </div>
+        <div>
+          <div style="color:#64748b;font-size:0.75rem;text-transform:uppercase;font-weight:600">Standard Length</div>
+          <div style="font-weight:700;font-size:1rem">6,000 mm</div>
+        </div>
+        <div>
+          <div style="color:#64748b;font-size:0.75rem;text-transform:uppercase;font-weight:600">Status</div>
+          <div><span class="badge badge-green">Approved</span></div>
+        </div>
+      </div>
+      <div style="margin-top:20px;padding-top:20px;border-top:2px solid #e2e8f0">
+        <div style="font-weight:700;font-size:1rem;margin-bottom:12px;color:#1a1a2e">Routing Steps</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;font-size:0.8rem">
+          <div style="padding:8px 14px;background:#dbeafe;border-radius:6px;font-weight:600">→ Billet Prep</div>
+          <div style="padding:8px 14px;background:#dbeafe;border-radius:6px;font-weight:600">→ Extrusion</div>
+          <div style="padding:8px 14px;background:#dbeafe;border-radius:6px;font-weight:600">→ Stretching</div>
+          <div style="padding:8px 14px;background:#dbeafe;border-radius:6px;font-weight:600">→ Aging</div>
+          <div style="padding:8px 14px;background:#dbeafe;border-radius:6px;font-weight:600">→ Saw</div>
+          <div style="padding:8px 14px;background:#dcfce7;border-radius:6px;font-weight:600">→ Inspect</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<p class="screenshot-caption">📸 The BOM detail view — part info, alloy, weight, and the full routing sequence.</p>
+
+<section>
+  <h2>How to use it</h2>
+  <ol class="steps">
+    <li><strong>Go to BOM → All BOMs</strong> from the sidebar.</li>
+    <li><strong>Search by part number or description</strong> to find a specific BOM.</li>
+    <li><strong>Click a BOM</strong> to view full details: alloy, weight, dimensions, and routing steps.</li>
+    <li><strong>To edit</strong>, click "Edit BOM" — you can change the description, update the routing, or mark it inactive.</li>
+    <li><strong>To create a new BOM</strong>, click "New BOM" — enter part number, alloy, weight, and link the routing.</li>
+    <li><strong>Approve the BOM</strong> — until approved, it cannot be used in Work Orders.</li>
+  </ol>
+</section>
+
+<section>
+  <h2>Key fields explained</h2>
+  <table class="fields-table">
+    <tr><th>Field</th><th>What it means</th></tr>
+    <tr><td>Part Number</td><td>Unique ID for this finished profile (e.g. PROF-6063-FH-40X20).</td></tr>
+    <tr><td>Description</td><td>Human-readable name — shape, size, alloy.</td></tr>
+    <tr><td>Alloy</td><td>The aluminium grade required — 6063-T5, 6061-T6, etc.</td></tr>
+    <tr><td>Unit Weight</td><td>Weight per metre in kg — used to calculate billet consumption.</td></tr>
+    <tr><td>Standard Length</td><td>Typical extrusion length (e.g. 6,000 mm) — the stretcher cuts to this.</td></tr>
+    <tr><td>Routing Steps</td><td>The sequence of manufacturing steps — pulled from the Routing Builder.</td></tr>
+    <tr><td>Status</td><td>Draft (being created), Approved (ready for WOs), or Inactive (obsolete).</td></tr>
+  </table>
+</section>
+
+<div class="tips-box">
+  <h3>💡 Tips</h3>
+  <ul>
+    <li>Always get BOM approval before creating Work Orders — unapproved BOMs can't be used.</li>
+    <li>If you change the routing, update the BOM — WOs use the BOM's routing, not the standalone routing.</li>
+    <li>Use consistent part numbering — include alloy and key dimensions in the part number for clarity.</li>
+  </ul>
+</div>
+
+<div class="related-links">
+  <h3>Related modules</h3>
+  <a href="/docs/routing-builder">→ Routing Builder</a>
+  <a href="/docs/work-orders">→ Work Orders</a>
+  <a href="/docs/cost-price">→ Cost & Price Config</a>
+</div>
+{% endblock %}

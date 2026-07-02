@@ -1,0 +1,119 @@
+{% extends "docs/base.html" %}
+{% block content %}
+<div class="doc-hero">
+  <div class="doc-hero-icon">🔍</div>
+  <div>
+    <h1>Traceability & Genealogy</h1>
+    <p class="doc-hero-sub">Trace any profile back to its billet lot — full history from raw material to customer.</p>
+  </div>
+</div>
+<nav class="breadcrumb">🏠 Home › Quality › Traceability & Genealogy</nav>
+
+<section>
+  <h2>What is this?</h2>
+  <p>Traceability answers the question: "Where did this profile come from and where did it go?" For any finished piece, you can trace back to the exact billet lot, the alloy composition, the die used, the press that ran it, the oven cycle it went through, and the operator on shift. If a customer reports a defect months later, you can pull the complete history in seconds.</p>
+</section>
+
+<div class="screenshot-mockup">
+  <div class="mockup-header">
+    <span class="mockup-dot" style="background:#e94560"></span>
+    <span class="mockup-dot" style="background:#f59e0b"></span>
+    <span class="mockup-dot" style="background:#16a34a"></span>
+    <span>FactoryNXT — Traceability Tree: Lot LT-2026-0312</span>
+  </div>
+  <div class="mockup-body">
+    <div style="font-size:0.85rem;background:white;border:1px solid #e2e8f0;border-radius:8px;padding:20px">
+      <div style="border-left:4px solid #16a34a;padding-left:16px;margin-bottom:16px">
+        <div style="font-weight:700;font-size:1.1rem;color:#16a34a">📦 Profile Lot: LT-2026-0312</div>
+        <div style="color:#666;font-size:0.85rem;margin-top:4px">1,942 pieces | PROF-6063-FH-40X20 | Status: Shipped</div>
+      </div>
+
+      <div style="margin-left:20px;border-left:2px solid #e2e8f0;padding-left:16px">
+        <div style="margin-bottom:14px">
+          <div style="color:#1d4ed8;font-weight:600">↑ Produced by</div>
+          <div style="background:#f0f4ff;padding:10px;border-radius:6px;margin-top:4px">
+            <strong>WO-2026-003</strong> — 2,000 pcs target, 1,942 good
+          </div>
+        </div>
+
+        <div style="margin-bottom:14px">
+          <div style="color:#1d4ed8;font-weight:600">↑ Billet Lot</div>
+          <div style="background:#f0f4ff;padding:10px;border-radius:6px;margin-top:4px">
+            <strong>LOT-6063-240601</strong> — Supplier: Hindalco | Alloy: 6063 | Composition: <span style="color:#16a34a;font-weight:600">PASS ✅</span>
+          </div>
+        </div>
+
+        <div style="margin-bottom:14px">
+          <div style="color:#1d4ed8;font-weight:600">↑ Die Used</div>
+          <div style="background:#f0f4ff;padding:10px;border-radius:6px;margin-top:4px">
+            <strong>DIE-6063-FH-40X20</strong> — Run 312 | Last Nitrided: 2026-01-15 | Press Count: 1,240 / 5,000
+          </div>
+        </div>
+
+        <div style="margin-bottom:14px">
+          <div style="color:#1d4ed8;font-weight:600">↑ Press & Operator</div>
+          <div style="background:#f0f4ff;padding:10px;border-radius:6px;margin-top:4px">
+            <strong>MCH-PRESS-01</strong> | Operator: Ravi Kumar | Shift: Day A | Started: 2026-06-28 08:15
+          </div>
+        </div>
+
+        <div style="margin-bottom:14px">
+          <div style="color:#1d4ed8;font-weight:600">↑ Aging Cycle</div>
+          <div style="background:#f0f4ff;padding:10px;border-radius:6px;margin-top:4px">
+            <strong>FRN-AGE-01</strong> | Program: T5-6063-STD | Temp: 175°C | Duration: 5.5 hrs | Completed: 2026-06-28 14:30
+          </div>
+        </div>
+
+        <div style="margin-left:20px;border-left:2px solid #dcfce7;padding-left:16px">
+          <div style="color:#16a34a;font-weight:600">↓ Shipped to Customer</div>
+          <div style="background:#dcfce7;padding:10px;border-radius:6px;margin-top:4px">
+            <strong>SHIP-2026-002</strong> → <strong>KM Windows Pvt Ltd</strong> | 2,400 kg | Dispatched: 2026-07-01
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<p class="screenshot-caption">📸 The Traceability Tree — follow any lot from raw material through production to customer shipment.</p>
+
+<section>
+  <h2>How to use it</h2>
+  <ol class="steps">
+    <li><strong>Go to Traceability</strong> from the sidebar.</li>
+    <li><strong>Enter a Profile Lot number, WO number, or shipment ID</strong> in the search box.</li>
+    <li><strong>The system builds the traceability tree</strong> — showing upstream (billet lot, die, press, operator) and downstream (aging, finishing, shipment).</li>
+    <li><strong>Click any node</strong> to drill into that record — WO details, die history, operator log, etc.</li>
+    <li><strong>Export the traceability report</strong> as PDF for customer audits or quality investigations.</li>
+  </ol>
+</section>
+
+<section>
+  <h2>Key fields explained</h2>
+  <table class="fields-table">
+    <tr><th>Field</th><th>What it means</th></tr>
+    <tr><td>Profile Lot</td><td>The finished lot ID — assigned during production or finishing.</td></tr>
+    <tr><td>WO Number</td><td>The work order that produced this lot.</td></tr>
+    <tr><td>Billet Lot</td><td>The raw material lot consumed — links to the mill test certificate and composition.</td></tr>
+    <tr><td>Die Used</td><td>Which die was in the press — includes run count and nitriding history.</td></tr>
+    <tr><td>Press & Operator</td><td>Which machine and who was operating — for shift accountability.</td></tr>
+    <tr><td>Aging Cycle</td><td>Furnace, program, temperature, and duration — critical for temper verification.</td></tr>
+    <tr><td>Shipment</td><td>Which shipment this lot went in — customer name and dispatch date.</td></tr>
+  </table>
+</section>
+
+<div class="tips-box">
+  <h3>💡 Tips</h3>
+  <ul>
+    <li>Keep traceability reports for at least 5 years — customers may request them long after delivery.</li>
+    <li>If a defect is reported, trace both ways — find other lots from the same billet lot that may have the same issue.</li>
+    <li>Use the "Export PDF" button for customer quality reports — it includes the full tree in a professional format.</li>
+  </ul>
+</div>
+
+<div class="related-links">
+  <h3>Related modules</h3>
+  <a href="/docs/genealogy">→ Part Genealogy</a>
+  <a href="/docs/quality">→ Quality & NCR</a>
+  <a href="/docs/work-orders">→ Work Orders</a>
+</div>
+{% endblock %}

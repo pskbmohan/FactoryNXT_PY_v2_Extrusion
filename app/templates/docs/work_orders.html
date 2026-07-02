@@ -1,0 +1,107 @@
+{% extends "docs/base.html" %}
+{% block content %}
+<div class="doc-hero">
+  <div class="doc-hero-icon">📋</div>
+  <div>
+    <h1>Work Orders</h1>
+    <p class="doc-hero-sub">The factory's to-do list — every extrusion job starts here.</p>
+  </div>
+</div>
+<nav class="breadcrumb">🏠 Home › Planning & Scheduling › Work Orders</nav>
+
+<section>
+  <h2>What is this?</h2>
+  <p>A Work Order (WO) is the instruction to manufacture a specific product in a specific quantity. Every extrusion run starts here. Think of it as the factory's to-do list — each item has a part number, quantity, target dates, and tracks its progress from DRAFT right through to COMPLETED.</p>
+</section>
+
+<div class="screenshot-mockup">
+  <div class="mockup-header">
+    <span class="mockup-dot" style="background:#e94560"></span>
+    <span class="mockup-dot" style="background:#f59e0b"></span>
+    <span class="mockup-dot" style="background:#16a34a"></span>
+    <span>FactoryNXT — Work Orders</span>
+  </div>
+  <div class="mockup-body">
+    <table class="mock-table">
+      <tr>
+        <th>WO Number</th><th>Part Number</th><th>Qty</th><th>Status</th><th>Planned Start</th><th>Machine</th><th>Actions</th>
+      </tr>
+      <tr>
+        <td>WO-2026-001</td><td>PROF-6063-FH-40X20</td><td>2,000</td>
+        <td><span class="badge badge-green">RUNNING</span></td><td>2026-07-01</td><td>Press #1</td>
+        <td><a href="#" style="color:#3b5bdb">View</a></td>
+      </tr>
+      <tr>
+        <td>WO-2026-002</td><td>PROF-6063-SOL-25X25</td><td>1,500</td>
+        <td><span class="badge badge-blue">RELEASED</span></td><td>2026-07-02</td><td>—</td>
+        <td><a href="#" style="color:#3b5bdb">Edit</a></td>
+      </tr>
+      <tr>
+        <td>WO-2026-003</td><td>PROF-6061-HOL-50X30</td><td>800</td>
+        <td><span class="badge badge-grey">DRAFT</span></td><td>2026-07-05</td><td>—</td>
+        <td><a href="#" style="color:#3b5bdb">Edit</a></td>
+      </tr>
+      <tr>
+        <td>WO-2026-004</td><td>PROF-6082-FH-60X40</td><td>3,200</td>
+        <td><span class="badge badge-orange">ON HOLD</span></td><td>2026-06-28</td><td>Press #3</td>
+        <td><a href="#" style="color:#3b5bdb">View</a></td>
+      </tr>
+      <tr>
+        <td>WO-2026-005</td><td>PROF-6063-FH-40X20</td><td>1,000</td>
+        <td><span class="badge badge-purple">COMPLETED</span></td><td>2026-06-25</td><td>Press #1</td>
+        <td><a href="#" style="color:#3b5bdb">View</a></td>
+      </tr>
+      <tr>
+        <td>WO-2026-006</td><td>PROF-6061-SOL-30X30</td><td>600</td>
+        <td><span class="badge badge-red">CANCELLED</span></td><td>2026-06-20</td><td>—</td>
+        <td><a href="#" style="color:#3b5bdb">View</a></td>
+      </tr>
+    </table>
+  </div>
+</div>
+<p class="screenshot-caption">📸 The Work Orders list shows every job with its status, quantity, assigned machine, and due date.</p>
+
+<section>
+  <h2>How to use it</h2>
+  <ol class="steps">
+    <li><strong>Navigate to Work Orders</strong> from the sidebar — you'll see the full list of current and past orders.</li>
+    <li><strong>Click "New Work Order"</strong> — fill in Part Number, Quantity, and Due Date. The part must have an approved BOM.</li>
+    <li><strong>Click "Release"</strong> to make the WO visible to the shop floor. Draft WOs cannot be scheduled.</li>
+    <li><strong>The floor operator picks it up</strong> in <a href="/docs/operations" style="color:#e94560">Operations</a> and clicks "Start".</li>
+    <li><strong>Progress updates automatically</strong> as each process step completes on the shop floor.</li>
+    <li><strong>Click "Complete"</strong> when all output is confirmed and final inspection is done.</li>
+  </ol>
+</section>
+
+<section>
+  <h2>Key fields explained</h2>
+  <table class="fields-table">
+    <tr><th>Field</th><th>What it means</th></tr>
+    <tr><td>WO Number</td><td>Auto-generated unique ID (e.g. WO-2026-001). Never edit this.</td></tr>
+    <tr><td>Part Number</td><td>The finished profile being made — pulled from the BOM. Determines the routing.</td></tr>
+    <tr><td>Quantity</td><td>Number of pieces to produce. Once completed, actual output is compared against this.</td></tr>
+    <tr><td>Planned Start / End</td><td>Target dates set by the planner. Used for scheduling and priority.</td></tr>
+    <tr><td>Priority</td><td>1 (highest) to 5 (lowest). Affects APS scheduling when resources are tight.</td></tr>
+    <tr><td>Status</td><td>Lifecycle: DRAFT → RELEASED → RUNNING → COMPLETED (or ON HOLD / CANCELLED).</td></tr>
+    <tr><td>Notes</td><td>Free-text comments visible to operators. Use for special instructions.</td></tr>
+  </table>
+</section>
+
+<div class="tips-box">
+  <h3>💡 Tips</h3>
+  <ul>
+    <li>Always link a WO to a BOM part so the routing is auto-populated — don't enter steps manually.</li>
+    <li>You <strong>cannot</strong> Release a WO without an approved BOM — fix the BOM first.</li>
+    <li>Use ON HOLD sparingly — every held WO blocks capacity on the schedule.</li>
+    <li>Duplicate a completed WO to quickly create a repeat order for the same part.</li>
+  </ul>
+</div>
+
+<div class="related-links">
+  <h3>Related modules</h3>
+  <a href="/docs/bom">→ Bill of Materials (BOM)</a>
+  <a href="/docs/planning">→ Production Planning</a>
+  <a href="/docs/operations">→ Operations & Shop Floor</a>
+  <a href="/docs/routing-builder">→ Routing Builder</a>
+</div>
+{% endblock %}

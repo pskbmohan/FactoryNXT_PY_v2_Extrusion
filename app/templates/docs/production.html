@@ -1,0 +1,93 @@
+{% extends "docs/base.html" %}
+{% block content %}
+<div class="doc-hero">
+  <div class="doc-hero-icon">📈</div>
+  <div>
+    <h1>Production Tracking</h1>
+    <p class="doc-hero-sub">The permanent record of every extrusion run — what was made, by whom, and with what materials.</p>
+  </div>
+</div>
+<nav class="breadcrumb">🏠 Home › Shop Floor › Production Tracking</nav>
+
+<section>
+  <h2>What is this?</h2>
+  <p>Production Tracking records every extrusion run in detail — how many pieces were made, actual billet weight consumed, scrap generated, and the press parameters used. This becomes the permanent production record for traceability and OEE calculations. If a customer ever asks "when was this made?", this is where you look.</p>
+</section>
+
+<div class="screenshot-mockup">
+  <div class="mockup-header">
+    <span class="mockup-dot" style="background:#e94560"></span>
+    <span class="mockup-dot" style="background:#f59e0b"></span>
+    <span class="mockup-dot" style="background:#16a34a"></span>
+    <span>FactoryNXT — Production Log</span>
+  </div>
+  <div class="mockup-body">
+    <table class="mock-table" style="font-size:0.75rem">
+      <tr>
+        <th>Run ID</th><th>WO</th><th>Machine</th><th>Start</th><th>End</th><th>Good Pcs</th><th>Scrap Pcs</th><th>Billet Lot</th><th>Die Used</th><th>Operator</th>
+      </tr>
+      <tr>
+        <td>RUN-4821</td><td>WO-2026-001</td><td>Press #1</td><td>08:15</td><td>14:30</td>
+        <td style="color:#16a34a;font-weight:600">1,942</td><td style="color:#dc2626">18</td>
+        <td>LOT-6063-240601</td><td>DIE-FH-40X20</td><td>Ravi Kumar</td>
+      </tr>
+      <tr>
+        <td>RUN-4822</td><td>WO-2026-002</td><td>Press #2</td><td>08:00</td><td>16:45</td>
+        <td style="color:#16a34a;font-weight:600">1,485</td><td style="color:#dc2626">15</td>
+        <td>LOT-6061-240598</td><td>DIE-SOL-25X25</td><td>Suresh M</td>
+      </tr>
+      <tr>
+        <td>RUN-4823</td><td>WO-2026-003</td><td>Press #1</td><td>15:00</td><td>—</td>
+        <td style="color:#16a34a;font-weight:600">1,240</td><td style="color:#dc2626">8</td>
+        <td>LOT-6063-240601</td><td>DIE-HOL-50X30</td><td>Ravi Kumar</td>
+      </tr>
+      <tr>
+        <td>RUN-4824</td><td>WO-2026-004</td><td>Press #3</td><td>07:30</td><td>17:00</td>
+        <td style="color:#16a34a;font-weight:600">3,180</td><td style="color:#dc2626">32</td>
+        <td>LOT-6082-240600</td><td>DIE-FH-60X40</td><td>Arun P</td>
+      </tr>
+    </table>
+  </div>
+</div>
+<p class="screenshot-caption">📸 The Production Log — every run with good pieces, scrap, and full material traceability.</p>
+
+<section>
+  <h2>How to use it</h2>
+  <ol class="steps">
+    <li><strong>Go to Production</strong> from the sidebar — the log shows all runs for the current day by default.</li>
+    <li><strong>Filter by date range, WO, machine, or operator</strong> to find specific runs.</li>
+    <li><strong>Click a Run ID</strong> to see full details: press parameters, billet lot chemistry, die used, cycle time.</li>
+    <li><strong>Export to CSV</strong> for reporting — management reviews, customer audits, or internal analysis.</li>
+    <li><strong>Compare good vs scrap</strong> to identify die or material issues (high scrap = investigate).</li>
+  </ol>
+</section>
+
+<section>
+  <h2>Key fields explained</h2>
+  <table class="fields-table">
+    <tr><th>Field</th><th>What it means</th></tr>
+    <tr><td>Run ID</td><td>Unique ID for this production run. One WO can have multiple runs (e.g. across shifts).</td></tr>
+    <tr><td>Good Pcs</td><td>Pieces that passed inspection and are available for the next process step.</td></tr>
+    <tr><td>Scrap Pcs</td><td>Pieces that failed quality and cannot be reworked.</td></tr>
+    <tr><td>Billet Lot</td><td>The raw material lot consumed — links directly to Traceability.</td></tr>
+    <tr><td>Die Used</td><td>Which die was in the press — links to Die Management for press count tracking.</td></tr>
+    <tr><td>Start / End</td><td>Run duration. Used for OEE availability and performance calculations.</td></tr>
+  </table>
+</section>
+
+<div class="tips-box">
+  <h3>💡 Tips</h3>
+  <ul>
+    <li>Production records are permanent — they can't be deleted (only corrected with a note). This is by design for traceability.</li>
+    <li>Scrap above 2% usually indicates a die or material problem — check <a href="/docs/dies" style="color:#92400e">Die Management</a> for wear patterns.</li>
+    <li>Use the Export button for monthly management reporting — it includes all fields shown here.</li>
+  </ul>
+</div>
+
+<div class="related-links">
+  <h3>Related modules</h3>
+  <a href="/docs/operations">→ Operations & Shop Floor</a>
+  <a href="/docs/traceability">→ Traceability & Genealogy</a>
+  <a href="/docs/oee">→ OEE — Machine Efficiency</a>
+</div>
+{% endblock %}

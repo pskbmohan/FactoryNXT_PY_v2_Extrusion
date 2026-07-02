@@ -1,0 +1,98 @@
+{% extends "docs/base.html" %}
+{% block content %}
+<div class="doc-hero">
+  <div class="doc-hero-icon">🔄</div>
+  <div>
+    <h1>Process Line</h1>
+    <p class="doc-hero-sub">Your live production pipeline — see every WO at every stage at a glance.</p>
+  </div>
+</div>
+<nav class="breadcrumb">🏠 Home › Shop Floor › Process Line</nav>
+
+<section>
+  <h2>What is this?</h2>
+  <p>Process Line shows every active WO as it flows through the factory's production steps. You can see — at a glance — which WOs are at Extrusion, which are in the Aging oven, which are at Coating, and which are waiting for Quality inspection. It's your live production pipeline.</p>
+</section>
+
+<div class="screenshot-mockup">
+  <div class="mockup-header">
+    <span class="mockup-dot" style="background:#e94560"></span>
+    <span class="mockup-dot" style="background:#f59e0b"></span>
+    <span class="mockup-dot" style="background:#16a34a"></span>
+    <span>FactoryNXT — Process Line (Kanban View)</span>
+  </div>
+  <div class="mockup-body">
+    <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:8px;font-size:0.72rem">
+      <div>
+        <div style="font-weight:700;color:#555;padding:6px;background:#f1f5f9;border-radius:6px;text-align:center;margin-bottom:6px">Billet Prep</div>
+        <div style="background:white;border:1px solid #e2e8f0;border-radius:6px;padding:8px;margin-bottom:6px"><strong>WO-008</strong><br><span style="color:#666">PROF-6082-FH</span><br><span class="badge badge-green" style="font-size:0.65rem">On Time</span></div>
+      </div>
+      <div>
+        <div style="font-weight:700;color:#555;padding:6px;background:#dbeafe;border-radius:6px;text-align:center;margin-bottom:6px">Extrusion</div>
+        <div style="background:white;border:1px solid #e2e8f0;border-radius:6px;padding:8px;margin-bottom:6px"><strong>WO-001</strong><br><span style="color:#666">PROF-6063-FH</span><br><span class="badge badge-green" style="font-size:0.65rem">On Time</span></div>
+        <div style="background:white;border:1px solid #e2e8f0;border-radius:6px;padding:8px;margin-bottom:6px"><strong>WO-002</strong><br><span style="color:#666">PROF-6061-SOL</span><br><span class="badge badge-orange" style="font-size:0.65rem">At Risk</span></div>
+      </div>
+      <div>
+        <div style="font-weight:700;color:#555;padding:6px;background:#fef9c3;border-radius:6px;text-align:center;margin-bottom:6px">Aging</div>
+        <div style="background:white;border:1px solid #e2e8f0;border-radius:6px;padding:8px;margin-bottom:6px"><strong>WO-003</strong><br><span style="color:#666">PROF-6061-HOL</span><br><span class="badge badge-green" style="font-size:0.65rem">On Time</span></div>
+      </div>
+      <div>
+        <div style="font-weight:700;color:#555;padding:6px;background:#ffedd5;border-radius:6px;text-align:center;margin-bottom:6px">Stretching</div>
+        <div style="background:white;border:1px solid #e2e8f0;border-radius:6px;padding:8px;margin-bottom:6px"><strong>WO-007</strong><br><span style="color:#666">PROF-6063-FH</span><br><span class="badge badge-red" style="font-size:0.65rem">Overdue</span></div>
+      </div>
+      <div>
+        <div style="font-weight:700;color:#555;padding:6px;background:#f3e8ff;border-radius:6px;text-align:center;margin-bottom:6px">Coating</div>
+        <div style="background:white;border:1px solid #e2e8f0;border-radius:6px;padding:8px;margin-bottom:6px"><strong>WO-004</strong><br><span style="color:#666">PROF-6082-FH</span><br><span class="badge badge-green" style="font-size:0.65rem">On Time</span></div>
+      </div>
+      <div>
+        <div style="font-weight:700;color:#555;padding:6px;background:#dcfce7;border-radius:6px;text-align:center;margin-bottom:6px">Inspection</div>
+        <div style="background:white;border:1px solid #e2e8f0;border-radius:6px;padding:8px;margin-bottom:6px"><strong>WO-005</strong><br><span style="color:#666">PROF-6063-FH</span><br><span class="badge badge-green" style="font-size:0.65rem">On Time</span></div>
+      </div>
+      <div>
+        <div style="font-weight:700;color:#555;padding:6px;background:#e0e7ff;border-radius:6px;text-align:center;margin-bottom:6px">✅ Done</div>
+        <div style="background:white;border:1px solid #e2e8f0;border-radius:6px;padding:8px;margin-bottom:6px"><strong>WO-006</strong><br><span style="color:#666">PROF-6061-SOL</span><br><span class="badge badge-purple" style="font-size:0.65rem">Complete</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+<p class="screenshot-caption">📸 The Process Line Kanban board — each column is a process step, each card is a WO.</p>
+
+<section>
+  <h2>How to use it</h2>
+  <ol class="steps">
+    <li><strong>Go to Process Line</strong> from the sidebar — the Kanban board loads with all active WOs.</li>
+    <li><strong>Filter by Machine, Shift, or Date</strong> to focus on what matters to you.</li>
+    <li><strong>Click any WO card</strong> to see its full process history, notes, and current status.</li>
+    <li><strong>Drag a card</strong> to move it forward if the system hasn't auto-moved it (e.g. manual transfer).</li>
+    <li><strong>Watch colours</strong> — red cards = overdue at that step; green = on time; orange = approaching deadline.</li>
+  </ol>
+</section>
+
+<section>
+  <h2>Key fields explained</h2>
+  <table class="fields-table">
+    <tr><th>Field</th><th>What it means</th></tr>
+    <tr><td>WO Card</td><td>Shows WO number, part number, and time spent at current step.</td></tr>
+    <tr><td>Column (Step)</td><td>Which process step the WO is currently at: Extrusion, Aging, Coating, etc.</td></tr>
+    <tr><td>On Time / At Risk / Overdue</td><td>Badge showing whether the WO is on schedule, approaching the deadline, or late.</td></tr>
+    <tr><td>Filter: Machine</td><td>Show only WOs running on a specific press.</td></tr>
+    <tr><td>Filter: Date</td><td>Show WOs active on a specific date or date range.</td></tr>
+  </table>
+</section>
+
+<div class="tips-box">
+  <h3>💡 Tips</h3>
+  <ul>
+    <li>Red cards are your priority — check them first each morning.</li>
+    <li>If a card is stuck in one column too long, it usually means a bottleneck or missing resource.</li>
+    <li>The board auto-refreshes every 30 seconds when operators log output.</li>
+  </ul>
+</div>
+
+<div class="related-links">
+  <h3>Related modules</h3>
+  <a href="/docs/operations">→ Operations & Shop Floor</a>
+  <a href="/docs/production">→ Production Tracking</a>
+  <a href="/docs/traceability">→ Traceability & Genealogy</a>
+</div>
+{% endblock %}

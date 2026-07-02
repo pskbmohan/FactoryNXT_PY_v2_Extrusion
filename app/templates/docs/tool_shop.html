@@ -1,0 +1,100 @@
+{% extends "docs/base.html" %}
+{% block content %}
+<div class="doc-hero">
+  <div class="doc-hero-icon">🔧</div>
+  <div>
+    <h1>Tool Shop</h1>
+    <p class="doc-hero-sub">Manage die repairs, reconditioning, and maintenance — keep your tooling in top shape.</p>
+  </div>
+</div>
+<nav class="breadcrumb">🏠 Home › Tooling & Equipment › Tool Shop</nav>
+
+<section>
+  <h2>What is this?</h2>
+  <p>Tool Shop manages all the maintenance, repair, and reconditioning work done on dies and other tooling. When a die comes back from the press worn or cracked, a Tool Shop Job is raised. Technicians log their work — measurements, repairs performed, test results — and the die is cleared back to Available when done.</p>
+</section>
+
+<div class="screenshot-mockup">
+  <div class="mockup-header">
+    <span class="mockup-dot" style="background:#e94560"></span>
+    <span class="mockup-dot" style="background:#f59e0b"></span>
+    <span class="mockup-dot" style="background:#16a34a"></span>
+    <span>FactoryNXT — Tool Shop Jobs</span>
+  </div>
+  <div class="mockup-body">
+    <table class="mock-table" style="font-size:0.78rem">
+      <tr>
+        <th>Job ID</th><th>Die</th><th>Issue Reported</th><th>Technician</th><th>Status</th><th>Received</th><th>Est. Completion</th><th>Actions</th>
+      </tr>
+      <tr>
+        <td>TS-2026-041</td><td>DIE-6061-HOL-003</td><td>Surface cracking on bearing</td><td>Ramesh T</td>
+        <td><span class="badge badge-blue">In Progress</span></td><td>2026-06-28</td><td>2026-07-02</td>
+        <td><a href="#" style="color:#3b5bdb">View</a></td>
+      </tr>
+      <tr>
+        <td>TS-2026-040</td><td>DIE-6063-FH-007</td><td>Nitriding required (4,800 cycles)</td><td>Kiran V</td>
+        <td><span class="badge badge-orange">Awaiting Test</span></td><td>2026-06-27</td><td>2026-07-01</td>
+        <td><a href="#" style="color:#3b5bdb">View</a></td>
+      </tr>
+      <tr>
+        <td>TS-2026-039</td><td>DIE-6082-SOL-012</td><td>Dimensional wear — profile out of spec</td><td>Ramesh T</td>
+        <td><span class="badge badge-grey">Waiting</span></td><td>2026-06-26</td><td>2026-07-03</td>
+        <td><a href="#" style="color:#3b5bdb">Assign</a></td>
+      </tr>
+      <tr>
+        <td>TS-2026-038</td><td>DIE-6063-FH-004</td><td>Polishing and light rework</td><td>Kiran V</td>
+        <td><span class="badge badge-green">Cleared</span></td><td>2026-06-25</td><td>2026-06-28</td>
+        <td><a href="#" style="color:#3b5bdb">View</a></td>
+      </tr>
+      <tr>
+        <td>TS-2026-037</td><td>DIE-6061-HOL-009</td><td>Irreparable damage — scrap</td><td>—</td>
+        <td><span class="badge badge-red">Scrapped</span></td><td>2026-06-24</td><td>—</td>
+        <td><a href="#" style="color:#3b5bdb">View</a></td>
+      </tr>
+    </table>
+  </div>
+</div>
+<p class="screenshot-caption">📸 The Tool Shop jobs board — track every die repair from intake to clearance.</p>
+
+<section>
+  <h2>How to use it</h2>
+  <ol class="steps">
+    <li><strong>Go to Tool Shop → All Jobs</strong> to see the full list of repair and maintenance work.</li>
+    <li><strong>When a die arrives</strong>, click "New Job" — enter the die code, describe the issue, and set priority.</li>
+    <li><strong>Assign a technician</strong> from the dropdown — they'll see the job on their queue.</li>
+    <li><strong>Technician logs work</strong> — measurements taken, repairs done, parts replaced, time spent.</li>
+    <li><strong>When repair is complete</strong>, the technician marks "Awaiting Test" — QA verifies the die before clearance.</li>
+    <li><strong>Once test passes</strong>, click "Clear Die" — the die returns to Available status in Die Management.</li>
+  </ol>
+</section>
+
+<section>
+  <h2>Key fields explained</h2>
+  <table class="fields-table">
+    <tr><th>Field</th><th>What it means</th></tr>
+    <tr><td>Job ID</td><td>Unique ID for this repair job (e.g. TS-2026-041).</td></tr>
+    <tr><td>Die</td><td>The die being repaired — links to Die Management.</td></tr>
+    <tr><td>Issue Reported</td><td>What's wrong — cracking, wear, nitriding needed, etc.</td></tr>
+    <tr><td>Technician</td><td>Who is doing the repair work.</td></tr>
+    <tr><td>Status</td><td>Waiting (not started), In Progress, Awaiting Test, Cleared (done), or Scrapped (beyond repair).</td></tr>
+    <tr><td>Received</td><td>When the die arrived at the Tool Shop.</td></tr>
+    <tr><td>Est. Completion</td><td>Target date for the repair to be finished.</td></tr>
+  </table>
+</section>
+
+<div class="tips-box">
+  <h3>💡 Tips</h3>
+  <ul>
+    <li>Track turnaround time — dies stuck in "Waiting" status are blocking production.</li>
+    <li>For recurring issues on the same die, check if it's time to retire rather than keep repairing.</li>
+    <li>Use the "Scrapped" status only when the die is beyond repair — it removes it from the active inventory.</li>
+  </ul>
+</div>
+
+<div class="related-links">
+  <h3>Related modules</h3>
+  <a href="/docs/dies">→ Die Management</a>
+  <a href="/docs/maintenance">→ Maintenance</a>
+  <a href="/docs/operations">→ Operations & Shop Floor</a>
+</div>
+{% endblock %}

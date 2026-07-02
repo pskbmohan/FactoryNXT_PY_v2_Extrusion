@@ -1,0 +1,99 @@
+{% extends "docs/base.html" %}
+{% block content %}
+<div class="doc-hero">
+  <div class="doc-hero-icon">🗺️</div>
+  <div>
+    <h1>Routing Builder</h1>
+    <p class="doc-hero-sub">Define the exact manufacturing steps for each part — the recipe for how it's made.</p>
+  </div>
+</div>
+<nav class="breadcrumb">🏠 Home › Shop Floor › Routing Builder</nav>
+
+<section>
+  <h2>What is this?</h2>
+  <p>Before a Work Order can run, the system needs to know the exact sequence of manufacturing steps for that part — this is called the Routing. The Routing Builder lets you define exactly which stations, machines, and operations each part number must go through, and in what order. Think of it as the manufacturing recipe.</p>
+</section>
+
+<div class="screenshot-mockup">
+  <div class="mockup-header">
+    <span class="mockup-dot" style="background:#e94560"></span>
+    <span class="mockup-dot" style="background:#f59e0b"></span>
+    <span class="mockup-dot" style="background:#16a34a"></span>
+    <span>FactoryNXT — Routing Builder: PROF-6063-FH-40X20</span>
+  </div>
+  <div class="mockup-body">
+    <div style="font-size:0.85rem">
+      <div style="display:flex;gap:12px;align-items:center;padding:12px;background:#f0f4ff;border-radius:8px;margin-bottom:10px;border-left:4px solid #3b5bdb">
+        <span style="background:#3b5bdb;color:white;width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:0.75rem;font-weight:700;flex-shrink:0">1</span>
+        <div><strong>Billet Preparation</strong><br><span style="color:#666;font-size:0.8rem">Station: SAW-01 &nbsp;|&nbsp; Estimated Time: 15 min</span></div>
+      </div>
+      <div style="display:flex;gap:12px;align-items:center;padding:12px;background:#f0f4ff;border-radius:8px;margin-bottom:10px;border-left:4px solid #3b5bdb">
+        <span style="background:#3b5bdb;color:white;width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:0.75rem;font-weight:700;flex-shrink:0">2</span>
+        <div><strong>Pre-Heat Furnace</strong><br><span style="color:#666;font-size:0.8rem">Station: FRN-01 &nbsp;|&nbsp; Estimated Time: 30 min</span></div>
+      </div>
+      <div style="display:flex;gap:12px;align-items:center;padding:12px;background:#f0f4ff;border-radius:8px;margin-bottom:10px;border-left:4px solid #3b5bdb">
+        <span style="background:#3b5bdb;color:white;width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:0.75rem;font-weight:700;flex-shrink:0">3</span>
+        <div><strong>Extrusion Press</strong><br><span style="color:#666;font-size:0.8rem">Station: EXT-01 &nbsp;|&nbsp; Estimated Time: varies by die</span></div>
+      </div>
+      <div style="display:flex;gap:12px;align-items:center;padding:12px;background:#f0f4ff;border-radius:8px;margin-bottom:10px;border-left:4px solid #3b5bdb">
+        <span style="background:#3b5bdb;color:white;width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:0.75rem;font-weight:700;flex-shrink:0">4</span>
+        <div><strong>Stretching</strong><br><span style="color:#666;font-size:0.8rem">Station: STR-01 &nbsp;|&nbsp; Estimated Time: 10 min</span></div>
+      </div>
+      <div style="display:flex;gap:12px;align-items:center;padding:12px;background:#fffbeb;border-radius:8px;margin-bottom:10px;border-left:4px solid #f59e0b">
+        <span style="background:#f59e0b;color:white;width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:0.75rem;font-weight:700;flex-shrink:0">5</span>
+        <div><strong>Aging Oven T5</strong> <span class="badge badge-orange" style="font-size:0.65rem;margin-left:6px">⏱ Hold Point</span><br><span style="color:#666;font-size:0.8rem">Station: AGE-01 &nbsp;|&nbsp; Estimated Time: 330 min (5.5 hrs)</span></div>
+      </div>
+      <div style="display:flex;gap:12px;align-items:center;padding:12px;background:#f0f4ff;border-radius:8px;margin-bottom:10px;border-left:4px solid #3b5bdb">
+        <span style="background:#3b5bdb;color:white;width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:0.75rem;font-weight:700;flex-shrink:0">6</span>
+        <div><strong>Saw to Length</strong><br><span style="color:#666;font-size:0.8rem">Station: SAW-01 &nbsp;|&nbsp; Estimated Time: 20 min</span></div>
+      </div>
+      <div style="display:flex;gap:12px;align-items:center;padding:12px;background:#dcfce7;border-radius:8px;margin-bottom:10px;border-left:4px solid #16a34a">
+        <span style="background:#16a34a;color:white;width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:0.75rem;font-weight:700;flex-shrink:0">7</span>
+        <div><strong>Final Inspection</strong> <span class="badge badge-green" style="font-size:0.65rem;margin-left:6px">✓ QA Sign-off</span><br><span style="color:#666;font-size:0.8rem">Station: INS-01 &nbsp;|&nbsp; Estimated Time: 15 min</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+<p class="screenshot-caption">📸 The Routing Builder shows each step with station, time estimate, and hold points for QA.</p>
+
+<section>
+  <h2>How to use it</h2>
+  <ol class="steps">
+    <li><strong>Go to Routing Builder → New Routing</strong> from the sidebar.</li>
+    <li><strong>Enter the Part Number</strong> this routing applies to. Only one routing per part is active at a time.</li>
+    <li><strong>Add each step:</strong> select Station, Machine Type, and operation type.</li>
+    <li><strong>Set estimated cycle time</strong> for each step — this is used by APS for scheduling.</li>
+    <li><strong>Mark "Hold Points"</strong> — steps where QA sign-off is required before the next step can begin.</li>
+    <li><strong>Save and Approve</strong> — the routing is now available for WOs of this part number.</li>
+  </ol>
+</section>
+
+<section>
+  <h2>Key fields explained</h2>
+  <table class="fields-table">
+    <tr><th>Field</th><th>What it means</th></tr>
+    <tr><td>Part Number</td><td>The finished profile this routing is built for.</td></tr>
+    <tr><td>Step Order</td><td>Sequence number — steps run in order from 1 onward.</td></tr>
+    <tr><td>Station</td><td>Where the work happens (saw, press, furnace, etc.)</td></tr>
+    <tr><td>Estimated Time</td><td>How long this step typically takes — used for scheduling.</td></tr>
+    <tr><td>Hold Point</td><td>If yes, the WO cannot advance to the next step until QA approves.</td></tr>
+    <tr><td>QA Sign-off</td><td>A final inspection step where quality must approve before shipping.</td></tr>
+  </table>
+</section>
+
+<div class="tips-box">
+  <h3>💡 Tips</h3>
+  <ul>
+    <li>Copy an existing routing and modify it — much faster than building from scratch for similar profiles.</li>
+    <li>Keep hold points to a minimum — each one adds delay. Use them only for critical quality gates.</li>
+    <li>If a step is outsourced, you can still add it — mark it as "External" and the system will track it.</li>
+  </ul>
+</div>
+
+<div class="related-links">
+  <h3>Related modules</h3>
+  <a href="/docs/bom">→ Bill of Materials (BOM)</a>
+  <a href="/docs/work-orders">→ Work Orders</a>
+  <a href="/docs/stations">→ Stations & Workcentres</a>
+</div>
+{% endblock %}

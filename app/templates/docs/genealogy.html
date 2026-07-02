@@ -1,0 +1,121 @@
+{% extends "docs/base.html" %}
+{% block content %}
+<div class="doc-hero">
+  <div class="doc-hero-icon">🌳</div>
+  <div>
+    <h1>Part Genealogy</h1>
+    <p class="doc-hero-sub">Visual, interactive family tree for any lot — see every input and output at a glance.</p>
+  </div>
+</div>
+<nav class="breadcrumb">🏠 Home › Quality › Part Genealogy</nav>
+
+<section>
+  <h2>What is this?</h2>
+  <p>Genealogy is the visual, interactive version of Traceability. You enter a WO number or lot number and see a clickable family tree of every input and output — raw material in, finished profiles out, which ones passed QC and which became scrap or rework. It's especially useful for root-cause analysis during customer complaints.</p>
+</section>
+
+<div class="screenshot-mockup">
+  <div class="mockup-header">
+    <span class="mockup-dot" style="background:#e94560"></span>
+    <span class="mockup-dot" style="background:#f59e0b"></span>
+    <span class="mockup-dot" style="background:#16a34a"></span>
+    <span>FactoryNXT — Part Genealogy: WO-2026-003</span>
+  </div>
+  <div class="mockup-body">
+    <div style="font-size:0.85rem">
+      <!-- Inputs section -->
+      <div style="margin-bottom:20px">
+        <div style="font-weight:700;color:#1d4ed8;margin-bottom:10px">📥 INPUTS</div>
+        <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-left:20px">
+          <div style="background:#f0f4ff;border:1px solid #dbeafe;border-radius:6px;padding:10px">
+            <div style="font-weight:600;color:#1d4ed8;font-size:0.8rem">Billet Lot</div>
+            <div style="font-size:0.85rem;font-weight:700">LOT-6063-240601</div>
+            <div style="font-size:0.75rem;color:#666">Hindalco | 6063 | Composition: PASS</div>
+          </div>
+          <div style="background:#f0f4ff;border:1px solid #dbeafe;border-radius:6px;padding:10px">
+            <div style="font-weight:600;color:#1d4ed8;font-size:0.8rem">Die</div>
+            <div style="font-size:0.85rem;font-weight:700">DIE-6063-FH-40X20</div>
+            <div style="font-size:0.75rem;color:#666">Run 312 | Nitrided 2026-01-15</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Work Order node -->
+      <div style="background:#1a1a2e;color:white;border-radius:8px;padding:16px;text-align:center;margin:0 auto 20px;max-width:400px">
+        <div style="font-size:1.2rem;font-weight:700">WO-2026-003</div>
+        <div style="font-size:0.85rem;color:#cdd3de;margin-top:4px">PROF-6063-FH-40X20 | Target: 2,000 pcs</div>
+        <div style="display:flex;gap:16px;justify-content:center;margin-top:10px;font-size:0.85rem">
+          <span><strong style="color:#16a34a">1,942</strong> Good</span>
+          <span><strong style="color:#dc2626">18</strong> Scrap</span>
+          <span><strong style="color:#c2410c">40</strong> Rework</span>
+        </div>
+      </div>
+
+      <!-- Outputs section -->
+      <div>
+        <div style="font-weight:700;color:#16a34a;margin-bottom:10px">📤 OUTPUTS</div>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-left:20px">
+          <div style="background:#dcfce7;border:1px solid #bbf7d0;border-radius:6px;padding:10px">
+            <div style="font-weight:600;color:#16a34a;font-size:0.8rem">✅ Passed QC</div>
+            <div style="font-size:0.9rem;font-weight:700">1,902 pcs</div>
+            <div style="font-size:0.75rem;color:#666">→ Lot LT-2026-0312</div>
+            <div style="font-size:0.75rem;color:#666">→ SHIP-2026-002</div>
+          </div>
+          <div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:6px;padding:10px">
+            <div style="font-weight:600;color:#c2410c;font-size:0.8rem">🔧 Rework</div>
+            <div style="font-size:0.9rem;font-weight:700">40 pcs</div>
+            <div style="font-size:0.75rem;color:#666">→ Re-coating</div>
+            <div style="font-size:0.75rem;color:#666">Status: In Progress</div>
+          </div>
+          <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:6px;padding:10px">
+            <div style="font-weight:600;color:#dc2626;font-size:0.8rem">❌ Scrap</div>
+            <div style="font-size:0.9rem;font-weight:700">18 pcs</div>
+            <div style="font-size:0.75rem;color:#666">→ Recycle</div>
+            <div style="font-size:0.75rem;color:#666">NCR-2026-0017</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<p class="screenshot-caption">📸 Part Genealogy shows inputs (billet, die), the WO with good/scrap/rework split, and where outputs went.</p>
+
+<section>
+  <h2>How to use it</h2>
+  <ol class="steps">
+    <li><strong>Go to Genealogy</strong> from the sidebar.</li>
+    <li><strong>Enter a WO number, lot number, or shipment ID</strong> in the search box.</li>
+    <li><strong>The genealogy tree renders</strong> — inputs on the left, the WO in the centre, outputs on the right.</li>
+    <li><strong>Click any node</strong> to drill into that record — billet composition, die history, QC results, shipment details.</li>
+    <li><strong>Use for root-cause analysis:</strong> if a customer reports a defect, enter the shipment ID to see which WO produced it, which billets were used, and what the QC results showed.</li>
+  </ol>
+</section>
+
+<section>
+  <h2>Key fields explained</h2>
+  <table class="fields-table">
+    <tr><th>Field</th><th>What it means</th></tr>
+    <tr><td>Inputs</td><td>Billet lot (material) and Die (tooling) used for this WO.</td></tr>
+    <tr><td>WO Node</td><td>Central node showing the work order, part number, target quantity, and good/scrap/rework counts.</td></tr>
+    <tr><td>Outputs</td><td>Three categories: Passed QC (shipped), Rework (needs fixing), Scrap (discarded).</td></tr>
+    <tr><td>Lots / Shipments</td><td>Where the good pieces ended up — links to specific customers.</td></tr>
+    <tr><td>NCR References</td><td>Any non-conformance reports raised against this WO — click to see the defect details.</td></tr>
+  </table>
+</section>
+
+<div class="tips-box">
+  <h3>💡 Tips</h3>
+  <ul>
+    <li>Use genealogy when a customer calls with a quality complaint — you can trace the issue back to the root cause in minutes.</li>
+    <li>Look for patterns — if multiple WOs from the same billet lot have issues, the material is the problem, not the process.</li>
+    <li>Export the genealogy report for customer audits — it shows your full quality control process.</li>
+  </ul>
+</div>
+
+<div class="related-links">
+  <h3>Related modules</h3>
+  <a href="/docs/traceability">→ Traceability & Genealogy</a>
+  <a href="/docs/quality">→ Quality & NCR</a>
+  <a href="/docs/logistics">→ Logistics & Shipments</a>
+</div>
+{% endblock %}

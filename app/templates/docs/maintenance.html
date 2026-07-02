@@ -1,0 +1,125 @@
+{% extends "docs/base.html" %}
+{% block content %}
+<div class="doc-hero">
+  <div class="doc-hero-icon">🔧</div>
+  <div>
+    <h1>Maintenance</h1>
+    <p class="doc-hero-sub">Track preventive and breakdown maintenance — keep machines running reliably.</p>
+  </div>
+</div>
+<nav class="breadcrumb">🏠 Home › Plant Setup › Maintenance</nav>
+
+<section>
+  <h2>What is this?</h2>
+  <p>Maintenance tracks all planned (preventive) and unplanned (breakdown) maintenance work on machines and equipment. Every maintenance job has a type, priority, assigned technician, and status. The system automatically raises preventive maintenance jobs based on machine hours or calendar schedules.</p>
+</section>
+
+<div class="screenshot-mockup">
+  <div class="mockup-header">
+    <span class="mockup-dot" style="background:#e94560"></span>
+    <span class="mockup-dot" style="background:#f59e0b"></span>
+    <span class="mockup-dot" style="background:#16a34a"></span>
+    <span>FactoryNXT — Maintenance Jobs</span>
+  </div>
+  <div class="mockup-body">
+    <table class="mock-table" style="font-size:0.78rem">
+      <tr>
+        <th>Job ID</th><th>Machine</th><th>Type</th><th>Priority</th><th>Description</th><th>Assigned To</th><th>Status</th><th>Due</th><th>Completed</th>
+      </tr>
+      <tr>
+        <td>MNT-2026-088</td><td>Press #3</td>
+        <td><span class="badge badge-yellow">PM</span></td>
+        <td><span class="badge badge-orange">High</span></td>
+        <td>Hydraulic oil change + filter inspection</td>
+        <td>Manoj K</td>
+        <td><span class="badge badge-blue">In Progress</span></td>
+        <td>2026-07-02</td>
+        <td>—</td>
+      </tr>
+      <tr>
+        <td>MNT-2026-087</td><td>Saw SAW-01</td>
+        <td><span class="badge badge-red">BM</span></td>
+        <td><span class="badge badge-red">Critical</span></td>
+        <td>Blade motor failure — saw not cutting</td>
+        <td>Suresh M</td>
+        <td><span class="badge badge-blue">In Progress</span></td>
+        <td>2026-07-01</td>
+        <td>—</td>
+      </tr>
+      <tr>
+        <td>MNT-2026-086</td><td>Furnace FRN-AGE-02</td>
+        <td><span class="badge badge-yellow">PM</span></td>
+        <td><span class="badge badge-yellow">Medium</span></td>
+        <td>Thermocouple calibration + insulation check</td>
+        <td>Manoj K</td>
+        <td><span class="badge badge-grey">Waiting</span></td>
+        <td>2026-07-05</td>
+        <td>—</td>
+      </tr>
+      <tr>
+        <td>MNT-2026-085</td><td>Stretcher STR-01</td>
+        <td><span class="badge badge-yellow">PM</span></td>
+        <td><span class="badge badge-blue">Low</span></td>
+        <td>Grease guide rails + check chain tension</td>
+        <td>Suresh M</td>
+        <td><span class="badge badge-green">Completed</span></td>
+        <td>2026-06-30</td>
+        <td>2026-06-29</td>
+      </tr>
+      <tr>
+        <td>MNT-2026-084</td><td>Press #1</td>
+        <td><span class="badge badge-red">BM</span></td>
+        <td><span class="badge badge-red">Critical</span></td>
+        <td>Main ram seal replacement</td>
+        <td>Manoj K</td>
+        <td><span class="badge badge-green">Completed</span></td>
+        <td>2026-06-28</td>
+        <td>2026-06-28</td>
+      </tr>
+    </table>
+  </div>
+</div>
+<p class="screenshot-caption">📸 Maintenance jobs table — PM (preventive) vs BM (breakdown), priority, technician, and status.</p>
+
+<section>
+  <h2>How to use it</h2>
+  <ol class="steps">
+    <li><strong>Go to Maintenance → All Jobs</strong> from the sidebar.</li>
+    <li><strong>View jobs by status</strong> — Waiting, In Progress, Completed, or Overdue.</li>
+    <li><strong>For a new breakdown</strong>, click "New Job" — select machine, describe the issue, set priority.</li>
+    <li><strong>Assign a technician</strong> — they'll see it in their work queue.</li>
+    <li><strong>For preventive maintenance</strong> (PM), the system auto-generates jobs based on schedule — you just assign and close them.</li>
+    <li><strong>When work is done</strong>, the technician clicks "Complete" and logs what was done, parts used, and time spent.</li>
+  </ol>
+</section>
+
+<section>
+  <h2>Key fields explained</h2>
+  <table class="fields-table">
+    <tr><th>Field</th><th>What it means</th></tr>
+    <tr><td>Job ID</td><td>Unique maintenance job number (e.g. MNT-2026-088).</td></tr>
+    <tr><td>Machine</td><td>Which machine needs maintenance — links to Machines module.</td></tr>
+    <tr><td>Type</td><td>PM (Planned Maintenance — scheduled) or BM (Breakdown Maintenance — unplanned).</td></tr>
+    <tr><td>Priority</td><td>Critical (machine is down), High (urgent), Medium (normal), Low (when convenient).</td></tr>
+    <tr><td>Assigned To</td><td>Which technician or contractor is responsible for the work.</td></tr>
+    <tr><td>Status</td><td>Waiting (not started), In Progress (work being done), Completed (done), or Overdue (past due date).</td></tr>
+    <tr><td>Due / Completed</td><td>Target date and actual completion date — used to measure maintenance responsiveness.</td></tr>
+  </table>
+</section>
+
+<div class="tips-box">
+  <h3>💡 Tips</h3>
+  <ul>
+    <li>Address Critical BM jobs immediately — the machine is down and costing you money every minute.</li>
+    <li>Keep PM schedule tight — skipping preventive maintenance leads to more breakdowns.</li>
+    <li>Track parts used in each job — this helps predict spare parts inventory needs.</li>
+  </ul>
+</div>
+
+<div class="related-links">
+  <h3>Related modules</h3>
+  <a href="/docs/machines">→ Machines</a>
+  <a href="/docs/dies">→ Die Management</a>
+  <a href="/docs/operations">→ Operations & Shop Floor</a>
+</div>
+{% endblock %}

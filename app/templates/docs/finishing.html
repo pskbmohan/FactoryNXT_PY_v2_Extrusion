@@ -1,0 +1,110 @@
+{% extends "docs/base.html" %}
+{% block content %}
+<div class="doc-hero">
+  <div class="doc-hero-icon">📏</div>
+  <div>
+    <h1>Finishing & Stretching</h1>
+    <p class="doc-hero-sub">Straighten extruded profiles and saw them to final customer lengths.</p>
+  </div>
+</div>
+<nav class="breadcrumb">🏠 Home › Tooling & Equipment › Finishing & Stretching</nav>
+
+<section>
+  <h2>What is this?</h2>
+  <p>After aging, extruded profiles are straightened on a stretcher (to remove the slight bow from quenching), then sawn to final customer lengths. This module tracks each finishing operation: the stretch amount, saw cut lengths, and the final piece count after sawing.</p>
+</section>
+
+<div class="screenshot-mockup">
+  <div class="mockup-header">
+    <span class="mockup-dot" style="background:#e94560"></span>
+    <span class="mockup-dot" style="background:#f59e0b"></span>
+    <span class="mockup-dot" style="background:#16a34a"></span>
+    <span>FactoryNXT — Finishing Job: WO-2026-001</span>
+  </div>
+  <div class="mockup-body">
+    <div style="font-size:0.85rem;background:white;border:1px solid #e2e8f0;border-radius:8px;padding:20px">
+      <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:16px;margin-bottom:16px">
+        <div>
+          <div style="color:#64748b;font-size:0.75rem;text-transform:uppercase;font-weight:600">WO Number</div>
+          <div style="font-weight:700;font-size:1rem">WO-2026-001</div>
+        </div>
+        <div>
+          <div style="color:#64748b;font-size:0.75rem;text-transform:uppercase;font-weight:600">Profile</div>
+          <div style="font-weight:700;font-size:1rem">PROF-6063-FH-40X20</div>
+        </div>
+        <div>
+          <div style="color:#64748b;font-size:0.75rem;text-transform:uppercase;font-weight:600">Pre-Stretch Length</div>
+          <div style="font-weight:700;font-size:1rem;color:#3b5bdb">6,240 mm</div>
+        </div>
+        <div>
+          <div style="color:#64748b;font-size:0.75rem;text-transform:uppercase;font-weight:600">Post-Stretch Length</div>
+          <div style="font-weight:700;font-size:1rem;color:#3b5bdb">6,280 mm</div>
+        </div>
+        <div>
+          <div style="color:#64748b;font-size:0.75rem;text-transform:uppercase;font-weight:600">Elongation %</div>
+          <div style="font-weight:700;font-size:1rem;color:#16a34a">0.64%</div>
+        </div>
+        <div>
+          <div style="color:#64748b;font-size:0.75rem;text-transform:uppercase;font-weight:600">Target Cut Length</div>
+          <div style="font-weight:700;font-size:1rem">6,000 mm</div>
+        </div>
+        <div>
+          <div style="color:#64748b;font-size:0.75rem;text-transform:uppercase;font-weight:600">Number of Pieces</div>
+          <div style="font-weight:700;font-size:1rem;color:#16a34a">1,942</div>
+        </div>
+        <div>
+          <div style="color:#64748b;font-size:0.75rem;text-transform:uppercase;font-weight:600">Scrap Ends</div>
+          <div style="font-weight:700;font-size:1rem;color:#c2410c">18 kg</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:12px;margin-top:20px">
+        <button style="flex:1;padding:12px;background:#16a34a;color:white;border:none;border-radius:8px;font-weight:600;font-size:0.9rem;cursor:pointer">✓ Complete Finishing</button>
+        <button style="flex:1;padding:12px;background:#64748b;color:white;border:none;border-radius:8px;font-weight:600;font-size:0.9rem;cursor:pointer">Save Draft</button>
+      </div>
+    </div>
+  </div>
+</div>
+<p class="screenshot-caption">📸 The Finishing Job form — record stretch parameters, cut lengths, and final piece count.</p>
+
+<section>
+  <h2>How to use it</h2>
+  <ol class="steps">
+    <li><strong>Go to Finishing → Active Jobs</strong> from the sidebar.</li>
+    <li><strong>Select a WO</strong> to record finishing for — it loads the pre-stretch length from the extrusion log.</li>
+    <li><strong>Enter the post-stretch length</strong> after straightening — the system calculates elongation %.</li>
+    <li><strong>Enter the target cut length</strong> (from the BOM or customer spec).</li>
+    <li><strong>Enter the number of pieces</strong> after sawing — this updates the WO progress.</li>
+    <li><strong>Enter scrap ends weight</strong> — the offcuts that can't be used.</li>
+    <li><strong>Click "Complete Finishing"</strong> — the WO moves to the next step (usually Inspection or Packaging).</li>
+  </ol>
+</section>
+
+<section>
+  <h2>Key fields explained</h2>
+  <table class="fields-table">
+    <tr><th>Field</th><th>What it means</th></tr>
+    <tr><td>Pre-Stretch Length</td><td>Length before straightening — typically the extrusion table length.</td></tr>
+    <tr><td>Post-Stretch Length</td><td>Length after stretching — should be slightly longer due to elongation.</td></tr>
+    <tr><td>Elongation %</td><td>How much the profile stretched — calculated from pre/post values. Should be 0.5–1.0%.</td></tr>
+    <tr><td>Target Cut Length</td><td>The final customer-specified length (e.g. 6,000 mm).</td></tr>
+    <tr><td>Number of Pieces</td><td>Final count after sawing — this is what goes to packaging/shipment.</td></tr>
+    <tr><td>Scrap Ends</td><td>Weight of offcuts and end pieces that are too short to use.</td></tr>
+  </table>
+</section>
+
+<div class="tips-box">
+  <h3>💡 Tips</h3>
+  <ul>
+    <li>Elongation outside 0.5–1.0% may indicate a material or stretching issue — investigate before proceeding.</li>
+    <li>Keep scrap ends low — they represent lost material and revenue.</li>
+    <li>The piece count here becomes the final quantity for shipment and invoicing.</li>
+  </ul>
+</div>
+
+<div class="related-links">
+  <h3>Related modules</h3>
+  <a href="/docs/operations">→ Operations & Shop Floor</a>
+  <a href="/docs/production">→ Production Tracking</a>
+  <a href="/docs/packaging">→ Packaging</a>
+</div>
+{% endblock %}

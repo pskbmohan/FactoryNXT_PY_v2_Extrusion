@@ -1,0 +1,104 @@
+{% extends "docs/base.html" %}
+{% block content %}
+<div class="doc-hero">
+  <div class="doc-hero-icon">✅</div>
+  <div>
+    <h1>Quality & NCR</h1>
+    <p class="doc-hero-sub">Track non-conformance reports from discovery through to final disposition.</p>
+  </div>
+</div>
+<nav class="breadcrumb">🏠 Home › Quality › Quality & NCR</nav>
+
+<section>
+  <h2>What is this?</h2>
+  <p>Quality control ensures every product leaving the factory meets spec. When something doesn't — a dimensional error, a surface defect, or a composition issue — a Non-Conformance Report (NCR) is raised. This module tracks every NCR from discovery through investigation to final disposition: Rework, Use-As-Is, or Scrap.</p>
+</section>
+
+<div class="screenshot-mockup">
+  <div class="mockup-header">
+    <span class="mockup-dot" style="background:#e94560"></span>
+    <span class="mockup-dot" style="background:#f59e0b"></span>
+    <span class="mockup-dot" style="background:#16a34a"></span>
+    <span>FactoryNXT — Non-Conformance Reports</span>
+  </div>
+  <div class="mockup-body">
+    <table class="mock-table" style="font-size:0.78rem">
+      <tr>
+        <th>NCR No.</th><th>WO</th><th>Description</th><th>Severity</th><th>Raised By</th><th>Status</th><th>Disposition</th><th>Actions</th>
+      </tr>
+      <tr>
+        <td>NCR-2026-0017</td><td>WO-2026-003</td><td>Surface scratches on profile face</td>
+        <td><span class="badge badge-orange">Major</span></td><td>Vijay Q</td>
+        <td><span class="badge badge-blue">Open</span></td>
+        <td><span class="badge badge-orange">Rework</span></td>
+        <td><a href="#" style="color:#3b5bdb">View</a> | <a href="#" style="color:#16a34a">Close</a></td>
+      </tr>
+      <tr>
+        <td>NCR-2026-0016</td><td>WO-2026-002</td><td>Dimensional deviation: width 24.8mm vs 25.0mm</td>
+        <td><span class="badge badge-yellow">Minor</span></td><td>Vijay Q</td>
+        <td><span class="badge badge-blue">Open</span></td>
+        <td><span class="badge badge-green">Use-As-Is</span></td>
+        <td><a href="#" style="color:#3b5bdb">View</a> | <a href="#" style="color:#16a34a">Close</a></td>
+      </tr>
+      <tr>
+        <td>NCR-2026-0015</td><td>WO-2026-001</td><td>Alloy composition out of spec: Mg 0.92% vs max 0.9%</td>
+        <td><span class="badge badge-red">Critical</span></td><td>Vijay Q</td>
+        <td><span class="badge badge-purple">Investigation</span></td>
+        <td><span class="badge badge-red">Scrap</span></td>
+        <td><a href="#" style="color:#3b5bdb">View</a></td>
+      </tr>
+      <tr>
+        <td>NCR-2026-0014</td><td>WO-2026-004</td><td>Colour mismatch after coating</td>
+        <td><span class="badge badge-orange">Major</span></td><td>Vijay Q</td>
+        <td><span class="badge badge-green">Closed</span></td>
+        <td><span class="badge badge-orange">Rework</span></td>
+        <td><a href="#" style="color:#3b5bdb">View</a></td>
+      </tr>
+    </table>
+  </div>
+</div>
+<p class="screenshot-caption">📸 The NCR list — severity badges, disposition status, and quick actions for quality inspectors.</p>
+
+<section>
+  <h2>How to use it</h2>
+  <ol class="steps">
+    <li><strong>Quality inspector goes to Quality → Raise NCR</strong> when a defect is found.</li>
+    <li><strong>Link the NCR to the WO</strong> and the specific batch or lot number.</li>
+    <li><strong>Select severity</strong> — Minor (cosmetic), Major (functional), or Critical (safety/compliance).</li>
+    <li><strong>Fill in defect description</strong> — what's wrong, how it was found, photos if helpful.</li>
+    <li><strong>NCR is automatically assigned</strong> to the QA Manager for review and disposition.</li>
+    <li><strong>QA manager sets Disposition:</strong> Rework (fix it), Use-As-Is (acceptable with note), Quarantine (hold), or Scrap (discard).</li>
+    <li><strong>Once action is complete</strong>, the inspector closes the NCR — it's resolved.</li>
+  </ol>
+</section>
+
+<section>
+  <h2>Key fields explained</h2>
+  <table class="fields-table">
+    <tr><th>Field</th><th>What it means</th></tr>
+    <tr><td>NCR No.</td><td>Unique ID for this non-conformance report (e.g. NCR-2026-0017).</td></tr>
+    <tr><td>WO</td><td>The work order where the defect was found.</td></tr>
+    <tr><td>Description</td><td>What's wrong — be specific (dimensions, defect type, location).</td></tr>
+    <tr><td>Severity</td><td>Minor (cosmetic), Major (functional issue), Critical (safety or compliance risk).</td></tr>
+    <tr><td>Raised By</td><td>The quality inspector who found the defect.</td></tr>
+    <tr><td>Status</td><td>Open (raised), Investigation (QA reviewing), or Closed (resolved).</td></tr>
+    <tr><td>Disposition</td><td>Rework (fix it), Use-As-Is (acceptable), Quarantine (hold for review), or Scrap (discard).</td></tr>
+  </table>
+</section>
+
+<div class="tips-box">
+  <h3>💡 Tips</h3>
+  <ul>
+    <li>Close NCRs quickly — open NCRs block shipments and hold inventory.</li>
+    <li>Use photos in the description — they help the QA manager decide faster.</li>
+    <li>If the same defect appears on multiple WOs, investigate for a systemic issue (die wear, material batch, operator error).</li>
+  </ul>
+</div>
+
+<div class="related-links">
+  <h3>Related modules</h3>
+  <a href="/docs/traceability">→ Traceability & Genealogy</a>
+  <a href="/docs/work-orders">→ Work Orders</a>
+  <a href="/docs/operations">→ Operations & Shop Floor</a>
+</div>
+{% endblock %}

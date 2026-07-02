@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{% block doctitle %}{{ title | default('FactoryNXT Docs') }} — FactoryNXT Docs{% endblock %}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  {% include 'docs/_styles.html' %}
+</head>
+<body class="docs-page" style="background:#f8fafc; margin:0;">
+
+<!-- Mobile hamburger -->
+<button class="hamburger" onclick="document.querySelector('.docs-sidebar').classList.toggle('open')" aria-label="Toggle menu">☰</button>
+
+<!-- Sidebar -->
+<aside class="docs-sidebar">
+  <a href="/docs" class="logo">📘 FactoryNXT Docs</a>
+
+  <div class="sidebar-category">🏠 Getting Started</div>
+  <a href="/docs" class="sidebar-link {% if current == 'index' %}active{% endif %}">Home</a>
+
+  <div class="sidebar-category">📊 Dashboard & Monitoring</div>
+  <a href="/docs/dashboard" class="sidebar-link {% if current == 'dashboard' %}active{% endif %}">Dashboard & KPIs</a>
+  <a href="/docs/oee" class="sidebar-link {% if current == 'oee' %}active{% endif %}">OEE — Machine Efficiency</a>
+  <a href="/docs/kpi-alerts" class="sidebar-link {% if current == 'kpi-alerts' %}active{% endif %}">KPI Alerts & Notifications</a>
+
+  <div class="sidebar-category">📋 Planning & Scheduling</div>
+  <a href="/docs/work-orders" class="sidebar-link {% if current == 'work-orders' %}active{% endif %}">Work Orders</a>
+  <a href="/docs/planning" class="sidebar-link {% if current == 'planning' %}active{% endif %}">Production Planning</a>
+  <a href="/docs/aps" class="sidebar-link {% if current == 'aps' %}active{% endif %}">APS — Advanced Scheduling</a>
+
+  <div class="sidebar-category">🏭 Shop Floor</div>
+  <a href="/docs/operations" class="sidebar-link {% if current == 'operations' %}active{% endif %}">Operations & Shop Floor</a>
+  <a href="/docs/process-line" class="sidebar-link {% if current == 'process-line' %}active{% endif %}">Process Line</a>
+  <a href="/docs/routing-builder" class="sidebar-link {% if current == 'routing-builder' %}active{% endif %}">Routing Builder</a>
+  <a href="/docs/production" class="sidebar-link {% if current == 'production' %}active{% endif %}">Production Tracking</a>
+
+  <div class="sidebar-category">🔧 Tooling & Equipment</div>
+  <a href="/docs/dies" class="sidebar-link {% if current == 'dies' %}active{% endif %}">Die Management</a>
+  <a href="/docs/tool-shop" class="sidebar-link {% if current == 'tool-shop' %}active{% endif %}">Tool Shop</a>
+  <a href="/docs/furnace" class="sidebar-link {% if current == 'furnace' %}active{% endif %}">Furnace & Heat Treatment</a>
+  <a href="/docs/finishing" class="sidebar-link {% if current == 'finishing' %}active{% endif %}">Finishing & Stretching</a>
+  <a href="/docs/coating-schedule" class="sidebar-link {% if current == 'coating-schedule' %}active{% endif %}">Coating Schedule</a>
+
+  <div class="sidebar-category">✅ Quality</div>
+  <a href="/docs/quality" class="sidebar-link {% if current == 'quality' %}active{% endif %}">Quality & NCR</a>
+  <a href="/docs/traceability" class="sidebar-link {% if current == 'traceability' %}active{% endif %}">Traceability & Genealogy</a>
+  <a href="/docs/genealogy" class="sidebar-link {% if current == 'genealogy' %}active{% endif %}">Part Genealogy</a>
+
+  <div class="sidebar-category">📦 Materials & Inventory</div>
+  <a href="/docs/material-receipt" class="sidebar-link {% if current == 'material-receipt' %}active{% endif %}">Material Receipt</a>
+  <a href="/docs/inventory" class="sidebar-link {% if current == 'inventory' %}active{% endif %}">Inventory</a>
+  <a href="/docs/bom" class="sidebar-link {% if current == 'bom' %}active{% endif %}">Bill of Materials (BOM)</a>
+  <a href="/docs/cost-price" class="sidebar-link {% if current == 'cost-price' %}active{% endif %}">Cost & Price Config</a>
+  <a href="/docs/containers" class="sidebar-link {% if current == 'containers' %}active{% endif %}">Container Management</a>
+
+  <div class="sidebar-category">🚚 Logistics</div>
+  <a href="/docs/logistics" class="sidebar-link {% if current == 'logistics' %}active{% endif %}">Logistics & Shipments</a>
+  <a href="/docs/kitting" class="sidebar-link {% if current == 'kitting' %}active{% endif %}">Kitting</a>
+  <a href="/docs/packaging" class="sidebar-link {% if current == 'packaging' %}active{% endif %}">Packaging</a>
+
+  <div class="sidebar-category">🔩 Plant Setup</div>
+  <a href="/docs/maintenance" class="sidebar-link {% if current == 'maintenance' %}active{% endif %}">Maintenance</a>
+  <a href="/docs/stations" class="sidebar-link {% if current == 'stations' %}active{% endif %}">Stations & Workcentres</a>
+  <a href="/docs/machines" class="sidebar-link {% if current == 'machines' %}active{% endif %}">Machines</a>
+
+  <div class="sidebar-category">⚙️ System</div>
+  <a href="/docs/integrations" class="sidebar-link {% if current == 'integrations' %}active{% endif %}">Integrations & API</a>
+  <a href="/docs/admin" class="sidebar-link {% if current == 'admin' %}active{% endif %}">Admin & Users</a>
+</aside>
+
+<!-- Main Content -->
+<main class="docs-content">
+  {% block content %}{% endblock %}
+</main>
+
+</body>
+</html>

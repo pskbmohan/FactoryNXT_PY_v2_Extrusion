@@ -1,0 +1,109 @@
+{% extends "docs/base.html" %}
+{% block content %}
+<div class="doc-hero">
+  <div class="doc-hero-icon">🎨</div>
+  <div>
+    <h1>Coating Schedule</h1>
+    <p class="doc-hero-sub">Plan powder coating and anodizing runs — optimise colour sequence and line capacity.</p>
+  </div>
+</div>
+<nav class="breadcrumb">🏠 Home › Tooling & Equipment › Coating Schedule</nav>
+
+<section>
+  <h2>What is this?</h2>
+  <p>Coating (powder coating or anodizing) runs on a shared line that serves multiple WOs per day. The Coating Schedule plans which WOs go through which colour and process in which order, optimising for colour sequence (light to dark, to minimise cleaning time between runs) and line capacity.</p>
+</section>
+
+<div class="screenshot-mockup">
+  <div class="mockup-header">
+    <span class="mockup-dot" style="background:#e94560"></span>
+    <span class="mockup-dot" style="background:#f59e0b"></span>
+    <span class="mockup-dot" style="background:#16a34a"></span>
+    <span>FactoryNXT — Coating Schedule: Today</span>
+  </div>
+  <div class="mockup-body">
+    <table class="mock-table" style="font-size:0.75rem">
+      <tr>
+        <th>Time Slot</th><th>Line</th><th>WO</th><th>Part</th><th>Colour</th><th>Pieces</th><th>Duration</th><th>Operator</th><th>Status</th>
+      </tr>
+      <tr>
+        <td>08:00–09:30</td><td>Line 1</td><td>WO-2026-005</td><td>PROF-6063-FH</td>
+        <td><span style="display:inline-block;width:14px;height:14px;background:#f5f5f5;border:1px solid #ccc;border-radius:3px;vertical-align:middle"></span> White</td>
+        <td>800</td><td>1.5 hrs</td><td>Manoj K</td>
+        <td><span class="badge badge-green">Done</span></td>
+      </tr>
+      <tr>
+        <td>10:00–11:30</td><td>Line 1</td><td>WO-2026-008</td><td>PROF-6063-FH</td>
+        <td><span style="display:inline-block;width:14px;height:14px;background:#d4d4d4;border:1px solid #ccc;border-radius:3px;vertical-align:middle"></span> Silver</td>
+        <td>1,200</td><td>1.5 hrs</td><td>Manoj K</td>
+        <td><span class="badge badge-blue">Running</span></td>
+      </tr>
+      <tr>
+        <td>12:00–13:30</td><td>Line 1</td><td>WO-2026-010</td><td>PROF-6082-SOL</td>
+        <td><span style="display:inline-block;width:14px;height:14px;background:#92400e;border:1px solid #ccc;border-radius:3px;vertical-align:middle"></span> Bronze</td>
+        <td>600</td><td>1.5 hrs</td><td>Manoj K</td>
+        <td><span class="badge badge-grey">Scheduled</span></td>
+      </tr>
+      <tr>
+        <td>14:00–15:30</td><td>Line 1</td><td>WO-2026-012</td><td>PROF-6061-FH</td>
+        <td><span style="display:inline-block;width:14px;height:14px;background:#1e293b;border:1px solid #ccc;border-radius:3px;vertical-align:middle"></span> Black</td>
+        <td>900</td><td>1.5 hrs</td><td>Manoj K</td>
+        <td><span class="badge badge-grey">Scheduled</span></td>
+      </tr>
+      <tr>
+        <td>08:00–10:00</td><td>Line 2</td><td>WO-2026-006</td><td>PROF-6063-SOL</td>
+        <td><span style="display:inline-block;width:14px;height:14px;background:#e0e7ff;border:1px solid #ccc;border-radius:3px;vertical-align:middle"></span> Clear Anodized</td>
+        <td>1,500</td><td>2 hrs</td><td>Suresh M</td>
+        <td><span class="badge badge-green">Done</span></td>
+      </tr>
+    </table>
+    <div style="margin-top:14px;padding:10px;background:#fffbeb;border-left:4px solid #f59e0b;border-radius:4px;font-size:0.8rem;color:#78350f">
+      <strong>Colour Sequence Note:</strong> White → Silver → Bronze → Black (light to dark) minimises cleaning time between runs.
+    </div>
+  </div>
+</div>
+<p class="screenshot-caption">📸 The Coating Schedule — plan time slots by colour sequence to minimise line cleaning.</p>
+
+<section>
+  <h2>How to use it</h2>
+  <ol class="steps">
+    <li><strong>Go to Coating Schedule → Today's Plan</strong> from the sidebar.</li>
+    <li><strong>Unscheduled coating WOs</strong> appear in the right panel — drag them into time slots.</li>
+    <li><strong>Observe the colour sequence rule</strong> — light colours first (white, silver), then dark (bronze, black).</li>
+    <li><strong>The system shows cleaning time</strong> between colour changes — factor this into the schedule.</li>
+    <li><strong>Confirm the plan</strong> — operators see it on the coating line screen.</li>
+    <li><strong>Mark each slot Done</strong> when the run completes — the WO moves to the next step automatically.</li>
+  </ol>
+</section>
+
+<section>
+  <h2>Key fields explained</h2>
+  <table class="fields-table">
+    <tr><th>Field</th><th>What it means</th></tr>
+    <tr><td>Time Slot</td><td>Start and end time for this coating run.</td></tr>
+    <tr><td>Line</td><td>Which coating line (Line 1 for powder, Line 2 for anodizing, etc.)</td></tr>
+    <tr><td>WO</td><td>The work order being coated.</td></tr>
+    <tr><td>Colour</td><td>The powder colour or anodizing finish — shown with a colour swatch.</td></tr>
+    <tr><td>Pieces</td><td>How many profiles are being coated in this run.</td></tr>
+    <tr><td>Duration</td><td>Estimated time for the run — based on piece count and line speed.</td></tr>
+    <tr><td>Operator</td><td>Who is running the coating line for this slot.</td></tr>
+    <tr><td>Status</td><td>Scheduled (planned), Running (in progress), or Done (complete).</td></tr>
+  </table>
+</section>
+
+<div class="tips-box">
+  <h3>💡 Tips</h3>
+  <ul>
+    <li>Always schedule light-to-dark — it saves 20–30 minutes of cleaning between runs.</li>
+    <li>If you must go dark-to-light, add an extra cleaning slot (the system suggests this automatically).</li>
+    <li>Leave 30-minute gaps between runs for line cleaning and colour changeover.</li>
+  </ul>
+</div>
+
+<div class="related-links">
+  <h3>Related modules</h3>
+  <a href="/docs/operations">→ Operations & Shop Floor</a>
+  <a href="/docs/planning">→ Production Planning</a>
+  <a href="/docs/packaging">→ Packaging</a>
+</div>
+{% endblock %}

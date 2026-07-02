@@ -1,0 +1,119 @@
+{% extends "docs/base.html" %}
+{% block content %}
+<div class="doc-hero">
+  <div class="doc-hero-icon">🔩</div>
+  <div>
+    <h1>Die Management</h1>
+    <p class="doc-hero-sub">Track every die in your inventory — its location, life remaining, and repair history.</p>
+  </div>
+</div>
+<nav class="breadcrumb">🏠 Home › Tooling & Equipment › Die Management</nav>
+
+<section>
+  <h2>What is this?</h2>
+  <p>Dies are the steel tools that give aluminium its shape during extrusion. Every die is expensive (₹50,000–₹5,00,000) and has a limited life measured in press cycles. Die Management tracks every die in your inventory — where it is right now, how many cycles it has left, when it was last nitrided, and whether it's available or in repair.</p>
+</section>
+
+<div class="screenshot-mockup">
+  <div class="mockup-header">
+    <span class="mockup-dot" style="background:#e94560"></span>
+    <span class="mockup-dot" style="background:#f59e0b"></span>
+    <span class="mockup-dot" style="background:#16a34a"></span>
+    <span>FactoryNXT — Die Management</span>
+  </div>
+  <div class="mockup-body">
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;font-size:0.8rem">
+      <div style="border:1px solid #e2e8f0;border-radius:8px;padding:14px;background:white">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+          <strong>DIE-6063-FH-001</strong>
+          <span class="badge badge-green">Available</span>
+        </div>
+        <div style="color:#666;font-size:0.75rem;margin-bottom:6px">Profile: Flat Head 40×20 &nbsp;|&nbsp; Alloy: 6063</div>
+        <div style="display:flex;justify-content:space-between;font-size:0.75rem">
+          <span>Press Count: <strong>1,240 / 5,000</strong></span>
+          <span>Nitride: 3×</span>
+        </div>
+        <div style="margin-top:6px;font-size:0.75rem;color:#555">Location: Die Store Rack A-12</div>
+        <div style="margin-top:8px;display:flex;gap:6px">
+          <button style="padding:4px 10px;background:#3b5bdb;color:white;border:none;border-radius:4px;font-size:0.7rem;cursor:pointer">Assign to WO</button>
+          <button style="padding:4px 10px;background:#f59e0b;color:white;border:none;border-radius:4px;font-size:0.7rem;cursor:pointer">Send to Furnace</button>
+        </div>
+      </div>
+      <div style="border:1px solid #e2e8f0;border-radius:8px;padding:14px;background:white">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+          <strong>DIE-6063-SOL-002</strong>
+          <span class="badge badge-blue">In Press</span>
+        </div>
+        <div style="color:#666;font-size:0.75rem;margin-bottom:6px">Profile: Solid 25×25 &nbsp;|&nbsp; Alloy: 6063</div>
+        <div style="display:flex;justify-content:space-between;font-size:0.75rem">
+          <span>Press Count: <strong>3,890 / 5,000</strong></span>
+          <span>Nitride: 5×</span>
+        </div>
+        <div style="margin-top:6px;font-size:0.75rem;color:#555">Location: Press #2</div>
+        <div style="margin-top:8px;display:flex;gap:6px">
+          <button style="padding:4px 10px;background:#64748b;color:white;border:none;border-radius:4px;font-size:0.7rem;cursor:pointer">View History</button>
+        </div>
+      </div>
+      <div style="border:1px solid #e2e8f0;border-radius:8px;padding:14px;background:white">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+          <strong>DIE-6061-HOL-003</strong>
+          <span class="badge badge-orange">In Repair</span>
+        </div>
+        <div style="color:#666;font-size:0.75rem;margin-bottom:6px">Profile: Hollow 50×30 &nbsp;|&nbsp; Alloy: 6061</div>
+        <div style="display:flex;justify-content:space-between;font-size:0.75rem">
+          <span>Press Count: <strong>4,750 / 5,000</strong></span>
+          <span>Nitride: 7×</span>
+        </div>
+        <div style="margin-top:6px;font-size:0.75rem;color:#555">Location: Tool Shop — Repair Bench 2</div>
+        <div style="margin-top:8px;display:flex;gap:6px">
+          <button style="padding:4px 10px;background:#64748b;color:white;border:none;border-radius:4px;font-size:0.7rem;cursor:pointer">View Job</button>
+          <button style="padding:4px 10px;background:#dc2626;color:white;border:none;border-radius:4px;font-size:0.7rem;cursor:pointer">Retire</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<p class="screenshot-caption">📸 Die cards show status, press count vs limit, current location, and quick actions.</p>
+
+<section>
+  <h2>How to use it</h2>
+  <ol class="steps">
+    <li><strong>Go to Dies → All Dies</strong> to see your complete die inventory as cards.</li>
+    <li><strong>Use the search bar</strong> to find a die by code or profile description.</li>
+    <li><strong>Click a die</strong> to see its full history: all runs, repairs, nitriding events.</li>
+    <li><strong>When a die is needed for a WO</strong>, click "Assign to WO" — it reserves the die for that job.</li>
+    <li><strong>After a run, the press count updates</strong> automatically from the production log.</li>
+    <li><strong>When press count exceeds the limit</strong>, the die is auto-flagged for nitriding — a repair job is created automatically.</li>
+  </ol>
+</section>
+
+<section>
+  <h2>Key fields explained</h2>
+  <table class="fields-table">
+    <tr><th>Field</th><th>What it means</th></tr>
+    <tr><td>Die Code</td><td>Unique ID etched on the die (e.g. DIE-6063-FH-001). Permanent.</td></tr>
+    <tr><td>Die Type</td><td>Solid, Hollow, or Semi-hollow — determines the extrusion method.</td></tr>
+    <tr><td>Press Count</td><td>How many times this die has been used in a press. Increments with every run.</td></tr>
+    <tr><td>Press Count Limit</td><td>Maximum cycles before nitriding is required. Set per die type (e.g. 5,000).</td></tr>
+    <tr><td>Nitriding Count</td><td>How many times this die has been re-hardened. Each nitrogen cycle extends life.</td></tr>
+    <tr><td>Current Location</td><td>Where the die physically is: Die Store, Press #X, Tool Shop, Furnace.</td></tr>
+    <tr><td>Status</td><td>Available, In Furnace, In Press, In Repair, or Retired.</td></tr>
+  </table>
+</section>
+
+<div class="tips-box">
+  <h3>💡 Tips</h3>
+  <ul>
+    <li>Set up a nitriding threshold (e.g. 80% of limit) in Admin → Settings so you get an alert before the die wears out.</li>
+    <li>A die that's been nitrided more than 6–7 times may be nearing end-of-life — plan replacement early.</li>
+    <li>Always return dies to the Die Store after use — "lost" dies cost ₹50,000+ each.</li>
+  </ul>
+</div>
+
+<div class="related-links">
+  <h3>Related modules</h3>
+  <a href="/docs/tool-shop">→ Tool Shop</a>
+  <a href="/docs/operations">→ Operations & Shop Floor</a>
+  <a href="/docs/maintenance">→ Maintenance</a>
+</div>
+{% endblock %}

@@ -1,0 +1,116 @@
+{% extends "docs/base.html" %}
+{% block content %}
+<div class="doc-hero">
+  <div class="doc-hero-icon">🧺</div>
+  <div>
+    <h1>Container Management</h1>
+    <p class="doc-hero-sub">Track every tray, rack, and basket — know what's inside and where it is right now.</p>
+  </div>
+</div>
+<nav class="breadcrumb">🏠 Home › Materials & Inventory › Container Management</nav>
+
+<section>
+  <h2>What is this?</h2>
+  <p>Containers (trays, racks, baskets) carry profiles between stations. Container Management tracks where every container is right now, what it contains, and whether it's available for loading. This prevents the common problem of "lost trays" and ensures the aging oven team always has empty containers ready.</p>
+</section>
+
+<div class="screenshot-mockup">
+  <div class="mockup-header">
+    <span class="mockup-dot" style="background:#e94560"></span>
+    <span class="mockup-dot" style="background:#f59e0b"></span>
+    <span class="mockup-dot" style="background:#16a34a"></span>
+    <span>FactoryNXT — Container Status Board</span>
+  </div>
+  <div class="mockup-body">
+    <table class="mock-table" style="font-size:0.78rem">
+      <tr>
+        <th>Container ID</th><th>Type</th><th>Status</th><th>Current Location</th><th>Contents</th><th>Last Moved</th>
+      </tr>
+      <tr>
+        <td>CTR-001</td><td>Aging Tray</td>
+        <td><span class="badge badge-blue">In Furnace</span></td>
+        <td>FRN-AGE-01</td>
+        <td>WO-2026-001, 800 pcs</td>
+        <td>2026-07-01 09:15</td>
+      </tr>
+      <tr>
+        <td>CTR-002</td><td>Aging Tray</td>
+        <td><span class="badge badge-green">Empty Available</span></td>
+        <td>Container Yard</td>
+        <td>—</td>
+        <td>2026-06-30 16:45</td>
+      </tr>
+      <tr>
+        <td>CTR-003</td><td>Stretching Rack</td>
+        <td><span class="badge badge-orange">In Use</span></td>
+        <td>Stretching Station</td>
+        <td>WO-2026-003, 1,240 pcs</td>
+        <td>2026-07-01 10:30</td>
+      </tr>
+      <tr>
+        <td>CTR-004</td><td>Coating Basket</td>
+        <td><span class="badge badge-green">Empty Available</span></td>
+        <td>Coating Line 1</td>
+        <td>—</td>
+        <td>2026-07-01 08:00</td>
+      </tr>
+      <tr>
+        <td>CTR-005</td><td>Packaging Tray</td>
+        <td><span class="badge badge-purple">Ready to Ship</span></td>
+        <td>Dispatch Bay</td>
+        <td>SHIP-2026-002, 2,400 pcs</td>
+        <td>2026-07-01 11:00</td>
+      </tr>
+      <tr>
+        <td>CTR-006</td><td>Aging Tray</td>
+        <td><span class="badge badge-green">Empty Available</span></td>
+        <td>Container Yard</td>
+        <td>—</td>
+        <td>2026-06-29 14:20</td>
+      </tr>
+    </table>
+  </div>
+</div>
+<p class="screenshot-caption">📸 The Container Status Board — see what's in each container and where it is right now.</p>
+
+<section>
+  <h2>How to use it</h2>
+  <ol class="steps">
+    <li><strong>Go to Containers → All Containers</strong> from the sidebar.</li>
+    <li><strong>Filter by type</strong> (Aging Tray, Coating Basket, etc.) or status (Empty, In Use, In Furnace).</li>
+    <li><strong>Click a Container ID</strong> to see its full history — which WOs it carried, how many cycles, current location.</li>
+    <li><strong>To assign a container</strong>, click "Assign to WO" — scan the container barcode or select from the list.</li>
+    <li><strong>When empty</strong>, mark it "Empty Available" so other teams know it's ready to use.</li>
+    <li><strong>If a container is missing</strong>, flag it as "Lost" so the system stops expecting it.</li>
+  </ol>
+</section>
+
+<section>
+  <h2>Key fields explained</h2>
+  <table class="fields-table">
+    <tr><th>Field</th><th>What it means</th></tr>
+    <tr><td>Container ID</td><td>Unique ID printed/etched on the container (e.g. CTR-001).</td></tr>
+    <tr><td>Type</td><td>What it's used for — Aging Tray, Stretching Rack, Coating Basket, Packaging Tray.</td></tr>
+    <tr><td>Status</td><td>Empty Available (ready), In Use (has material), In Furnace (aging), Ready to Ship (packed for dispatch), or Lost.</td></tr>
+    <tr><td>Current Location</td><td>Where the container physically is right now.</td></tr>
+    <tr><td>Contents</td><td>Which WO and piece count — blank if empty.</td></tr>
+    <tr><td>Last Moved</td><td>When the container was last transferred between stations.</td></tr>
+  </table>
+</section>
+
+<div class="tips-box">
+  <h3>💡 Tips</h3>
+  <ul>
+    <li>Always scan containers when moving them — this keeps the location data accurate.</li>
+    <li>If you can't find a container, check the "In Use" filter — it might be at a different station than expected.</li>
+    <li>Mark containers as "Lost" if they go missing for more than 48 hours — prevents false availability.</li>
+  </ul>
+</div>
+
+<div class="related-links">
+  <h3>Related modules</h3>
+  <a href="/docs/inventory">→ Inventory</a>
+  <a href="/docs/operations">→ Operations & Shop Floor</a>
+  <a href="/docs/logistics">→ Logistics & Shipments</a>
+</div>
+{% endblock %}

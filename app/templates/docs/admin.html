@@ -1,0 +1,160 @@
+{% extends "docs/base.html" %}
+{% block content %}
+<div class="doc-hero">
+  <div class="doc-hero-icon">👤</div>
+  <div>
+    <h1>Admin & Users</h1>
+    <p class="doc-hero-sub">Manage users, roles, and plant settings — control who can do what in FactoryNXT.</p>
+  </div>
+</div>
+<nav class="breadcrumb">🏠 Home › System › Admin & Users</nav>
+
+<section>
+  <h2>What is this?</h2>
+  <p>Admin is where the system administrator manages users, roles, and plant settings. You create user accounts, assign them roles (Admin / Planner / Operator / Quality), and control which modules each role can access. You also set up plants, shift patterns, and global defaults here.</p>
+</section>
+
+<div class="screenshot-mockup">
+  <div class="mockup-header">
+    <span class="mockup-dot" style="background:#e94560"></span>
+    <span class="mockup-dot" style="background:#f59e0b"></span>
+    <span class="mockup-dot" style="background:#16a34a"></span>
+    <span>FactoryNXT — User Management</span>
+  </div>
+  <div class="mockup-body">
+    <table class="mock-table" style="font-size:0.78rem">
+      <tr>
+        <th>Username</th><th>Full Name</th><th>Email</th><th>Role</th><th>Status</th><th>Last Login</th><th>Actions</th>
+      </tr>
+      <tr>
+        <td><strong>admin</strong></td>
+        <td>System Admin</td>
+        <td>admin@factory.com</td>
+        <td><span class="badge badge-red">Admin</span></td>
+        <td><span class="badge badge-green">Active</span></td>
+        <td>2026-07-01 09:15</td>
+        <td><a href="#" style="color:#3b5bdb">Edit</a></td>
+      </tr>
+      <tr>
+        <td><strong>r.kumar</strong></td>
+        <td>Ravi Kumar</td>
+        <td>r.kumar@factory.com</td>
+        <td><span class="badge badge-blue">Operator</span></td>
+        <td><span class="badge badge-green">Active</span></td>
+        <td>2026-07-01 08:00</td>
+        <td><a href="#" style="color:#3b5bdb">Edit</a> | <a href="#" style="color:#dc2626">Deactivate</a></td>
+      </tr>
+      <tr>
+        <td><strong>s.manoj</strong></td>
+        <td>Manoj Suresh</td>
+        <td>s.manoj@factory.com</td>
+        <td><span class="badge badge-purple">Planner</span></td>
+        <td><span class="badge badge-green">Active</span></td>
+        <td>2026-07-01 08:30</td>
+        <td><a href="#" style="color:#3b5bdb">Edit</a> | <a href="#" style="color:#dc2626">Deactivate</a></td>
+      </tr>
+      <tr>
+        <td><strong>v.qa</strong></td>
+        <td>Vijay QA</td>
+        <td>v.qa@factory.com</td>
+        <td><span class="badge badge-orange">Quality</span></td>
+        <td><span class="badge badge-green">Active</span></td>
+        <td>2026-07-01 08:45</td>
+        <td><a href="#" style="color:#3b5bdb">Edit</a> | <a href="#" style="color:#dc2626">Deactivate</a></td>
+      </tr>
+      <tr>
+        <td><strong>viewer</strong></td>
+        <td>Read Only User</td>
+        <td>viewer@factory.com</td>
+        <td><span class="badge badge-grey">Viewer</span></td>
+        <td><span class="badge badge-grey">Inactive</span></td>
+        <td>2026-06-15</td>
+        <td><a href="#" style="color:#3b5bdb">Edit</a> | <a href="#" style="color:#16a34a">Activate</a></td>
+      </tr>
+    </table>
+
+    <div style="margin-top:20px">
+      <div style="font-weight:700;font-size:1rem;margin-bottom:12px;color:#1a1a2e">Default Roles</div>
+      <table class="mock-table" style="font-size:0.8rem">
+        <tr>
+          <th>Role</th><th>Access</th>
+        </tr>
+        <tr>
+          <td><span class="badge badge-red">Admin</span></td>
+          <td>Full access to all modules</td>
+        </tr>
+        <tr>
+          <td><span class="badge badge-purple">Planner</span></td>
+          <td>Planning, APS, Work Orders, BOM, Routing Builder</td>
+        </tr>
+        <tr>
+          <td><span class="badge badge-blue">Operator</span></td>
+          <td>Operations, Process Line, Production, Finishing</td>
+        </tr>
+        <tr>
+          <td><span class="badge badge-orange">Quality</span></td>
+          <td>NCR, Quality, Traceability, Genealogy</td>
+        </tr>
+        <tr>
+          <td><span class="badge badge-grey">Viewer</span></td>
+          <td>Dashboard, OEE, Inventory (read-only)</td>
+        </tr>
+      </table>
+    </div>
+  </div>
+</div>
+<p class="screenshot-caption">📸 User management table and default roles with module access levels.</p>
+
+<section>
+  <h2>How to use it</h2>
+  <ol class="steps">
+    <li><strong>Go to Admin → Users</strong> from the sidebar (only accessible to Admin role).</li>
+    <li><strong>To add a new user</strong>, click "New User" — enter username, full name, email, and initial password.</li>
+    <li><strong>Assign a role</strong> — Admin, Planner, Operator, Quality, or Viewer.</li>
+    <li><strong>Set status to Active</strong> — inactive users cannot log in.</li>
+    <li><strong>To edit a user</strong>, click "Edit" — change role, email, or reset password.</li>
+    <li><strong>To deactivate a user</strong> (e.g. someone who left the company), click "Deactivate" — they can't log in but their history is preserved.</li>
+  </ol>
+</section>
+
+<section>
+  <h2>Key fields explained</h2>
+  <table class="fields-table">
+    <tr><th>Field</th><th>What it means</th></tr>
+    <tr><td>Username</td><td>Login ID — unique, case-sensitive.</td></tr>
+    <tr><td>Full Name</td><td>Person's actual name — shown in audit logs and notifications.</td></tr>
+    <tr><td>Email</td><td>Used for password reset and notifications.</td></tr>
+    <tr><td>Role</td><td>What modules they can access — Admin sees everything, Operator sees shop floor, etc.</td></tr>
+    <tr><td>Status</td><td>Active (can log in) or Inactive (blocked from logging in).</td></tr>
+    <tr><td>Last Login</td><td>When they last accessed the system — useful for identifying unused accounts.</td></tr>
+  </table>
+</section>
+
+<section>
+  <h2>Plant Settings</h2>
+  <p>In addition to users, Admin also controls:</p>
+  <ul>
+    <li><strong>Plant Master Data:</strong> plant name, address, default timezone, working hours.</li>
+    <li><strong>Shift Patterns:</strong> define shift A (06:00–14:00), shift B (14:00–22:00), shift C (22:00–06:00).</li>
+    <li><strong>Global Defaults:</strong> OEE availability threshold (e.g. 80%), nitriding alert threshold (e.g. 80% of die limit), weight tolerance (±2%).</li>
+    <li><strong>Notification Channels:</strong> email SMTP settings, WhatsApp API key.</li>
+  </ul>
+</section>
+
+<div class="tips-box">
+  <h3>💡 Tips</h3>
+  <ul>
+    <li>Use the principle of least privilege — give users only the access they need for their job.</li>
+    <li>Deactivate users immediately when they leave — don't just change the password.</li>
+    <li>Review inactive users quarterly — remove accounts that haven't been used in 6+ months.</li>
+    <li>Keep only 1–2 Admin accounts — too many admins increases risk of accidental changes.</li>
+  </ul>
+</div>
+
+<div class="related-links">
+  <h3>Related modules</h3>
+  <a href="/docs/integrations">→ Integrations & API</a>
+  <a href="/docs/machines">→ Machines</a>
+  <a href="/docs/stations">→ Stations & Workcentres</a>
+</div>
+{% endblock %}

@@ -1,0 +1,145 @@
+{% extends "docs/base.html" %}
+{% block content %}
+<div class="doc-hero">
+  <div class="doc-hero-icon">⚙️</div>
+  <div>
+    <h1>Machines</h1>
+    <p class="doc-hero-sub">Register every piece of equipment — presses, saws, furnaces, and coating lines.</p>
+  </div>
+</div>
+<nav class="breadcrumb">🏠 Home › Plant Setup › Machines</nav>
+
+<section>
+  <h2>What is this?</h2>
+  <p>Machines is the master register of every piece of equipment in the plant — extrusion presses, saws, furnaces, stretchers, coating lines. Each machine has a type, home station, current status (Running / Idle / Under Maintenance), and an is_active flag. The OEE and Operations modules both read from here.</p>
+</section>
+
+<div class="screenshot-mockup">
+  <div class="mockup-header">
+    <span class="mockup-dot" style="background:#e94560"></span>
+    <span class="mockup-dot" style="background:#f59e0b"></span>
+    <span class="mockup-dot" style="background:#16a34a"></span>
+    <span>FactoryNXT — Machine Register</span>
+  </div>
+  <div class="mockup-body">
+    <table class="mock-table" style="font-size:0.78rem">
+      <tr>
+        <th>Machine ID</th><th>Name</th><th>Type</th><th>Home Station</th><th>Capacity</th><th>Status</th><th>Last PM</th><th>Active</th>
+      </tr>
+      <tr>
+        <td><strong>MCH-PRESS-01</strong></td>
+        <td>Press #1 (1,800T)</td>
+        <td>Extrusion Press</td>
+        <td>STN-EXTRUSION</td>
+        <td>1,800 tons</td>
+        <td><span class="badge badge-green">Running</span></td>
+        <td>2026-06-15</td>
+        <td><span class="badge badge-green">Yes</span></td>
+      </tr>
+      <tr>
+        <td><strong>MCH-PRESS-02</strong></td>
+        <td>Press #2 (1,200T)</td>
+        <td>Extrusion Press</td>
+        <td>STN-EXTRUSION</td>
+        <td>1,200 tons</td>
+        <td><span class="badge badge-green">Running</span></td>
+        <td>2026-06-20</td>
+        <td><span class="badge badge-green">Yes</span></td>
+      </tr>
+      <tr>
+        <td><strong>MCH-PRESS-03</strong></td>
+        <td>Press #3 (2,500T)</td>
+        <td>Extrusion Press</td>
+        <td>STN-EXTRUSION</td>
+        <td>2,500 tons</td>
+        <td><span class="badge badge-orange">Under Maintenance</span></td>
+        <td>2026-06-10</td>
+        <td><span class="badge badge-green">Yes</span></td>
+      </tr>
+      <tr>
+        <td><strong>MCH-SAW-01</strong></td>
+        <td>Cold Saw SAW-01</td>
+        <td>Saw</td>
+        <td>STN-EXTRUSION</td>
+        <td>—</td>
+        <td><span class="badge badge-red">Idle</span></td>
+        <td>2026-06-18</td>
+        <td><span class="badge badge-green">Yes</span></td>
+      </tr>
+      <tr>
+        <td><strong>MCH-AGE-01</strong></td>
+        <td>Aging Oven FRN-AGE-01</td>
+        <td>Furnace</td>
+        <td>STN-AGING</td>
+        <td>5,000 kg</td>
+        <td><span class="badge badge-green">Running</span></td>
+        <td>2026-06-25</td>
+        <td><span class="badge badge-green">Yes</span></td>
+      </tr>
+      <tr>
+        <td><strong>MCH-COAT-01</strong></td>
+        <td>Powder Line 1</td>
+        <td>Coating Line</td>
+        <td>STN-COATING</td>
+        <td>3,000 pcs/day</td>
+        <td><span class="badge badge-green">Running</span></td>
+        <td>2026-06-22</td>
+        <td><span class="badge badge-green">Yes</span></td>
+      </tr>
+      <tr>
+        <td><strong>MCH-PRESS-OLD</strong></td>
+        <td>Old Press #1 (800T)</td>
+        <td>Extrusion Press</td>
+        <td>STN-EXTRUSION</td>
+        <td>800 tons</td>
+        <td><span class="badge badge-grey">Decommissioned</span></td>
+        <td>2025-12-01</td>
+        <td><span class="badge badge-grey">No</span></td>
+      </tr>
+    </table>
+  </div>
+</div>
+<p class="screenshot-caption">📸 The Machine Register — every piece of equipment with type, location, status, and maintenance history.</p>
+
+<section>
+  <h2>How to use it</h2>
+  <ol class="steps">
+    <li><strong>Go to Machines</strong> from the sidebar — all machines appear in a table.</li>
+    <li><strong>Click a Machine ID</strong> to view details — capacity, home station, maintenance history, OEE trends.</li>
+    <li><strong>To add a new machine</strong>, click "New Machine" — enter ID, name, type, home station, and capacity.</li>
+    <li><strong>Monitor status changes</strong> — Running (producing), Idle (available), Under Maintenance, or Decommissioned.</li>
+    <li><strong>Set is_active to False</strong> when a machine is retired — it won't appear in scheduling or Operations.</li>
+  </ol>
+</section>
+
+<section>
+  <h2>Key fields explained</h2>
+  <table class="fields-table">
+    <tr><th>Field</th><th>What it means</th></tr>
+    <tr><td>Machine ID</td><td>Unique code (e.g. MCH-PRESS-01). Permanent identifier.</td></tr>
+    <tr><td>Name</td><td>Human-readable name — Press #1, Aging Oven FRN-AGE-01, etc.</td></tr>
+    <tr><td>Type</td><td>What kind of machine — Extrusion Press, Saw, Furnace, Coating Line, Stretcher.</td></tr>
+    <tr><td>Home Station</td><td>Which station this machine belongs to — links to Stations module.</td></tr>
+    <tr><td>Capacity</td><td>Machine's rated capacity — tons for presses, kg for furnaces, pcs/day for coating lines.</td></tr>
+    <tr><td>Status</td><td>Running (active WO), Idle (waiting), Under Maintenance, or Decommissioned.</td></tr>
+    <tr><td>Last PM</td><td>Date of last preventive maintenance — used to schedule the next one.</td></tr>
+    <tr><td>Active</td><td>Yes/No — inactive machines don't appear in scheduling or Operations.</td></tr>
+  </table>
+</section>
+
+<div class="tips-box">
+  <h3>💡 Tips</h3>
+  <ul>
+    <li>Keep machine IDs consistent across the factory — operators, planners, and maintenance all use them.</li>
+    <li>Review machine status weekly — machines marked "Idle" for long periods may need redeployment or retirement.</li>
+    <li>Link the machine register to Maintenance — every machine should have a maintenance schedule.</li>
+  </ul>
+</div>
+
+<div class="related-links">
+  <h3>Related modules</h3>
+  <a href="/docs/stations">→ Stations & Workcentres</a>
+  <a href="/docs/maintenance">→ Maintenance</a>
+  <a href="/docs/oee">→ OEE — Machine Efficiency</a>
+</div>
+{% endblock %}

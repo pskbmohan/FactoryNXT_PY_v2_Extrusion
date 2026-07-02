@@ -1,0 +1,112 @@
+{% extends "docs/base.html" %}
+{% block content %}
+<div class="doc-hero">
+  <div class="doc-hero-icon">📉</div>
+  <div>
+    <h1>OEE — Overall Equipment Effectiveness</h1>
+    <p class="doc-hero-sub">Measure how well your machines are really performing — the gold standard for manufacturing productivity.</p>
+  </div>
+</div>
+<nav class="breadcrumb">🏠 Home › Dashboard & Monitoring › OEE — Machine Efficiency</nav>
+
+<section>
+  <h2>What is this?</h2>
+  <p>OEE measures how well your extrusion presses are really performing compared to their theoretical maximum. It's a single percentage number built from three factors: Availability (is the machine running when it should be?), Performance (is it running at full speed?), and Quality (what fraction of output is good product?). World-class OEE is ≥ 85%.</p>
+</section>
+
+<div class="screenshot-mockup">
+  <div class="mockup-header">
+    <span class="mockup-dot" style="background:#e94560"></span>
+    <span class="mockup-dot" style="background:#f59e0b"></span>
+    <span class="mockup-dot" style="background:#16a34a"></span>
+    <span>FactoryNXT — OEE Dashboard: Press #1</span>
+  </div>
+  <div class="mockup-body">
+    <!-- Gauge charts as CSS circles -->
+    <div style="display:flex;gap:24px;justify-content:center;margin:20px 0">
+      <div style="text-align:center">
+        <div style="width:100px;height:100px;border-radius:50%;background:conic-gradient(#16a34a 0% 91%, #f1f5f9 91% 100%);display:flex;align-items:center;justify-content:center;margin:0 auto 8px">
+          <div style="width:70px;height:70px;border-radius:50%;background:white;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:1.3rem;color:#16a34a">91%</div>
+        </div>
+        <div style="font-size:0.85rem;font-weight:600;color:#374151">Availability</div>
+      </div>
+      <div style="text-align:center">
+        <div style="width:100px;height:100px;border-radius:50%;background:conic-gradient(#3b82f6 0% 94%, #f1f5f9 94% 100%);display:flex;align-items:center;justify-content:center;margin:0 auto 8px">
+          <div style="width:70px;height:70px;border-radius:50%;background:white;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:1.3rem;color:#1d4ed8">94%</div>
+        </div>
+        <div style="font-size:0.85rem;font-weight:600;color:#374151">Performance</div>
+      </div>
+      <div style="text-align:center">
+        <div style="width:100px;height:100px;border-radius:50%;background:conic-gradient(#7c3aed 0% 97%, #f1f5f9 97% 100%);display:flex;align-items:center;justify-content:center;margin:0 auto 8px">
+          <div style="width:70px;height:70px;border-radius:50%;background:white;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:1.3rem;color:#7c3aed">97%</div>
+        </div>
+        <div style="font-size:0.85rem;font-weight:600;color:#374151">Quality</div>
+      </div>
+    </div>
+    <div style="text-align:center;font-size:2rem;font-weight:700;color:#1a1a2e;margin:16px 0">
+      OEE = 83.1%
+    </div>
+    <div style="font-size:0.85rem;text-align:center;color:#666;margin-bottom:20px">
+      OEE = Availability × Performance × Quality = 0.91 × 0.94 × 0.97
+    </div>
+    <table class="mock-table" style="font-size:0.75rem">
+      <tr>
+        <th>Machine</th><th>Availability</th><th>Performance</th><th>Quality</th><th>OEE</th><th>Trend (7d)</th>
+      </tr>
+      <tr>
+        <td><strong>Press #1</strong></td><td>91%</td><td>94%</td><td>97%</td>
+        <td style="color:#16a34a;font-weight:700">83.1%</td><td>↑ +2.3%</td>
+      </tr>
+      <tr>
+        <td><strong>Press #2</strong></td><td>85%</td><td>88%</td><td>95%</td>
+        <td style="color:#c2410c;font-weight:700">71.2%</td><td>↓ -1.5%</td>
+      </tr>
+      <tr>
+        <td><strong>Press #3</strong></td><td>78%</td><td>82%</td><td>93%</td>
+        <td style="color:#dc2626;font-weight:700">59.6%</td><td>↓ -4.2%</td>
+      </tr>
+    </table>
+  </div>
+</div>
+<p class="screenshot-caption">📸 OEE gauges show the three components, the overall score, and a 7-day trend per machine.</p>
+
+<section>
+  <h2>How to use it</h2>
+  <ol class="steps">
+    <li><strong>Go to OEE</strong> from the sidebar — the dashboard loads with all machines.</li>
+    <li><strong>Select Machine and Date Range</strong> to focus your analysis.</li>
+    <li><strong>Read the three component scores</strong> to diagnose the bottleneck: Availability (downtime), Performance (speed), or Quality (scrap).</li>
+    <li><strong>Click "Downtime Breakdown"</strong> to see why availability was low — maintenance, die changes, material waits, etc.</li>
+    <li><strong>Click "Speed Loss"</strong> to see performance gap causes — slow cycles, minor stops, idling.</li>
+    <li><strong>Export to CSV</strong> for monthly management reporting or trend analysis.</li>
+  </ol>
+</section>
+
+<section>
+  <h2>Key fields explained</h2>
+  <table class="fields-table">
+    <tr><th>Field</th><th>What it means</th></tr>
+    <tr><td>Availability</td><td>% of planned time the machine was running. Losses = downtime (breakdowns, changeovers, waits).</td></tr>
+    <tr><td>Performance</td><td>% of theoretical speed the machine ran at. Losses = slow cycles, minor stops, idling.</td></tr>
+    <tr><td>Quality</td><td>% of output that was good (not scrap or rework). Losses = defects, start-up waste.</td></tr>
+    <tr><td>OEE</td><td>The product of all three: Availability × Performance × Quality. The overall productivity score.</td></tr>
+    <tr><td>Trend (7d)</td><td>How OEE has changed over the last 7 days — up (green) or down (red).</td></tr>
+  </table>
+</section>
+
+<div class="tips-box">
+  <h3>💡 Tips</h3>
+  <ul>
+    <li>World-class OEE is ≥ 85%. If you're below 70%, focus on Availability first — it's usually the biggest lever.</li>
+    <li>Downtime reason codes must be accurate — garbage in, garbage out. Train operators to use them consistently.</li>
+    <li>Track OEE daily, not monthly — you can't fix what you don't see in real time.</li>
+  </ul>
+</div>
+
+<div class="related-links">
+  <h3>Related modules</h3>
+  <a href="/docs/dashboard">→ Dashboard & KPIs</a>
+  <a href="/docs/operations">→ Operations & Shop Floor</a>
+  <a href="/docs/production">→ Production Tracking</a>
+</div>
+{% endblock %}

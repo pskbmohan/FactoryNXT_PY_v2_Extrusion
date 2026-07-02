@@ -1,0 +1,93 @@
+{% extends "docs/base.html" %}
+
+{% block content %}
+<!-- Hero -->
+<div class="doc-hero">
+  <div class="doc-hero-icon">📘</div>
+  <div>
+    <h1>Welcome to FactoryNXT MES Documentation</h1>
+    <p class="doc-hero-sub">Everything you need to run your aluminium extrusion factory — from work orders to shipment, all in one place.</p>
+  </div>
+</div>
+
+<!-- Quick Start -->
+<section>
+  <h2>🚀 Quick Start in 5 Steps</h2>
+  <ol class="steps">
+    <li><strong>Create a Work Order</strong> — Go to <a href="/docs/work-orders" style="color:#e94560">Work Orders</a> → New → enter Part Number, Quantity, and Due Date, then click Release.</li>
+    <li><strong>Schedule it on a Press</strong> — Open <a href="/docs/planning" style="color:#e94560">Planning</a> and drag the WO onto a machine × day cell. Or let <a href="/docs/aps" style="color:#e94560">APS</a> auto-schedule it.</li>
+    <li><strong>Start Production</strong> — The operator opens <a href="/docs/operations" style="color:#e94560">Operations</a>, selects their station, and taps "Start Production".</li>
+    <li><strong>Track Progress Live</strong> — Watch WOs move through <a href="/docs/process-line" style="color:#e94560">Process Line</a> in real time as each step completes.</li>
+    <li><strong>Ship to Customer</strong> — Pack and dispatch from <a href="/docs/logistics" style="color:#e94560">Logistics</a>. Weights are checked automatically against BOM targets.</li>
+  </ol>
+</section>
+
+<!-- Module Grid -->
+<h2>Browse All Modules</h2>
+<div class="module-grid">
+
+  <div class="module-card">
+    <div class="card-icon">📊</div>
+    <h3>Dashboard & Monitoring</h3>
+    <p>Live KPIs, OEE scores, and real-time factory alerts — all visible the moment you log in.</p>
+    <a href="/docs/dashboard">Browse →</a>
+  </div>
+
+  <div class="module-card">
+    <div class="card-icon">📋</div>
+    <h3>Planning & Scheduling</h3>
+    <p>Create work orders, plan your weekly production, and let APS auto-optimize press schedules.</p>
+    <a href="/docs/work-orders">Browse →</a>
+  </div>
+
+  <div class="module-card">
+    <div class="card-icon">🏭</div>
+    <h3>Shop Floor</h3>
+    <p>Real-time operator controls, process line tracking, routing definitions, and production logs.</p>
+    <a href="/docs/operations">Browse →</a>
+  </div>
+
+  <div class="module-card">
+    <div class="card-icon">🔧</div>
+    <h3>Tooling & Equipment</h3>
+    <p>Manage dies, the tool shop, furnaces, finishing, and coating schedules with full lifecycle tracking.</p>
+    <a href="/docs/dies">Browse →</a>
+  </div>
+
+  <div class="module-card">
+    <div class="card-icon">✅</div>
+    <h3>Quality</h3>
+    <p>Non-conformance reports (NCR), traceability from billet to finished lot, and full part genealogy.</p>
+    <a href="/docs/quality">Browse →</a>
+  </div>
+
+  <div class="module-card">
+    <div class="card-icon">📦</div>
+    <h3>Materials & Inventory</h3>
+    <p>Material receipt with composition validation, inventory tracking, BOMs, costs, and container management.</p>
+    <a href="/docs/material-receipt">Browse →</a>
+  </div>
+
+  <div class="module-card">
+    <div class="card-icon">🚚</div>
+    <h3>Logistics</h3>
+    <p>Plan shipments, verify weights, generate delivery notes, and manage kitting and packaging.</p>
+    <a href="/docs/logistics">Browse →</a>
+  </div>
+
+  <div class="module-card">
+    <div class="card-icon">🔩</div>
+    <h3>Plant Setup</h3>
+    <p>Maintenance jobs, stations, and machines — the foundation everything else runs on.</p>
+    <a href="/docs/machines">Browse →</a>
+  </div>
+
+  <div class="module-card">
+    <div class="card-icon">⚙️</div>
+    <h3>System</h3>
+    <p>Integrations with ERP/WhatsApp/barcode systems, plus user and admin configuration.</p>
+    <a href="/docs/admin">Browse →</a>
+  </div>
+
+</div>
+{% endblock %}

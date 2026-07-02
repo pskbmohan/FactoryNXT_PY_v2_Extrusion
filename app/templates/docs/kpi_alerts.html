@@ -1,0 +1,106 @@
+{% extends "docs/base.html" %}
+{% block content %}
+<div class="doc-hero">
+  <div class="doc-hero-icon">🔔</div>
+  <div>
+    <h1>KPI Alerts & Notifications</h1>
+    <p class="doc-hero-sub">Get notified the moment something goes wrong — don't wait for dashboards.</p>
+  </div>
+</div>
+<nav class="breadcrumb">🏠 Home › Dashboard & Monitoring › KPI Alerts & Notifications</nav>
+
+<section>
+  <h2>What is this?</h2>
+  <p>KPI Alerts automatically watches key factory metrics and sends you a notification the moment something goes outside the normal range. Instead of checking dashboards constantly, the system comes to you — via on-screen alerts, email, or WhatsApp — when OEE drops below 80%, die press count exceeds its limit, or a shipment is overdue.</p>
+</section>
+
+<div class="screenshot-mockup">
+  <div class="mockup-header">
+    <span class="mockup-dot" style="background:#e94560"></span>
+    <span class="mockup-dot" style="background:#f59e0b"></span>
+    <span class="mockup-dot" style="background:#16a34a"></span>
+    <span>FactoryNXT — KPI Alerts Feed</span>
+  </div>
+  <div class="mockup-body">
+    <div class="alert-feed">
+      <div class="alert-item" style="border-left:4px solid #dc2626;background:#fef2f2">
+        <div style="flex:1">
+          <div style="font-weight:700;color:#dc2626;font-size:0.85rem">🔴 CRITICAL</div>
+          <div style="font-size:0.9rem;color:#374151;margin:4px 0"><strong>OEE Press #1</strong> dropped to 71% (threshold: 80%)</div>
+          <div class="alert-time">14 minutes ago — sent to Plant Manager, Operations Lead</div>
+        </div>
+      </div>
+      <div class="alert-item" style="border-left:4px solid #f59e0b;background:#fffbeb">
+        <div style="flex:1">
+          <div style="font-weight:700;color:#f59e0b;font-size:0.85rem">🟡 WARNING</div>
+          <div style="font-size:0.9rem;color:#374151;margin:4px 0"><strong>Die DIE-6063-FH-003</strong> at 95% of press limit (4,750 / 5,000 cycles)</div>
+          <div class="alert-time">2 hours ago — sent to Die Manager, Tool Shop Lead</div>
+        </div>
+      </div>
+      <div class="alert-item" style="border-left:4px solid #16a34a;background:#f0fdf4">
+        <div style="flex:1">
+          <div style="font-weight:700;color:#16a34a;font-size:0.85rem">🟢 INFO</div>
+          <div style="font-size:0.9rem;color:#374151;margin:4px 0"><strong>WO-2026-004</strong> released and ready for scheduling</div>
+          <div class="alert-time">3 hours ago — sent to Planner</div>
+        </div>
+      </div>
+      <div class="alert-item" style="border-left:4px solid #dc2626;background:#fef2f2">
+        <div style="flex:1">
+          <div style="font-weight:700;color:#dc2626;font-size:0.85rem">🔴 CRITICAL</div>
+          <div style="font-size:0.9rem;color:#374151;margin:4px 0"><strong>NCR-2026-0015</strong> raised — Critical severity: Alloy composition out of spec</div>
+          <div class="alert-time">5 hours ago — sent to QA Manager, Plant Manager</div>
+        </div>
+      </div>
+      <div class="alert-item" style="border-left:4px solid #f59e0b;background:#fffbeb">
+        <div style="flex:1">
+          <div style="font-weight:700;color:#f59e0b;font-size:0.85rem">🟡 WARNING</div>
+          <div style="font-size:0.9rem;color:#374151;margin:4px 0"><strong>SHIP-2026-003</strong> is overdue by 1 day (was due 2026-06-30)</div>
+          <div class="alert-time">6 hours ago — sent to Logistics Manager</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<p class="screenshot-caption">📸 The KPI Alerts feed — real-time notifications as metrics breach thresholds.</p>
+
+<section>
+  <h2>How to use it</h2>
+  <ol class="steps">
+    <li><strong>Go to KPI Alerts → Alert Rules</strong> from the sidebar.</li>
+    <li><strong>Click "New Rule"</strong> — select the metric you want to watch (OEE, Die Life, NCR Count, Shipment Status, etc.)</li>
+    <li><strong>Set threshold value and comparison</strong> — e.g. "OEE below 80%" or "Die press count above 95% of limit".</li>
+    <li><strong>Choose notification channel:</strong> In-App (bell icon), Email, or WhatsApp.</li>
+    <li><strong>Set who gets notified</strong> — by role (Plant Manager) or specific user (r.kumar@factory.com).</li>
+    <li><strong>Save the rule</strong> — the alert fires automatically whenever the condition is met.</li>
+  </ol>
+</section>
+
+<section>
+  <h2>Key fields explained</h2>
+  <table class="fields-table">
+    <tr><th>Field</th><th>What it means</th></tr>
+    <tr><td>Metric</td><td>What you're watching — OEE, Die Life %, NCR Count, Shipment Due Date, Billet Stock, etc.</td></tr>
+    <tr><td>Threshold</td><td>The value that triggers the alert (e.g. 80% for OEE, 95% for die life).</td></tr>
+    <tr><td>Comparison</td><td>How to compare — below, above, or equals the threshold.</td></tr>
+    <tr><td>Channel</td><td>Where the notification is sent — In-App, Email, or WhatsApp.</td></tr>
+    <tr><td>Recipient</td><td>Who gets notified — a role (all Planners) or a specific person.</td></tr>
+    <tr><td>Severity</td><td>Critical (red), Warning (yellow), or Info (green) — determines urgency.</td></tr>
+  </table>
+</section>
+
+<div class="tips-box">
+  <h3>💡 Tips</h3>
+  <ul>
+    <li>Start with 5–10 critical alerts — too many notifications cause "alert fatigue" and people ignore them.</li>
+    <li>Use WhatsApp for urgent alerts (OEE drops, critical NCRs) — people see it immediately on their phone.</li>
+    <li>Review alert rules monthly — disable rules that fire too often without action being taken.</li>
+  </ul>
+</div>
+
+<div class="related-links">
+  <h3>Related modules</h3>
+  <a href="/docs/dashboard">→ Dashboard & KPIs</a>
+  <a href="/docs/oee">→ OEE — Machine Efficiency</a>
+  <a href="/docs/integrations">→ Integrations & API</a>
+</div>
+{% endblock %}

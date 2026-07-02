@@ -1,0 +1,106 @@
+{% extends "docs/base.html" %}
+{% block content %}
+<div class="doc-hero">
+  <div class="doc-hero-icon">🧠</div>
+  <div>
+    <h1>APS — Advanced Planning & Scheduling</h1>
+    <p class="doc-hero-sub">Let the system build the optimal production schedule in seconds.</p>
+  </div>
+</div>
+<nav class="breadcrumb">🏠 Home › Planning & Scheduling › APS — Advanced Scheduling</nav>
+
+<section>
+  <h2>What is this?</h2>
+  <p>APS is the brain of the scheduling system. Instead of manually dragging WOs onto a calendar, APS automatically sequences all open work orders across all machines to minimise changeover time, respect due dates, and maximise press utilisation — in seconds. It's like having an expert planner working 24/7.</p>
+</section>
+
+<div class="screenshot-mockup">
+  <div class="mockup-header">
+    <span class="mockup-dot" style="background:#e94560"></span>
+    <span class="mockup-dot" style="background:#f59e0b"></span>
+    <span class="mockup-dot" style="background:#16a34a"></span>
+    <span>FactoryNXT — APS Schedule Engine</span>
+  </div>
+  <div class="mockup-body">
+    <div style="display:flex;gap:14px;margin-bottom:14px;align-items:center">
+      <span style="font-size:0.85rem;font-weight:600;color:#1a1a2e">Schedule Version:</span>
+      <span class="badge badge-blue">v2026-07-W27</span>
+      <span style="font-size:0.85rem;font-weight:600;color:#1a1a2e;margin-left:16px">Horizon:</span>
+      <span style="font-size:0.85rem;color:#555">7 days</span>
+      <span style="margin-left:auto;padding:6px 14px;background:#dcfce7;color:#16a34a;border-radius:20px;font-weight:700;font-size:0.8rem">Score: 94%</span>
+    </div>
+    <!-- Gantt bars -->
+    <div style="font-size:0.7rem">
+      <div style="display:flex;gap:6px;margin-bottom:6px;color:#555;font-weight:600">
+        <div style="width:60px">Machine</div>
+        <div style="flex:1;display:flex;justify-content:space-between"><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span></div>
+      </div>
+      <div style="display:flex;gap:6px;align-items:center;margin-bottom:8px">
+        <div style="width:60px;font-weight:600">Press #1</div>
+        <div style="flex:1;display:flex;height:22px;border-radius:4px;overflow:hidden;gap:2px;background:#f1f5f9">
+          <div style="width:25%;background:#3b82f6;display:flex;align-items:center;padding:0 6px;color:white;font-weight:600">WO-001</div>
+          <div style="width:22%;background:#16a34a;display:flex;align-items:center;padding:0 6px;color:white;font-weight:600">WO-003</div>
+          <div style="width:30%;background:#7c3aed;display:flex;align-items:center;padding:0 6px;color:white;font-weight:600">WO-007</div>
+          <div style="width:12%;background:#c2410c;display:flex;align-items:center;padding:0 6px;color:white;font-weight:600">WO-009</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:6px;align-items:center;margin-bottom:8px">
+        <div style="width:60px;font-weight:600">Press #2</div>
+        <div style="flex:1;display:flex;height:22px;border-radius:4px;overflow:hidden;gap:2px;background:#f1f5f9">
+          <div style="width:35%;background:#3b82f6;display:flex;align-items:center;padding:0 6px;color:white;font-weight:600">WO-002</div>
+          <div style="width:38%;background:#7c3aed;display:flex;align-items:center;padding:0 6px;color:white;font-weight:600">WO-008</div>
+          <div style="width:22%;background:#16a34a;display:flex;align-items:center;padding:0 6px;color:white;font-weight:600">WO-010</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:6px;align-items:center;margin-bottom:8px">
+        <div style="width:60px;font-weight:600">Press #3</div>
+        <div style="flex:1;display:flex;height:22px;border-radius:4px;overflow:hidden;gap:2px;background:#f1f5f9">
+          <div style="width:45%;background:#c2410c;display:flex;align-items:center;padding:0 6px;color:white;font-weight:600">WO-004</div>
+          <div style="width:33%;background:#3b82f6;display:flex;align-items:center;padding:0 6px;color:white;font-weight:600">WO-011</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<p class="screenshot-caption">📸 The APS Gantt chart shows optimised WO sequencing across all presses for the scheduled horizon.</p>
+
+<section>
+  <h2>How to use it</h2>
+  <ol class="steps">
+    <li><strong>Go to APS → Schedule Engine</strong> from the sidebar.</li>
+    <li><strong>Choose a scheduling horizon</strong> — e.g. "Next 7 Days" or "Next 14 Days".</li>
+    <li><strong>Set priorities</strong> — choose Due Date First, Minimise Changeover, or Max OEE.</li>
+    <li><strong>Click "Run Schedule"</strong> — the engine computes in under 5 seconds.</li>
+    <li><strong>Review the Gantt</strong> — you can drag bars to manually adjust if needed.</li>
+    <li><strong>Click "Publish Schedule"</strong> to push it to the shop floor. Until published, it's a draft.</li>
+  </ol>
+</section>
+
+<section>
+  <h2>Key fields explained</h2>
+  <table class="fields-table">
+    <tr><th>Field</th><th>What it means</th></tr>
+    <tr><td>Schedule Version</td><td>Unique ID for this schedule run. Each "Run Schedule" creates a new version.</td></tr>
+    <tr><td>Horizon Days</td><td>How many days ahead the scheduler plans. Longer = more global optimisation.</td></tr>
+    <tr><td>Algorithm</td><td>FIFO (first-come-first-served), Due Date (urgent first), or OEE Optimised.</td></tr>
+    <tr><td>Schedule Score %</td><td>How well the schedule meets all constraints. 90%+ is excellent.</td></tr>
+    <tr><td>Published At</td><td>Timestamp when the schedule was pushed live. Blank = still a draft.</td></tr>
+  </table>
+</section>
+
+<div class="tips-box">
+  <h3>💡 Tips</h3>
+  <ul>
+    <li>Run APS daily — it adapts to new WOs, cancellations, and machine changes.</li>
+    <li>Start with "Due Date First" — it's the safest default for most factories.</li>
+    <li>If the score is below 80%, check for missing dies or material shortages blocking the schedule.</li>
+  </ul>
+</div>
+
+<div class="related-links">
+  <h3>Related modules</h3>
+  <a href="/docs/planning">→ Production Planning</a>
+  <a href="/docs/work-orders">→ Work Orders</a>
+  <a href="/docs/oee">→ OEE — Machine Efficiency</a>
+</div>
+{% endblock %}

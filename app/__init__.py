@@ -56,6 +56,7 @@ def create_app(config_class=Config):
     from .routes.furnace import bp as furnace_bp
     from .routes.finishing import bp as finishing_bp
     from .routes.logistics import bp as logistics_bp
+    from .routes.docs import docs_bp
 
     # Import APS models so their tables are created by db.create_all()
     # and registered with SQLAlchemy's metadata.
@@ -101,6 +102,7 @@ def create_app(config_class=Config):
     app.register_blueprint(furnace_bp)
     app.register_blueprint(finishing_bp)
     app.register_blueprint(logistics_bp)
+    app.register_blueprint(docs_bp)
 
     # Auto-seed demo data so every screen has content on first run.
     # Runs only once the DB is up; silent on error.

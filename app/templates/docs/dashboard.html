@@ -1,0 +1,89 @@
+{% extends "docs/base.html" %}
+{% block content %}
+<div class="doc-hero">
+  <div class="doc-hero-icon">📊</div>
+  <div>
+    <h1>Dashboard & KPIs</h1>
+    <p class="doc-hero-sub">Your bird's-eye view of the entire factory — updated in real time.</p>
+  </div>
+</div>
+<nav class="breadcrumb">🏠 Home › Dashboard & Monitoring › Dashboard & KPIs</nav>
+
+<section>
+  <h2>What is this?</h2>
+  <p>The moment you log in, the Dashboard gives you a live snapshot of the entire factory. You can see how many work orders are running right now, whether machines are keeping up with targets, and whether any shipments are due today — all without opening a single sub-module.</p>
+</section>
+
+<div class="screenshot-mockup">
+  <div class="mockup-header">
+    <span class="mockup-dot" style="background:#e94560"></span>
+    <span class="mockup-dot" style="background:#f59e0b"></span>
+    <span class="mockup-dot" style="background:#16a34a"></span>
+    <span>FactoryNXT — Dashboard</span>
+  </div>
+  <div class="mockup-body">
+    <div class="kpi-row">
+      <div class="kpi-card"><div class="kpi-value">12</div><div class="kpi-label">Active Work Orders</div></div>
+      <div class="kpi-card"><div class="kpi-value" style="color:#16a34a">83.1%</div><div class="kpi-label">OEE Today</div></div>
+      <div class="kpi-card"><div class="kpi-value" style="color:#c2410c">3</div><div class="kpi-label">Open NCRs</div></div>
+      <div class="kpi-card"><div class="kpi-value" style="color:#1d4ed8">4</div><div class="kpi-label">Shipments Due Today</div></div>
+    </div>
+    <div class="bar-chart">
+      <div class="bar" style="height:72%">P1</div>
+      <div class="bar" style="height:88%">P2</div>
+      <div class="bar" style="height:65%">P3</div>
+      <div class="bar" style="height:91%">P4</div>
+      <div class="bar" style="height:78%">P5</div>
+      <div class="bar" style="height:55%">P6</div>
+    </div>
+    <table class="mock-table">
+      <tr><th>Time</th><th>Event</th><th>Module</th></tr>
+      <tr><td>09:42</td><td>WO-2026-003 completed Extrusion step</td><td>Operations</td></tr>
+      <tr><td>09:31</td><td>NCR-0017 raised for surface defect</td><td>Quality</td></tr>
+      <tr><td>09:15</td><td>SHIP-2026-004 dispatched</td><td>Logistics</td></tr>
+      <tr><td>08:58</td><td>Press #2 idle — no WO assigned</td><td>Planning</td></tr>
+    </table>
+  </div>
+</div>
+<p class="screenshot-caption">📸 The Dashboard shows live KPIs, press utilisation, and recent factory activity.</p>
+
+<section>
+  <h2>How to use it</h2>
+  <ol class="steps">
+    <li><strong>Log in</strong> — the dashboard loads automatically on every login.</li>
+    <li><strong>Read the top KPI cards</strong> for an instant factory snapshot — active WOs, OEE %, open NCRs, and shipments due.</li>
+    <li><strong>Click any card</strong> to drill into that module and see more detail.</li>
+    <li><strong>Use the date picker</strong> (top-right) to change the reporting period — today, this week, or a custom range.</li>
+    <li><strong>Check the alerts bell icon</strong> — it shows unread KPI threshold breaches and notifications.</li>
+  </ol>
+</section>
+
+<section>
+  <h2>Key fields explained</h2>
+  <table class="fields-table">
+    <tr><th>Field</th><th>What it means</th></tr>
+    <tr><td>Work Orders Active</td><td>Number of WOs currently in status Released, Running, or On Hold.</td></tr>
+    <tr><td>OEE %</td><td>Today's overall equipment effectiveness across all active presses.</td></tr>
+    <tr><td>Open NCRs</td><td>Non-conformance reports not yet closed or resolved.</td></tr>
+    <tr><td>Shipments Due Today</td><td>Shipments scheduled for dispatch today that haven't been marked complete.</td></tr>
+    <tr><td>Billet Stock (KG)</td><td>Total weight of aluminium billets currently available in the billet store.</td></tr>
+    <tr><td>Press Utilisation %</td><td>Percentage of press time spent running vs idle over the selected period.</td></tr>
+  </table>
+</section>
+
+<div class="tips-box">
+  <h3>💡 Tips</h3>
+  <ul>
+    <li>Bookmark the dashboard and set it as your browser start page for a quick daily check-in.</li>
+    <li>KPI cards are clickable — treat them as shortcuts, not just static numbers.</li>
+    <li>Set up <a href="/docs/kpi-alerts" style="color:#92400e">KPI Alerts</a> so the system notifies you automatically instead of you checking manually.</li>
+  </ul>
+</div>
+
+<div class="related-links">
+  <h3>Related modules</h3>
+  <a href="/docs/oee">→ OEE — Machine Efficiency</a>
+  <a href="/docs/kpi-alerts">→ KPI Alerts & Notifications</a>
+  <a href="/docs/operations">→ Operations & Shop Floor</a>
+</div>
+{% endblock %}

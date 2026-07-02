@@ -1,0 +1,135 @@
+{% extends "docs/base.html" %}
+{% block content %}
+<div class="doc-hero">
+  <div class="doc-hero-icon">💰</div>
+  <div>
+    <h1>Cost & Price Config</h1>
+    <p class="doc-hero-sub">Calculate the true cost of every profile and set the right selling price.</p>
+  </div>
+</div>
+<nav class="breadcrumb">🏠 Home › Materials & Inventory › Cost & Price Config</nav>
+
+<section>
+  <h2>What is this?</h2>
+  <p>For each part number, Cost & Price Config calculates the total manufacturing cost — material, machine time, labour, energy, and overhead — and suggests a minimum selling price with your target margin. This gives sales accurate pricing without manual spreadsheet calculations.</p>
+</section>
+
+<div class="screenshot-mockup">
+  <div class="mockup-header">
+    <span class="mockup-dot" style="background:#e94560"></span>
+    <span class="mockup-dot" style="background:#f59e0b"></span>
+    <span class="mockup-dot" style="background:#16a34a"></span>
+    <span>FactoryNXT — Cost Breakdown: PROF-6063-FH-40X20</span>
+  </div>
+  <div class="mockup-body">
+    <div style="font-size:0.85rem;background:white;border:1px solid #e2e8f0;border-radius:8px;padding:20px">
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:20px">
+        <div style="text-align:center">
+          <div style="color:#64748b;font-size:0.75rem;text-transform:uppercase;font-weight:600">Part Number</div>
+          <div style="font-weight:700;font-size:1rem;color:#1a1a2e">PROF-6063-FH-40X20</div>
+        </div>
+        <div style="text-align:center">
+          <div style="color:#64748b;font-size:0.75rem;text-transform:uppercase;font-weight:600">Piece Weight</div>
+          <div style="font-weight:700;font-size:1rem">1.8 kg</div>
+        </div>
+        <div style="text-align:center">
+          <div style="color:#64748b;font-size:0.75rem;text-transform:uppercase;font-weight:600">Target Margin</div>
+          <div style="font-weight:700;font-size:1rem;color:#16a34a">18%</div>
+        </div>
+      </div>
+      <div style="border-top:2px solid #e2e8f0;padding-top:16px">
+        <div style="font-weight:700;font-size:1rem;margin-bottom:12px;color:#1a1a2e">Cost Breakdown</div>
+        <table class="mock-table" style="font-size:0.8rem">
+          <tr><th>Cost Component</th><th>Calculation</th><th>Amount</th></tr>
+          <tr>
+            <td>Raw Material</td>
+            <td style="color:#666">1.8 kg × ₹185/kg</td>
+            <td style="font-weight:700">₹333</td>
+          </tr>
+          <tr>
+            <td>Machine Cost</td>
+            <td style="color:#666">0.05 h × ₹2,200/h</td>
+            <td style="font-weight:700">₹110</td>
+          </tr>
+          <tr>
+            <td>Labour</td>
+            <td style="color:#666">0.08 h × ₹350/h</td>
+            <td style="font-weight:700">₹28</td>
+          </tr>
+          <tr>
+            <td>Energy</td>
+            <td style="color:#666">12 kWh × ₹8.50</td>
+            <td style="font-weight:700">₹102</td>
+          </tr>
+          <tr style="background:#f0f4ff">
+            <td colspan="2" style="font-weight:700">Subtotal</td>
+            <td style="font-weight:700;font-size:1rem;color:#1a1a2e">₹573</td>
+          </tr>
+          <tr>
+            <td>Overhead</td>
+            <td style="color:#666">12% of subtotal</td>
+            <td style="font-weight:700">₹69</td>
+          </tr>
+          <tr style="background:#f0f4ff">
+            <td colspan="2" style="font-weight:700;font-size:1.05rem">Total Cost</td>
+            <td style="font-weight:700;font-size:1.2rem;color:#1a1a2e">₹642</td>
+          </tr>
+          <tr>
+            <td>Margin</td>
+            <td style="color:#666">18% of total cost</td>
+            <td style="font-weight:700;color:#16a34a">₹115</td>
+          </tr>
+          <tr style="background:#dcfce7">
+            <td colspan="2" style="font-weight:700;font-size:1.1rem;color:#16a34a">→ Break-Even Price</td>
+            <td style="font-weight:700;font-size:1.3rem;color:#16a34a">₹757</td>
+          </tr>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+<p class="screenshot-caption">📸 Cost breakdown showing material, machine, labour, energy, and calculated selling price.</p>
+
+<section>
+  <h2>How to use it</h2>
+  <ol class="steps">
+    <li><strong>Go to Cost & Price → All Parts</strong> from the sidebar.</li>
+    <li><strong>Select a part number</strong> to view or edit its cost structure.</li>
+    <li><strong>Review the cost breakdown</strong> — material, machine time, labour, energy, and overhead.</li>
+    <li><strong>Adjust cost inputs</strong> if needed (e.g. new billet price, updated machine rate).</li>
+    <li><strong>Set target margin</strong> — the system calculates the minimum selling price automatically.</li>
+    <li><strong>Save the cost config</strong> — sales can now quote accurately using these numbers.</li>
+  </ol>
+</section>
+
+<section>
+  <h2>Key fields explained</h2>
+  <table class="fields-table">
+    <tr><th>Field</th><th>What it means</th></tr>
+    <tr><td>Raw Material</td><td>Weight × billet price per kg — the largest cost component.</td></tr>
+    <tr><td>Machine Cost</td><td>Cycle time × machine hourly rate — includes depreciation and maintenance.</td></tr>
+    <tr><td>Labour</td><td>Total labour hours × hourly rate — operators, inspectors, handlers.</td></tr>
+    <tr><td>Energy</td><td>kWh consumed × electricity rate — furnaces and presses are energy-intensive.</td></tr>
+    <tr><td>Overhead</td><td>Factory overhead % (rent, admin, utilities) — typically 10–15% of direct costs.</td></tr>
+    <tr><td>Total Cost</td><td>Sum of all components — the break-even cost before profit.</td></tr>
+    <tr><td>Target Margin</td><td>Desired profit margin % — set by sales or management.</td></tr>
+    <tr><td>Break-Even Price</td><td>Total cost + margin — the minimum selling price to hit your target.</td></tr>
+  </table>
+</section>
+
+<div class="tips-box">
+  <h3>💡 Tips</h3>
+  <ul>
+    <li>Update billet prices monthly — aluminium prices fluctuate and affect margins significantly.</li>
+    <li>If margin is too low, look for process improvements to reduce cycle time or material waste.</li>
+    <li>Use the cost breakdown in sales negotiations — show the customer exactly what they're paying for.</li>
+  </ul>
+</div>
+
+<div class="related-links">
+  <h3>Related modules</h3>
+  <a href="/docs/bom">→ Bill of Materials (BOM)</a>
+  <a href="/docs/inventory">→ Inventory</a>
+  <a href="/docs/logistics">→ Logistics & Shipments</a>
+</div>
+{% endblock %}

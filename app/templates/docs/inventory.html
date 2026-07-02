@@ -1,0 +1,104 @@
+{% extends "docs/base.html" %}
+{% block content %}
+<div class="doc-hero">
+  <div class="doc-hero-icon">📦</div>
+  <div>
+    <h1>Inventory</h1>
+    <p class="doc-hero-sub">Real-time view of every material in the factory — billets, WIP, finished goods, and powders.</p>
+  </div>
+</div>
+<nav class="breadcrumb">🏠 Home › Materials & Inventory › Inventory</nav>
+
+<section>
+  <h2>What is this?</h2>
+  <p>Inventory gives you a real-time view of every material in the factory — raw billets in the store, work-in-progress profiles on trays, finished goods in the warehouse, and coating powders. Stock levels update automatically as material is consumed (by WOs) or received (by Material Receipt).</p>
+</section>
+
+<div class="screenshot-mockup">
+  <div class="mockup-header">
+    <span class="mockup-dot" style="background:#e94560"></span>
+    <span class="mockup-dot" style="background:#f59e0b"></span>
+    <span class="mockup-dot" style="background:#16a34a"></span>
+    <span>FactoryNXT — Inventory</span>
+  </div>
+  <div class="mockup-body">
+    <table class="mock-table" style="font-size:0.78rem">
+      <tr>
+        <th>SKU</th><th>Description</th><th>Qty On Hand</th><th>UOM</th><th>Location</th><th>Last Movement</th><th>Status</th>
+      </tr>
+      <tr>
+        <td>BIL-6063</td><td>Aluminium Billet 6063 Ø178mm</td>
+        <td style="font-weight:700;color:#16a34a">24,500</td><td>kg</td><td>Billet Store</td><td>2026-07-01</td>
+        <td><span class="badge badge-green">In Stock</span></td>
+      </tr>
+      <tr>
+        <td>BIL-6061</td><td>Aluminium Billet 6061 Ø203mm</td>
+        <td style="font-weight:700;color:#c2410c">3,200</td><td>kg</td><td>Billet Store</td><td>2026-06-28</td>
+        <td><span class="badge badge-orange">Low Stock</span></td>
+      </tr>
+      <tr>
+        <td>WIP-6063-FH</td><td>WIP Profile 6063 Flat Head 40×20</td>
+        <td style="font-weight:700;color:#1d4ed8">8,740</td><td>pcs</td><td>Aging Area</td><td>2026-07-01</td>
+        <td><span class="badge badge-blue">In Process</span></td>
+      </tr>
+      <tr>
+        <td>FG-6063-FH-40X20</td><td>Finished Profile 6063-T5 Flat Head</td>
+        <td style="font-weight:700;color:#1d4ed8">12,480</td><td>pcs</td><td>Warehouse A</td><td>2026-07-01</td>
+        <td><span class="badge badge-green">In Stock</span></td>
+      </tr>
+      <tr>
+        <td>PWD-RAL9016</td><td>Powder Coating RAL 9016 White</td>
+        <td style="font-weight:700;color:#16a34a">450</td><td>kg</td><td>Coating Store</td><td>2026-06-30</td>
+        <td><span class="badge badge-green">In Stock</span></td>
+      </tr>
+      <tr>
+        <td>PWD-RAL7016</td><td>Powder Coating RAL 7016 Grey</td>
+        <td style="font-weight:700;color:#c2410c">85</td><td>kg</td><td>Coating Store</td><td>2026-06-25</td>
+        <td><span class="badge badge-orange">Low Stock</span></td>
+      </tr>
+    </table>
+  </div>
+</div>
+<p class="screenshot-caption">📸 The Inventory list shows all materials with quantities, locations, and stock status.</p>
+
+<section>
+  <h2>How to use it</h2>
+  <ol class="steps">
+    <li><strong>Go to Inventory</strong> from the sidebar — you'll see all materials grouped by type (Billets, WIP, Finished, Powders).</li>
+    <li><strong>Use filters</strong> to search by SKU, location, or stock status.</li>
+    <li><strong>Click any SKU</strong> to see the full movement history — receipts, issues to WOs, adjustments.</li>
+    <li><strong>Watch for Low Stock badges</strong> — these trigger alerts and may block production if not replenished.</li>
+    <li><strong>Export to CSV</strong> for stock valuation or reorder planning.</li>
+  </ol>
+</section>
+
+<section>
+  <h2>Key fields explained</h2>
+  <table class="fields-table">
+    <tr><th>Field</th><th>What it means</th></tr>
+    <tr><td>SKU</td><td>Stock Keeping Unit — unique ID for each material (billet alloy, WIP profile, finished part number).</td></tr>
+    <tr><td>Description</td><td>What the material is — alloy grade, profile shape, dimensions.</td></tr>
+    <tr><td>Qty On Hand</td><td>Current quantity available — updates in real time as material moves.</td></tr>
+    <tr><td>UOM</td><td>Unit of Measure — kg for billets, pcs for profiles, kg for powders.</td></tr>
+    <tr><td>Location</td><td>Where the material physically is — Billet Store, Aging Area, Warehouse, Coating Store.</td></tr>
+    <tr><td>Last Movement</td><td>Date of the last receipt or issue — helps identify stale stock.</td></tr>
+    <tr><td>Status</td><td>In Stock (green), Low Stock (orange), or Out of Stock (red).</td></tr>
+  </table>
+</section>
+
+<div class="tips-box">
+  <h3>💡 Tips</h3>
+  <ul>
+    <li>Set minimum stock levels per material — the system will alert you when stock drops below the threshold.</li>
+    <li>Review Low Stock items daily — a missing billet or powder can halt production.</li>
+    <li>Use the movement history to identify discrepancies — if the system says 1,000 but you count 950, investigate.</li>
+  </ul>
+</div>
+
+<div class="related-links">
+  <h3>Related modules</h3>
+  <a href="/docs/material-receipt">→ Material Receipt</a>
+  <a href="/docs/bom">→ Bill of Materials (BOM)</a>
+  <a href="/docs/containers">→ Container Management</a>
+</div>
+{% endblock %}

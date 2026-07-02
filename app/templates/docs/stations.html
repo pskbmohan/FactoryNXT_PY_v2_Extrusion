@@ -1,0 +1,129 @@
+{% extends "docs/base.html" %}
+{% block content %}
+<div class="doc-hero">
+  <div class="doc-hero-icon">🏗️</div>
+  <div>
+    <h1>Stations & Workcentres</h1>
+    <p class="doc-hero-sub">Define the physical areas of your factory — where machines live and work happens.</p>
+  </div>
+</div>
+<nav class="breadcrumb">🏠 Home › Plant Setup › Stations & Workcentres</nav>
+
+<section>
+  <h2>What is this?</h2>
+  <p>A Station is a physical area of the factory (e.g. Extrusion Bay, Aging Area, Coating Line). Stations group machines together and define the workflow zones. They also control what operations are available at each location and which users can access them.</p>
+</section>
+
+<div class="screenshot-mockup">
+  <div class="mockup-header">
+    <span class="mockup-dot" style="background:#e94560"></span>
+    <span class="mockup-dot" style="background:#f59e0b"></span>
+    <span class="mockup-dot" style="background:#16a34a"></span>
+    <span>FactoryNXT — Stations List</span>
+  </div>
+  <div class="mockup-body">
+    <table class="mock-table" style="font-size:0.78rem">
+      <tr>
+        <th>Station Code</th><th>Name</th><th>Type</th><th>Machines</th><th>Operations Available</th><th>Access Roles</th><th>Status</th>
+      </tr>
+      <tr>
+        <td><strong>STN-EXTRUSION</strong></td>
+        <td>Extrusion Bay</td>
+        <td>Production</td>
+        <td>Press #1, Press #2, Press #3</td>
+        <td>Extrude, Log Output, Report Downtime</td>
+        <td>Operator, Supervisor</td>
+        <td><span class="badge badge-green">Active</span></td>
+      </tr>
+      <tr>
+        <td><strong>STN-AGING</strong></td>
+        <td>Aging Area</td>
+        <td>Production</td>
+        <td>FRN-AGE-01, FRN-AGE-02, FRN-AGE-03, FRN-AGE-04</td>
+        <td>Load Furnace, Start Cycle, Unload</td>
+        <td>Operator, Supervisor</td>
+        <td><span class="badge badge-green">Active</span></td>
+      </tr>
+      <tr>
+        <td><strong>STN-STRETCH</strong></td>
+        <td>Stretching Station</td>
+        <td>Production</td>
+        <td>Stretcher STR-01</td>
+        <td>Stretch, Log Output</td>
+        <td>Operator</td>
+        <td><span class="badge badge-green">Active</span></td>
+      </tr>
+      <tr>
+        <td><strong>STN-COATING</strong></td>
+        <td>Coating Line</td>
+        <td>Production</td>
+        <td>Line 1, Line 2</td>
+        <td>Load, Spray/Cure, Unload</td>
+        <td>Operator, Supervisor</td>
+        <td><span class="badge badge-green">Active</span></td>
+      </tr>
+      <tr>
+        <td><strong>STN-QC</strong></td>
+        <td>Quality Inspection</td>
+        <td>Quality</td>
+        <td>Inspection Bench INS-01</td>
+        <td>Inspect, Raise NCR, Close NCR</td>
+        <td>Quality Inspector, QA Manager</td>
+        <td><span class="badge badge-green">Active</span></td>
+      </tr>
+      <tr>
+        <td><strong>STN-DISPATCH</strong></td>
+        <td>Dispatch Bay</td>
+        <td>Logistics</td>
+        <td>Weighbridge WB-01</td>
+        <td>Weigh, Load Truck, Confirm Dispatch</td>
+        <td>Logistics Operator</td>
+        <td><span class="badge badge-green">Active</span></td>
+      </tr>
+    </table>
+  </div>
+</div>
+<p class="screenshot-caption">📸 The Stations list — each station groups machines and defines what operations are available.</p>
+
+<section>
+  <h2>How to use it</h2>
+  <ol class="steps">
+    <li><strong>Go to Stations</strong> from the sidebar — all defined stations appear in a table.</li>
+    <li><strong>Click a Station</strong> to view its details — machines, operations allowed, and user access.</li>
+    <li><strong>To add a new station</strong>, click "New Station" — enter code, name, type, and assign machines.</li>
+    <li><strong>Define operations</strong> available at this station — this controls what operators see on their screen.</li>
+    <li><strong>Set access roles</strong> — only users with these roles can work at this station.</li>
+    <li><strong>Save</strong> — the station is now available in the Routing Builder and Operations module.</li>
+  </ol>
+</section>
+
+<section>
+  <h2>Key fields explained</h2>
+  <table class="fields-table">
+    <tr><th>Field</th><th>What it means</th></tr>
+    <tr><td>Station Code</td><td>Unique ID (e.g. STN-EXTRUSION). Used in routings.</td></tr>
+    <tr><td>Name</td><td>Human-readable name — Extrusion Bay, Aging Area, etc.</td></tr>
+    <tr><td>Type</td><td>Production, Quality, Logistics, or Support — categorises the station.</td></tr>
+    <tr><td>Machines</td><td>Which machines are physically located at this station.</td></tr>
+    <tr><td>Operations Available</td><td>What work can be done here — controls the operator's screen options.</td></tr>
+    <tr><td>Access Roles</td><td>Which user roles can work at this station (Operator, Quality, Supervisor, etc.)</td></tr>
+    <tr><td>Status</td><td>Active (available for scheduling) or Inactive (decommissioned).</td></tr>
+  </table>
+</section>
+
+<div class="tips-box">
+  <h3>💡 Tips</h3>
+  <ul>
+    <li>Set up stations to match your factory's physical layout — it makes routing definition intuitive.</li>
+    <li>Restrict access carefully — only Quality roles should be able to close NCRs at the inspection station.</li>
+    <li>If you reorganise the factory, update station-machine assignments — it affects how WOs are scheduled.</li>
+  </ul>
+</div>
+
+<div class="related-links">
+  <h3>Related modules</h3>
+  <a href="/docs/machines">→ Machines</a>
+  <a href="/docs/routing-builder">→ Routing Builder</a>
+  <a href="/docs/operations">→ Operations & Shop Floor</a>
+</div>
+{% endblock %}

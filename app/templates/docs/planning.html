@@ -1,0 +1,107 @@
+{% extends "docs/base.html" %}
+{% block content %}
+<div class="doc-hero">
+  <div class="doc-hero-icon">📅</div>
+  <div>
+    <h1>Production Planning</h1>
+    <p class="doc-hero-sub">Decide what to make, on which press, and when — your weekly master schedule.</p>
+  </div>
+</div>
+<nav class="breadcrumb">🏠 Home › Planning & Scheduling › Production Planning</nav>
+
+<section>
+  <h2>What is this?</h2>
+  <p>Planning is where you decide WHAT to make and WHEN. You lay out all released Work Orders on a visual calendar, assign them to presses, and confirm the weekly production programme. The planner sees capacity constraints — if Press #1 is already busy on Tuesday, the system warns you before you double-book it.</p>
+</section>
+
+<div class="screenshot-mockup">
+  <div class="mockup-header">
+    <span class="mockup-dot" style="background:#e94560"></span>
+    <span class="mockup-dot" style="background:#f59e0b"></span>
+    <span class="mockup-dot" style="background:#16a34a"></span>
+    <span>FactoryNXT — Weekly Planning</span>
+  </div>
+  <div class="mockup-body">
+    <table class="mock-table" style="font-size:0.75rem">
+      <tr>
+        <th>Machine</th><th>Mon 30</th><th>Tue 01</th><th>Wed 02</th><th>Thu 03</th><th>Fri 04</th><th>Sat 05</th>
+      </tr>
+      <tr>
+        <td><strong>Press #1</strong></td>
+        <td style="background:#dbeafe;padding:6px;border-radius:4px">WO-001<br><small>2,000 pcs</small></td>
+        <td style="background:#dcfce7;padding:6px;border-radius:4px">WO-003<br><small>800 pcs</small></td>
+        <td style="background:#dcfce7;padding:6px;border-radius:4px">WO-003<br><small>cont.</small></td>
+        <td style="background:#f3e8ff;padding:6px;border-radius:4px">WO-007<br><small>1,600 pcs</small></td>
+        <td style="background:#ffedd5;padding:6px;border-radius:4px">WO-009<br><small>500 pcs</small></td>
+        <td style="background:#f1f5f9;color:#94a3b8">—</td>
+      </tr>
+      <tr>
+        <td><strong>Press #2</strong></td>
+        <td style="background:#dbeafe;padding:6px;border-radius:4px">WO-002<br><small>1,500 pcs</small></td>
+        <td style="background:#dbeafe;padding:6px;border-radius:4px">WO-002<br><small>cont.</small></td>
+        <td style="background:#f3e8ff;padding:6px;border-radius:4px">WO-008<br><small>2,400 pcs</small></td>
+        <td style="background:#f3e8ff;padding:6px;border-radius:4px">WO-008<br><small>cont.</small></td>
+        <td style="background:#dcfce7;padding:6px;border-radius:4px">WO-010<br><small>900 pcs</small></td>
+        <td style="background:#dcfce7;padding:6px;border-radius:4px">WO-010<br><small>cont.</small></td>
+      </tr>
+      <tr>
+        <td><strong>Press #3</strong></td>
+        <td style="background:#ffedd5;padding:6px;border-radius:4px">WO-004<br><small>3,200 pcs</small></td>
+        <td style="background:#ffedd5;padding:6px;border-radius:4px">WO-004<br><small>cont.</small></td>
+        <td style="background:#ffedd5;padding:6px;border-radius:4px">WO-004<br><small>cont.</small></td>
+        <td style="background:#f1f5f9;color:#94a3b8">—</td>
+        <td style="background:#dbeafe;padding:6px;border-radius:4px">WO-011<br><small>1,200 pcs</small></td>
+        <td style="background:#dbeafe;padding:6px;border-radius:4px">WO-011<br><small>cont.</small></td>
+      </tr>
+    </table>
+    <div style="margin-top:14px;display:flex;align-items:center;gap:12px">
+      <span style="font-size:0.8rem;color:#555;font-weight:600">Capacity Util:</span>
+      <div style="flex:1;background:#f1f5f9;height:10px;border-radius:5px;overflow:hidden">
+        <div style="width:78%;height:100%;background:#16a34a;border-radius:5px"></div>
+      </div>
+      <span style="font-size:0.8rem;font-weight:700;color:#16a34a">78%</span>
+    </div>
+  </div>
+</div>
+<p class="screenshot-caption">📸 The weekly planning grid shows WOs slotted across machines and days with capacity utilisation.</p>
+
+<section>
+  <h2>How to use it</h2>
+  <ol class="steps">
+    <li><strong>Go to Planning → Weekly View</strong> — the grid shows machines on rows, days on columns.</li>
+    <li><strong>All Released WOs appear</strong> in the "Unscheduled" panel on the right side of the screen.</li>
+    <li><strong>Drag a WO onto a machine/day cell</strong> to schedule it. The system checks for die availability and material stock.</li>
+    <li><strong>Watch for warnings</strong> — red highlights mean double-booking or missing materials.</li>
+    <li><strong>Save the plan</strong> — it becomes the master schedule for the week visible to the shop floor.</li>
+    <li><strong>Use "Lock Plan"</strong> to prevent further changes once confirmed for the week.</li>
+  </ol>
+</section>
+
+<section>
+  <h2>Key fields explained</h2>
+  <table class="fields-table">
+    <tr><th>Field</th><th>What it means</th></tr>
+    <tr><td>Machine Row</td><td>Each row is one press or production line.</td></tr>
+    <tr><td>Day Column</td><td>Monday through Saturday — click a cell to schedule or edit.</td></tr>
+    <tr><td>WO Block</td><td>A coloured bar showing the WO scheduled on that machine/day.</td></tr>
+    <tr><td>Unscheduled Panel</td><td>All Released WOs not yet assigned to a machine/day.</td></tr>
+    <tr><td>Capacity Utilisation</td><td>Percentage of available press-hours committed across the week.</td></tr>
+  </table>
+</section>
+
+<div class="tips-box">
+  <h3>💡 Tips</h3>
+  <ul>
+    <li>For fully automated scheduling, try <a href="/docs/aps" style="color:#92400e">APS — Advanced Scheduling</a> instead of manual drag-and-drop.</li>
+    <li>Lock the plan on Friday for the following week to give the shop floor certainty.</li>
+    <li>If a WO can't be scheduled (missing die, low stock), the system highlights it — fix the root cause first.</li>
+  </ul>
+</div>
+
+<div class="related-links">
+  <h3>Related modules</h3>
+  <a href="/docs/aps">→ APS — Advanced Scheduling</a>
+  <a href="/docs/work-orders">→ Work Orders</a>
+  <a href="/docs/dies">→ Die Management</a>
+</div>
+{% endblock %}

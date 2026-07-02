@@ -1,0 +1,123 @@
+{% extends "docs/base.html" %}
+{% block content %}
+<div class="doc-hero">
+  <div class="doc-hero-icon">🚚</div>
+  <div>
+    <h1>Material Receipt</h1>
+    <p class="doc-hero-sub">Log every truck delivery — validate alloy composition before it enters production.</p>
+  </div>
+</div>
+<nav class="breadcrumb">🏠 Home › Materials & Inventory › Material Receipt</nav>
+
+<section>
+  <h2>What is this?</h2>
+  <p>Every truck delivery of aluminium billets is recorded here. When a supplier delivers, the goods-in team opens Material Receipt, logs the truck, weighs the billets, records the alloy lot number, and enters the chemical composition certificate from the supplier. The system validates the composition against EN 573-3 limits and flags any out-of-spec material before it enters the production flow.</p>
+</section>
+
+<div class="screenshot-mockup">
+  <div class="mockup-header">
+    <span class="mockup-dot" style="background:#e94560"></span>
+    <span class="mockup-dot" style="background:#f59e0b"></span>
+    <span class="mockup-dot" style="background:#16a34a"></span>
+    <span>FactoryNXT — Material Receipt: MR-2026-0087</span>
+  </div>
+  <div class="mockup-body">
+    <div style="font-size:0.85rem;background:white;border:1px solid #e2e8f0;border-radius:8px;padding:20px">
+      <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:16px;margin-bottom:20px">
+        <div>
+          <div style="color:#64748b;font-size:0.75rem;text-transform:uppercase;font-weight:600">Receipt No.</div>
+          <div style="font-weight:700;font-size:1rem">MR-2026-0087</div>
+        </div>
+        <div>
+          <div style="color:#64748b;font-size:0.75rem;text-transform:uppercase;font-weight:600">Supplier</div>
+          <div style="font-weight:700;font-size:1rem">Hindalco Industries</div>
+        </div>
+        <div>
+          <div style="color:#64748b;font-size:0.75rem;text-transform:uppercase;font-weight:600">Truck Reference</div>
+          <div style="font-weight:700;font-size:1rem">MH-12-AB-4521</div>
+        </div>
+        <div>
+          <div style="color:#64748b;font-size:0.75rem;text-transform:uppercase;font-weight:600">Alloy</div>
+          <div style="font-weight:700;font-size:1rem;color:#3b5bdb">6063</div>
+        </div>
+        <div>
+          <div style="color:#64748b;font-size:0.75rem;text-transform:uppercase;font-weight:600">Lot No.</div>
+          <div style="font-weight:700;font-size:1rem">LOT-6063-240601</div>
+        </div>
+        <div>
+          <div style="color:#64748b;font-size:0.75rem;text-transform:uppercase;font-weight:600">Quantity Received</div>
+          <div style="font-weight:700;font-size:1rem;color:#16a34a">8,500 kg</div>
+        </div>
+      </div>
+      <div style="margin-bottom:16px">
+        <div style="font-weight:600;font-size:0.9rem;margin-bottom:10px;color:#1a1a2e">Composition Certificate (EN 573-3)</div>
+        <table class="mock-table" style="font-size:0.75rem">
+          <tr>
+            <th>Element</th><th>Actual Value</th><th>EN 573-3 Limit</th><th>Status</th>
+          </tr>
+          <tr><td>Si</td><td>0.42%</td><td>0.2–0.6%</td><td style="color:#16a34a;font-weight:600">✅ PASS</td></tr>
+          <tr><td>Fe</td><td>0.28%</td><td>max 0.35%</td><td style="color:#16a34a;font-weight:600">✅ PASS</td></tr>
+          <tr><td>Cu</td><td>0.08%</td><td>max 0.1%</td><td style="color:#16a34a;font-weight:600">✅ PASS</td></tr>
+          <tr><td>Mn</td><td>0.12%</td><td>max 0.15%</td><td style="color:#16a34a;font-weight:600">✅ PASS</td></tr>
+          <tr><td>Mg</td><td>0.78%</td><td>0.45–0.9%</td><td style="color:#16a34a;font-weight:600">✅ PASS</td></tr>
+          <tr><td>Cr</td><td>0.02%</td><td>max 0.05%</td><td style="color:#16a34a;font-weight:600">✅ PASS</td></tr>
+          <tr><td>Zn</td><td>0.04%</td><td>max 0.08%</td><td style="color:#16a34a;font-weight:600">✅ PASS</td></tr>
+          <tr><td>Ti</td><td>0.03%</td><td>max 0.05%</td><td style="color:#16a34a;font-weight:600">✅ PASS</td></tr>
+        </table>
+      </div>
+      <div style="display:flex;gap:12px;align-items:center;padding:12px;background:#dcfce7;border-radius:8px">
+        <span style="font-size:1.5rem">✅</span>
+        <div>
+          <div style="font-weight:700;color:#16a34a;font-size:1rem">Composition Status: PASS</div>
+          <div style="font-size:0.85rem;color:#374151">All elements within EN 573-3 limits. Material approved for production.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<p class="screenshot-caption">📸 The Material Receipt form — log delivery details and validate composition against EN 573-3.</p>
+
+<section>
+  <h2>How to use it</h2>
+  <ol class="steps">
+    <li><strong>Go to Material Receipt → New Receipt</strong> when a truck arrives.</li>
+    <li><strong>Enter truck reference and supplier name</strong> — this is for traceability.</li>
+    <li><strong>Select Alloy</strong> — the EN 573-3 limits auto-populate for that alloy grade.</li>
+    <li><strong>Weigh the billets</strong> on the weighbridge and enter total KG received.</li>
+    <li><strong>Enter each element</strong> from the mill test certificate (Si, Fe, Cu, Mn, Mg, Cr, Zn, Ti).</li>
+    <li><strong>The system auto-checks:</strong> green PASS or red FAIL per element against EN 573-3 limits.</li>
+    <li><strong>For FAIL:</strong> material is quarantined — a QA alert is raised and the lot cannot be used.</li>
+    <li><strong>For PASS:</strong> billets go to Billet Store and are available for WOs immediately.</li>
+  </ol>
+</section>
+
+<section>
+  <h2>Key fields explained</h2>
+  <table class="fields-table">
+    <tr><th>Field</th><th>What it means</th></tr>
+    <tr><td>Receipt No.</td><td>Auto-generated ID for this delivery (e.g. MR-2026-0087).</td></tr>
+    <tr><td>Supplier</td><td>Who supplied the billets — Hindalco, Vedanta, etc.</td></tr>
+    <tr><td>Truck Reference</td><td>Vehicle registration number for traceability.</td></tr>
+    <tr><td>Alloy</td><td>The grade of aluminium — 6063, 6061, 6082, etc.</td></tr>
+    <tr><td>Lot No.</td><td>Supplier's batch/lot number — links to traceability.</td></tr>
+    <tr><td>Quantity Received</td><td>Total weight in KG — from the weighbridge.</td></tr>
+    <tr><td>Composition Certificate</td><td>Chemical analysis from the mill test certificate — all elements must pass.</td></tr>
+  </table>
+</section>
+
+<div class="tips-box">
+  <h3>💡 Tips</h3>
+  <ul>
+    <li>Never skip the composition check — out-of-spec alloy can ruin an entire production run.</li>
+    <li>Keep mill test certificates on file — customers may request them for traceability audits.</li>
+    <li>If a delivery fails, quarantine immediately — don't let it mix with approved stock.</li>
+  </ul>
+</div>
+
+<div class="related-links">
+  <h3>Related modules</h3>
+  <a href="/docs/inventory">→ Inventory</a>
+  <a href="/docs/quality">→ Quality & NCR</a>
+  <a href="/docs/traceability">→ Traceability & Genealogy</a>
+</div>
+{% endblock %}

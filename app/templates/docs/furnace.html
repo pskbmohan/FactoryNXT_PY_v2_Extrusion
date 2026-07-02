@@ -1,0 +1,116 @@
+{% extends "docs/base.html" %}
+{% block content %}
+<div class="doc-hero">
+  <div class="doc-hero-icon">🔥</div>
+  <div>
+    <h1>Furnace & Heat Treatment</h1>
+    <p class="doc-hero-sub">Manage aging ovens and heat treatment cycles — ensure every profile reaches the right temper.</p>
+  </div>
+</div>
+<nav class="breadcrumb">🏠 Home › Tooling & Equipment › Furnace & Heat Treatment</nav>
+
+<section>
+  <h2>What is this?</h2>
+  <p>After extrusion, aluminium profiles must be heat treated (aged) to reach their target temper — for example T5 or T6. This module manages every furnace in the plant: what's currently loaded, which heat treatment program is running, temperature profiles, and automatic alerts if temperature deviates.</p>
+</section>
+
+<div class="screenshot-mockup">
+  <div class="mockup-header">
+    <span class="mockup-dot" style="background:#e94560"></span>
+    <span class="mockup-dot" style="background:#f59e0b"></span>
+    <span class="mockup-dot" style="background:#16a34a"></span>
+    <span>FactoryNXT — Furnace Dashboard</span>
+  </div>
+  <div class="mockup-body">
+    <table class="mock-table" style="font-size:0.78rem">
+      <tr>
+        <th>Furnace</th><th>Status</th><th>Current Temp</th><th>Target Temp</th><th>Program</th><th>Loaded WOs</th><th>Time Remaining</th><th>Alarm</th>
+      </tr>
+      <tr>
+        <td><strong>FRN-AGE-01</strong></td>
+        <td><span class="badge badge-green">Running</span></td>
+        <td style="color:#16a34a;font-weight:600">175°C</td>
+        <td>175°C</td>
+        <td>T5-6063-STD</td>
+        <td>WO-001, WO-003</td>
+        <td>2h 15m</td>
+        <td style="color:#16a34a">✓ OK</td>
+      </tr>
+      <tr>
+        <td><strong>FRN-AGE-02</strong></td>
+        <td><span class="badge badge-yellow">Heating</span></td>
+        <td style="color:#c2410c;font-weight:600">142°C</td>
+        <td>180°C</td>
+        <td>T6-6061-HIGH</td>
+        <td>WO-002, WO-007</td>
+        <td>4h 30m</td>
+        <td style="color:#16a34a">✓ OK</td>
+      </tr>
+      <tr>
+        <td><strong>FRN-AGE-03</strong></td>
+        <td><span class="badge badge-blue">Idle</span></td>
+        <td style="color:#64748b">25°C</td>
+        <td>—</td>
+        <td>—</td>
+        <td>—</td>
+        <td>—</td>
+        <td style="color:#64748b">—</td>
+      </tr>
+      <tr>
+        <td><strong>FRN-AGE-04</strong></td>
+        <td><span class="badge badge-orange">Alarm</span></td>
+        <td style="color:#dc2626;font-weight:600">192°C</td>
+        <td>175°C</td>
+        <td>T5-6063-STD</td>
+        <td>WO-004</td>
+        <td>1h 45m</td>
+        <td style="color:#dc2626;font-weight:700">⚠ OVER TEMP</td>
+      </tr>
+    </table>
+  </div>
+</div>
+<p class="screenshot-caption">📸 The Furnace Dashboard — live status, temperatures, loaded WOs, and alarm indicators.</p>
+
+<section>
+  <h2>How to use it</h2>
+  <ol class="steps">
+    <li><strong>Go to Furnace → Load Batch</strong> from the sidebar.</li>
+    <li><strong>Scan or select the WO lots</strong> to load into the furnace. The system checks capacity.</li>
+    <li><strong>Select the Heat Treatment Program</strong> — e.g. T5-6063-STD or T6-6061-HIGH.</li>
+    <li><strong>Click "Start Cycle"</strong> — start time is logged automatically and the temperature profile begins.</li>
+    <li><strong>The system alerts you</strong> if temperature drifts outside ±5°C of the target — act immediately.</li>
+    <li><strong>When the cycle completes</strong>, click "Unload" — all loaded WOs move to the next process step automatically.</li>
+  </ol>
+</section>
+
+<section>
+  <h2>Key fields explained</h2>
+  <table class="fields-table">
+    <tr><th>Field</th><th>What it means</th></tr>
+    <tr><td>Furnace Name</td><td>Unique ID for each aging oven (e.g. FRN-AGE-01).</td></tr>
+    <tr><td>Status</td><td>Running, Heating (not yet at temp), Idle (empty), or Alarm (temp deviation).</td></tr>
+    <tr><td>Current Temp</td><td>Live temperature reading from the furnace thermocouple.</td></tr>
+    <tr><td>Target Temp</td><td>The program's target temperature (e.g. 175°C for T5).</td></tr>
+    <tr><td>Program</td><td>The heat treatment recipe — time, temperature ramp, and hold duration.</td></tr>
+    <tr><td>Loaded WOs</td><td>Which work orders are currently in this furnace.</td></tr>
+    <tr><td>Time Remaining</td><td>How long until the cycle completes and the furnace can be unloaded.</td></tr>
+    <tr><td>Alarm</td><td>Shows if temperature is outside ±5°C — red = over temp, yellow = under temp.</td></tr>
+  </table>
+</section>
+
+<div class="tips-box">
+  <h3>💡 Tips</h3>
+  <ul>
+    <li>Never ignore an over-temp alarm — it can ruin the temper and make the entire batch scrap.</li>
+    <li>Load furnaces efficiently — partial loads waste energy and time.</li>
+    <li>Use the "Time Remaining" display to plan the next load — start unloading just before the cycle ends.</li>
+  </ul>
+</div>
+
+<div class="related-links">
+  <h3>Related modules</h3>
+  <a href="/docs/operations">→ Operations & Shop Floor</a>
+  <a href="/docs/process-line">→ Process Line</a>
+  <a href="/docs/quality">→ Quality & NCR</a>
+</div>
+{% endblock %}
