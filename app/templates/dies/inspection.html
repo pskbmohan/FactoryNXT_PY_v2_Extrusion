@@ -617,14 +617,13 @@
   function loadDieSVG(key) {
     const sc = SCEN[key];
     const svgEl = $('#die-img');
-    // Use <image> or just swap via fetch
     fetch(sc.img).then(r => r.text()).then(txt => {
       svgEl.outerHTML = '<div id="die-wrap" style="position:relative;width:100%;aspect-ratio:960/640">' +
         '<div style="position:absolute;inset:0"><svg id="die-img" viewBox="0 0 960 640" preserveAspectRatio="xMidYMid meet" style="width:100%;height:100%;display:block">' +
         txt.replace(/^.*?<svg[^>]*>/, '').replace(/<\/svg>$/, '') + '</svg></div>' +
         '<div id="defect-dots" style="position:absolute;inset:0;pointer-events:none"></div>' +
         '</div>';
-      renderOverlays(sc.overlays);
+      // Do NOT render overlays here — markers appear only after AI analysis
     }).catch(() => { /* leave as-is */ });
   }
 
