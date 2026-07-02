@@ -24,6 +24,7 @@ from ..models import (
     Die,
     Machine,
     ProcessPlan,
+    ProcessRun,
     ProductionSchedule,
     WorkOrder,
 )
@@ -509,6 +510,7 @@ def plan_vs_actual():
     """Compare process plan schedule against actual start/end."""
     if "username" not in session:
         return redirect(url_for("auth.login"))
+
     rows = ProcessPlan.query.order_by(
         ProcessPlan.scheduled_start.desc()
     ).limit(100).all()
@@ -530,7 +532,10 @@ def plan_vs_actual():
         # Use plan.order_id to track output; fall back to demo quantities
         qty = 0.0
         # Simulate actuals from ProcessRun status
-        runs = ProcessRun.query.filter_by(plan_id=plan.id).all()
+        try:
+            runs = ProcessRun.query.filter_by(plan_id=plan.id).all()
+        except Exception:
+            runs = []
         completed = [r for r in runs if r.status == "COMPLETED"]
         actual = 0.0
         if completed:
@@ -554,7 +559,17 @@ def plan_vs_actual():
     for m in machines:
         m_plans = [p for p in rows if p.machine_id == m.id]
         m_planned = len(m_plans) * 100.0
-        m_actual = sum(1 for r in ProcessRun.query.filter_by(machine_id=m.id, status="COMPLETED").all()) * 100.0
+
+        # FIX: ProcessRun.machine_id is String(36) but Machine.id is Integer
+        # Cast to string for comparison to avoid type mismatch
+        try:
+            m_actual = sum(1 for r in ProcessRun.query.filter_by(
+                machine_id=str(m.id),
+                status="COMPLETED"
+            ).all()) * 100.0
+        except Exception:
+            m_actual = 0.0
+
         m_var = 0.0
         m_ach = 0.0
         if m_planned > 0:
