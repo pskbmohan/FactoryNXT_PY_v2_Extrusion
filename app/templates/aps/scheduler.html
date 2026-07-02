@@ -46,6 +46,16 @@
         <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
         Refresh
       </button>
+      <span class="w-px h-5 bg-slate-200 dark:bg-slate-700"></span>
+      <button id="btn-run-schedule-v2" class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-medium rounded-lg shadow-sm">
+        &#9654; Run Schedule
+      </button>
+      <button id="btn-publish-schedule" class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-medium rounded-lg shadow-sm">
+        &#128228; Publish Schedule
+      </button>
+      <div id="schedule-score-badge" class="inline-flex items-center gap-1.5 px-3 py-1.5 border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 rounded-lg text-xs font-semibold shadow-sm text-slate-500 dark:text-slate-400">
+        Score: <span id="schedule-score-val">—</span>
+      </div>
     </div>
   </div>
 
@@ -90,8 +100,9 @@
   {# ── Stats strip ─────────────────────────────────────────────────────── #}
   <div class="grid grid-cols-2 md:grid-cols-5 gap-3" id="stats-strip"></div>
 
-  {# ── Gantt host ──────────────────────────────────────────────────────── #}
-  <div id="gantt-host" class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
+  {# ── Gantt host + Unscheduled sidebar ───────────────────────────────── #}
+  <div class="flex gap-4">
+  <div id="gantt-host" class="flex-1 bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
     <div id="gantt-loader" class="py-20 text-center text-sm text-slate-500 dark:text-slate-400">
       <svg class="w-6 h-6 mx-auto mb-2 animate-spin text-primary-600" fill="none" viewBox="0 0 24 24">
         <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"></circle>
@@ -174,6 +185,75 @@
 
   </div>
 
+</div>
+
+{# ── Unscheduled WOs sidebar ───────────────────────────────────────────── #}
+<aside class="w-72 flex-shrink-0 bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden flex flex-col max-h-[calc(100vh-260px)]">
+  <div class="px-4 py-3 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between bg-slate-50 dark:bg-slate-900/40">
+    <h2 class="text-sm font-semibold text-slate-900 dark:text-slate-50">Unscheduled WOs</h2>
+    <span id="unscheduled-count-badge" class="text-xs font-medium px-2 py-0.5 rounded-full bg-primary-100 text-primary-700 dark:bg-primary-900/40 dark:text-primary-300">—</span>
+  </div>
+  <div class="flex-1 overflow-y-auto p-2 space-y-2" id="unscheduled-wo-list">
+    <div class="text-center text-xs text-slate-400 italic py-6">Loading…</div>
+  </div>
+</aside>
+
+</div>{# close flex gap-4 wrapper #}
+
+{# ── Run Schedule v2 modal ────────────────────────────────────────────── #}
+<div id="modal-run-schedule" class="hidden fixed inset-0 z-[90] flex items-center justify-center bg-slate-900/50">
+  <div class="bg-white dark:bg-slate-800 rounded-xl shadow-2xl border border-slate-200 dark:border-slate-700 w-full max-w-md p-6">
+    <div class="flex items-center justify-between mb-4">
+      <h3 class="text-base font-semibold text-slate-900 dark:text-slate-50">Run Schedule</h3>
+      <button class="modal-close text-slate-400 hover:text-slate-600" type="button">&times;</button>
+    </div>
+    <div class="space-y-4">
+      <div>
+        <label class="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">Horizon (days)</label>
+        <select id="modal-horizon" class="block w-full rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-200 text-sm py-2 px-3">
+          <option value="1">1 day</option>
+          <option value="3">3 days</option>
+          <option value="7" selected>7 days</option>
+          <option value="14">14 days</option>
+          <option value="30">30 days</option>
+        </select>
+      </div>
+      <div>
+        <label class="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">Algorithm</label>
+        <select id="modal-algorithm" class="block w-full rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-200 text-sm py-2 px-3">
+          <option value="FIFO">FIFO — first in, first out</option>
+          <option value="DUE_DATE" selected>Due Date First</option>
+          <option value="OEE_OPTIMISED">OEE Optimised</option>
+        </select>
+        <p id="algo-description" class="text-[11px] text-slate-500 dark:text-slate-400 mt-1">Sort by earliest due date — minimises late orders.</p>
+      </div>
+    </div>
+    <div class="flex items-center justify-end gap-2 mt-6">
+      <button class="modal-close px-4 py-2 text-sm text-slate-600 dark:text-slate-400 hover:text-slate-900" type="button">Cancel</button>
+      <button id="modal-run-confirm" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg shadow-sm">
+        Run Schedule &#8594;
+      </button>
+    </div>
+  </div>
+</div>
+
+{# ── Publish confirmation modal ───────────────────────────────────────── #}
+<div id="modal-publish" class="hidden fixed inset-0 z-[90] flex items-center justify-center bg-slate-900/50">
+  <div class="bg-white dark:bg-slate-800 rounded-xl shadow-2xl border border-slate-200 dark:border-slate-700 w-full max-w-md p-6">
+    <div class="flex items-center justify-between mb-4">
+      <h3 class="text-base font-semibold text-slate-900 dark:text-slate-50">Publish Schedule</h3>
+      <button class="modal-close text-slate-400 hover:text-slate-600" type="button">&times;</button>
+    </div>
+    <p class="text-sm text-slate-600 dark:text-slate-300">
+      Publish this schedule to the shop floor? This will dispatch all feasible PLANNED entries and mark them as SCHEDULED on work orders. This cannot be undone.
+    </p>
+    <div class="flex items-center justify-end gap-2 mt-6">
+      <button class="modal-close px-4 py-2 text-sm text-slate-600 dark:text-slate-400 hover:text-slate-900" type="button">Cancel</button>
+      <button id="modal-publish-confirm" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-lg shadow-sm">
+        &#128228; Confirm Publish
+      </button>
+    </div>
+  </div>
 </div>
 
 {# ── Entry popover ───────────────────────────────────────────────────── #}
@@ -975,6 +1055,179 @@
 
   // Initial
   renderAll();
+})();
+</script>
+
+{# ── New-button logic: Run Schedule v2, Publish, Score, Unscheduled ─ #}
+<script>
+(function() {
+  const URL_SCHEDULE_V2 = "{{ url_for('aps.api_auto_schedule_v2') }}";
+  const URL_PUBLISH     = "{{ url_for('aps.api_publish') }}";
+  const URL_SCORE       = "{{ url_for('aps.api_schedule_score') }}";
+  const URL_UNSCHED     = "{{ url_for('aps.api_unscheduled_wos') }}";
+
+  function toast(msg, tone) {
+    tone = tone || "ok";
+    const colors = { ok: "bg-emerald-600", error: "bg-red-600", warn: "bg-amber-500", info: "bg-slate-700" };
+    const el = document.createElement("div");
+    el.className = "fixed bottom-4 right-4 z-[100] px-4 py-2 rounded-lg shadow-lg text-white text-sm " + (colors[tone] || colors.info);
+    el.textContent = msg;
+    document.body.appendChild(el);
+    setTimeout(function() { el.remove(); }, 4500);
+  }
+
+  // ── Schedule score badge ──────────────────────────────────────────────
+  function loadScore() {
+    fetch(URL_SCORE)
+      .then(r => r.json())
+      .then(d => {
+        const badge = document.getElementById("schedule-score-badge");
+        const valEl = document.getElementById("schedule-score-val");
+        if (!badge || !valEl) return;
+        const s = typeof d.score === "number" ? d.score : 0;
+        valEl.textContent = Math.round(s) + "%";
+        badge.classList.remove("text-emerald-600","text-amber-500","text-red-500","text-slate-500","dark:text-slate-400");
+        if (s >= 80) badge.classList.add("text-emerald-600","dark:text-emerald-400");
+        else if (s >= 60) badge.classList.add("text-amber-500","dark:text-amber-400");
+        else badge.classList.add("text-red-500","dark:text-red-400");
+      })
+      .catch(() => {});
+  }
+  loadScore();
+
+  // ── Unscheduled WOs panel ─────────────────────────────────────────────
+  function loadUnscheduled() {
+    fetch(URL_UNSCHED)
+      .then(r => r.json())
+      .then(d => {
+        const list = document.getElementById("unscheduled-wo-list");
+        const badge = document.getElementById("unscheduled-count-badge");
+        if (!list) return;
+        if (badge) badge.textContent = d.count || 0;
+        if (!d.work_orders || !d.work_orders.length) {
+          list.innerHTML = '<div class="text-center text-xs text-slate-400 italic py-6">No unscheduled WOs.</div>';
+          return;
+        }
+        const today = new Date();
+        const soon  = new Date(today.getTime() + 3 * 86400000);
+        list.innerHTML = d.work_orders.map(wo => {
+          const overdue = wo.due_date && new Date(wo.due_date) < soon;
+          const pri = (wo.priority || "medium");
+          const priCls = {
+            critical: "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300",
+            urgent:   "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300",
+            high:     "bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-300",
+            low:      "bg-slate-200 text-slate-600 dark:bg-slate-700 dark:text-slate-300"
+          }[pri.toLowerCase()] || "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300";
+          return '<div class="bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-lg p-2 text-[11px] shadow-sm">'
+              + '<div class="flex items-start justify-between gap-1">'
+              + '<div class="font-semibold text-slate-900 dark:text-slate-100 truncate">' + (wo.work_order_number || wo.id) + '</div>'
+              + '<span class="text-[9px] px-1.5 py-0.5 rounded font-semibold ' + priCls + '">' + pri + '</span>'
+              + '</div>'
+              + '<div class="text-slate-600 dark:text-slate-400 truncate">Part: ' + (wo.part_number || "—") + '</div>'
+              + '<div class="flex justify-between text-slate-500">'
+              + '<span>Qty: ' + (wo.quantity || 0) + '</span>'
+              + (wo.due_date ? '<span' + (overdue ? ' class="text-red-500 font-semibold"' : '') + '>Due: ' + wo.due_date + '</span>' : '')
+              + '</div>'
+              + '</div>';
+        }).join("");
+      })
+      .catch(() => {
+        const list = document.getElementById("unscheduled-wo-list");
+        if (list) list.innerHTML = '<div class="text-center text-xs text-red-500 py-6">Failed to load.</div>';
+      });
+  }
+  loadUnscheduled();
+
+  // ── Algorithm description updater ─────────────────────────────────────
+  const algoSel = document.getElementById("modal-algorithm");
+  const algoDesc = document.getElementById("algo-description");
+  const algoTexts = {
+    FIFO:          "First in, first out — schedule in work order creation order.",
+    DUE_DATE:      "Sort by earliest due date — minimises late orders.",
+    OEE_OPTIMISED: "Group by part number to reduce changeover — maximises OEE."
+  };
+  if (algoSel && algoDesc) {
+    algoSel.addEventListener("change", () => { algoDesc.textContent = algoTexts[algoSel.value] || ""; });
+  }
+
+  // ── Modal plumbing ────────────────────────────────────────────────────
+  function openModal(id) { document.getElementById(id).classList.remove("hidden"); }
+  function closeModal(id) { document.getElementById(id).classList.add("hidden"); }
+  document.querySelectorAll(".modal-close").forEach(btn => {
+    btn.addEventListener("click", () => {
+      ["modal-run-schedule", "modal-publish"].forEach(closeModal);
+    });
+  });
+
+  // ── Run Schedule button ───────────────────────────────────────────────
+  const runBtn = document.getElementById("btn-run-schedule-v2");
+  if (runBtn) runBtn.addEventListener("click", () => openModal("modal-run-schedule"));
+
+  const runConfirm = document.getElementById("modal-run-confirm");
+  if (runConfirm) runConfirm.addEventListener("click", () => {
+    const horizon = parseInt(document.getElementById("modal-horizon").value, 10);
+    const algorithm = document.getElementById("modal-algorithm").value;
+    runConfirm.disabled = true;
+    runConfirm.textContent = "Scheduling…";
+    fetch(URL_SCHEDULE_V2, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ horizon_days: horizon, algorithm: algorithm })
+    })
+    .then(r => r.json())
+    .then(d => {
+      closeModal("modal-run-schedule");
+      if (d.ok) {
+        toast("Schedule run complete — " + d.placed + " placed, " + (d.unassigned || []).length + " unassigned", "ok");
+        // refresh gantt + score
+        if (typeof window.dispatchEvent === "function") {
+          const evt = new CustomEvent("aps:schedule-changed");
+          window.dispatchEvent(evt);
+        }
+        setTimeout(loadScore, 500);
+        setTimeout(loadUnscheduled, 500);
+        // trigger existing refresh button
+        const ref = document.getElementById("btn-refresh");
+        if (ref) ref.click();
+      } else {
+        toast("Schedule failed: " + (d.error || "Unknown"), "error");
+      }
+    })
+    .catch(err => toast("Network error: " + err, "error"))
+    .finally(() => { runConfirm.disabled = false; runConfirm.innerHTML = "Run Schedule &#8594;"; });
+  });
+
+  // ── Publish Schedule button ───────────────────────────────────────────
+  const pubBtn = document.getElementById("btn-publish-schedule");
+  if (pubBtn) pubBtn.addEventListener("click", () => {
+    if (pubBtn.dataset.published === "true") return;
+    openModal("modal-publish");
+  });
+
+  const pubConfirm = document.getElementById("modal-publish-confirm");
+  if (pubConfirm) pubConfirm.addEventListener("click", () => {
+    pubConfirm.disabled = true;
+    pubConfirm.textContent = "Publishing…";
+    fetch(URL_PUBLISH, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({})
+    })
+    .then(r => r.json())
+    .then(d => {
+      closeModal("modal-publish");
+      if (d.ok) {
+        toast("Schedule published — " + d.dispatched_entries + " jobs dispatched", "ok");
+        if (pubBtn) { pubBtn.dataset.published = "true"; pubBtn.classList.add("opacity-60","cursor-not-allowed"); }
+        setTimeout(loadScore, 500);
+      } else {
+        toast("Publish failed: " + (d.error || "Unknown"), "error");
+      }
+    })
+    .catch(err => toast("Network error: " + err, "error"))
+    .finally(() => { pubConfirm.disabled = false; pubConfirm.innerHTML = "&#128228; Confirm Publish"; });
+  });
 })();
 </script>
 

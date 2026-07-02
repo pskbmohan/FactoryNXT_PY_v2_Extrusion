@@ -1,0 +1,296 @@
+{% extends "layout.html" %}
+{% block title %}Weekly Planning Board{% endblock %}
+
+{% block content %}
+<div class="space-y-4" data-week-locked="{{ '1' if week_is_locked else '0' }}">
+
+  {# ── Top bar: nav + actions ───────────────────────────────────────────── #}
+  <div class="flex flex-wrap items-center justify-between gap-3">
+    <div class="flex items-center gap-2">
+      <a href="?week={{ prev_week }}" class="inline-flex items-center px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 shadow-sm">
+        &larr; Prev
+      </a>
+      <h1 class="text-xl font-bold text-slate-900 dark:text-slate-50">{{ current_week_label }}</h1>
+      <a href="?week={{ next_week }}" class="inline-flex items-center px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 shadow-sm">
+        Next &rarr;
+      </a>
+    </div>
+
+    <div class="flex items-center gap-2">
+      <button id="btn-lock" class="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-lg shadow-sm
+        {% if week_is_locked %}bg-amber-500 hover:bg-amber-600 text-white{% else %}bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700{% endif %}">
+        <span id="btn-lock-icon">{% if week_is_locked %}&#128274;{% else %}&#128275;{% endif %}</span>
+        <span id="btn-lock-label">{% if week_is_locked %}Locked{% else %}Lock Plan{% endif %}</span>
+      </button>
+      <form method="POST" action="{{ url_for('planning.optimize') }}" class="inline">
+        <input type="hidden" name="horizon_days" value="7">
+        <button type="submit" class="inline-flex items-center gap-1.5 px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-lg shadow-sm">
+          &#9881; Run Optimizer
+        </button>
+      </form>
+      <a href="{{ url_for('planning.scheduler') }}" class="inline-flex items-center px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 shadow-sm">
+        Legacy View &rarr;
+      </a>
+    </div>
+  </div>
+
+  {# ── Capacity utilisation bars ────────────────────────────────────────── #}
+  <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-4">
+    <div class="flex items-center justify-between mb-3">
+      <h2 class="text-sm font-semibold text-slate-900 dark:text-slate-50">Capacity Utilisation</h2>
+      <span class="text-xs font-medium text-slate-500 dark:text-slate-400">
+        Overall: <span class="text-primary-600 dark:text-primary-500 font-bold">{{ overall_capacity_pct }}%</span>
+      </span>
+    </div>
+    {% if capacity_stats %}
+    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3">
+      {% for s in capacity_stats %}
+      <div>
+        <div class="flex items-center justify-between text-xs text-slate-600 dark:text-slate-400 mb-1">
+          <span class="truncate">{{ s.machine_name }}</span>
+          <span class="font-semibold">{{ s.pct }}%</span>
+        </div>
+        <div class="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-2 overflow-hidden">
+          <div class="h-2 rounded-full transition-all
+            {% if s.pct >= 80 %}bg-emerald-500{% elif s.pct >= 50 %}bg-amber-500{% elif s.pct > 0 %}bg-orange-400{% else %}bg-slate-300 dark:bg-slate-600{% endif %}"
+            style="width: {{ s.pct }}%"></div>
+        </div>
+        <div class="text-[10px] text-slate-400 mt-0.5">{{ s.filled }}/{{ s.max }} slots</div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <p class="text-sm text-slate-500 dark:text-slate-400 italic">No active machines configured.</p>
+    {% endif %}
+  </div>
+
+  <div class="flex gap-4">
+    {# ── Main grid ──────────────────────────────────────────────────────── #}
+    <div class="flex-1 bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead class="bg-slate-50 dark:bg-slate-900/60 text-slate-600 dark:text-slate-400 uppercase tracking-wider text-xs font-semibold border-b border-slate-200 dark:border-slate-700 sticky top-0 z-10">
+            <tr>
+              <th class="px-3 py-2.5 text-left w-40">Machine</th>
+              {% for day in week_days %}
+              <th class="px-2 py-2.5 text-center min-w-[140px]">
+                <div>{{ day.strftime('%a') }}</div>
+                <div class="text-[10px] font-normal normal-case text-slate-400">{{ day.strftime('%d %b') }}</div>
+              </th>
+              {% endfor %}
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100 dark:divide-slate-700">
+            {% for m in machines %}
+            <tr class="hover:bg-slate-50 dark:hover:bg-slate-900/30">
+              <td class="px-3 py-2 font-semibold text-slate-900 dark:text-slate-100 border-r border-slate-100 dark:border-slate-700">
+                {{ m.name }}
+              </td>
+              {% for day in week_days %}
+                {% set day_key = day.strftime('%Y-%m-%d') %}
+                {% set plans = slot_map.get(m.id|string, {}).get(day_key, []) %}
+                <td class="px-1.5 py-1.5 align-top border-r border-slate-50 dark:border-slate-700/40
+                  {% if week_is_locked %}bg-slate-100 dark:bg-slate-900/40{% endif %}"
+                  data-machine-id="{{ m.id }}" data-day="{{ day_key }}">
+                  <div class="drop-zone min-h-[72px] rounded-lg p-1 space-y-1
+                    {% if week_is_locked %}opacity-70 cursor-not-allowed{% else %}hover:bg-primary-50 dark:hover:bg-primary-900/20 transition-colors{% endif %}"
+                    {% if not week_is_locked %}
+                    ondragover="event.preventDefault(); this.classList.add('ring-2','ring-primary-400','bg-primary-50')"
+                    ondragleave="this.classList.remove('ring-2','ring-primary-400','bg-primary-50')"
+                    ondrop="window.__dropWO(event, '{{ m.id }}', '{{ day_key }}'); this.classList.remove('ring-2','ring-primary-400','bg-primary-50')"
+                    {% endif %}>
+                    {% if week_is_locked %}
+                      <span class="text-[10px] text-slate-400">&#128274;</span>
+                    {% endif %}
+                    {% for plan in plans %}
+                    <div class="wo-card group relative bg-primary-100 dark:bg-primary-900/40 border border-primary-300 dark:border-primary-700 rounded px-1.5 py-1 text-[11px] leading-tight text-slate-800 dark:text-slate-100 shadow-sm
+                      {% if plan.status == 'Locked' %}bg-slate-200 dark:bg-slate-700 border-slate-400 dark:border-slate-500{% endif %}">
+                      <div class="flex items-start justify-between gap-1">
+                        <div class="truncate font-semibold">
+                          {% if plan.status == 'Locked' %}&#128274;{% endif %}
+                          {{ plan.profile_shape or 'WO' }}
+                        </div>
+                        {% if not week_is_locked and plan.status != 'Locked' %}
+                        <button type="button" class="opacity-0 group-hover:opacity-100 text-slate-400 hover:text-red-500 text-xs flex-shrink-0"
+                                onclick="window.__removePlan('{{ plan.id }}')" title="Remove">&times;</button>
+                        {% endif %}
+                      </div>
+                      <div class="truncate text-[10px] text-slate-500 dark:text-slate-400">
+                        {{ plan.plan_number }}
+                      </div>
+                      {% if plan.priority %}
+                      <div class="mt-0.5">
+                        <span class="inline-block text-[9px] px-1 py-px rounded font-semibold
+                          {% if plan.priority in ['Critical','Urgent','critical','urgent'] %}bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300
+                          {% elif plan.priority in ['High','high'] %}bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-300
+                          {% elif plan.priority in ['Low','low'] %}bg-slate-200 text-slate-600 dark:bg-slate-700 dark:text-slate-300
+                          {% else %}bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300{% endif %}">
+                          {{ plan.priority }}
+                        </span>
+                      </div>
+                      {% endif %}
+                    </div>
+                    {% endfor %}
+                    {% if not plans and week_is_locked %}
+                      <div class="text-center text-[10px] text-slate-400 py-2">&mdash;</div>
+                    {% endif %}
+                  </div>
+                </td>
+              {% endfor %}
+            </tr>
+            {% else %}
+            <tr>
+              <td colspan="7" class="px-4 py-8 text-center text-sm text-slate-500 dark:text-slate-400 italic">
+                No active machines. Add machines to begin planning.
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    {# ── Unscheduled WOs panel ──────────────────────────────────────────── #}
+    <aside class="w-72 flex-shrink-0 bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden flex flex-col max-h-[calc(100vh-260px)]">
+      <div class="px-4 py-3 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between bg-slate-50 dark:bg-slate-900/40">
+        <h2 class="text-sm font-semibold text-slate-900 dark:text-slate-50">
+          Unscheduled WOs
+        </h2>
+        <span class="text-xs font-medium px-2 py-0.5 rounded-full bg-primary-100 text-primary-700 dark:bg-primary-900/40 dark:text-primary-300">
+          {{ unscheduled|length }}
+        </span>
+      </div>
+      <div class="flex-1 overflow-y-auto p-2 space-y-2" id="unscheduled-list">
+        {% for wo in unscheduled %}
+        <div class="wo-draggable cursor-grab active:cursor-grabbing bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-lg p-2 shadow-sm hover:shadow-md hover:border-primary-400 dark:hover:border-primary-600 transition-shadow"
+             draggable="{{ 'false' if week_is_locked else 'true' }}"
+             data-wo-id="{{ wo.id }}"
+             ondragstart="window.__dragWO(event, '{{ wo.id }}')">
+          <div class="flex items-start justify-between gap-2">
+            <div class="text-xs font-bold text-slate-900 dark:text-slate-100 truncate">
+              {{ wo.wo_number }}
+            </div>
+            <span class="inline-block text-[9px] px-1.5 py-0.5 rounded font-semibold flex-shrink-0
+              {% if wo.priority in ['Critical','Urgent','critical','urgent'] %}bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300
+              {% elif wo.priority in ['High','high'] %}bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-300
+              {% elif wo.priority in ['Low','low'] %}bg-slate-200 text-slate-600 dark:bg-slate-700 dark:text-slate-300
+              {% else %}bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300{% endif %}">
+              {{ wo.priority }}
+            </span>
+          </div>
+          <div class="text-[11px] text-slate-600 dark:text-slate-400 mt-1 truncate">
+            Part: {{ wo.part_number }}
+          </div>
+          <div class="flex items-center justify-between text-[10px] text-slate-500 mt-1">
+            <span>Qty: {{ wo.quantity }}</span>
+            {% if wo.due_date %}
+            <span class="{% if wo.due_date < today.strftime('%Y-%m-%d') %}text-red-500 font-semibold{% endif %}">
+              Due: {{ wo.due_date }}
+            </span>
+            {% endif %}
+          </div>
+        </div>
+        {% else %}
+        <div class="text-center text-xs text-slate-400 italic py-8 px-2">
+          No unscheduled work orders.
+        </div>
+        {% endfor %}
+      </div>
+    </aside>
+  </div>
+</div>
+
+{# ── Toast container ────────────────────────────────────────────────────── #}
+<div id="toast-host" class="fixed bottom-4 right-4 z-50 space-y-2"></div>
+
+<script>
+(function() {
+  const WEEK_KEY = "{{ week_key }}";
+  const IS_LOCKED = {{ 'true' if week_is_locked else 'false' }};
+
+  function toast(msg, type) {
+    type = type || "info";
+    const host = document.getElementById("toast-host");
+    const el = document.createElement("div");
+    const colors = {
+      success: "bg-emerald-600",
+      error:   "bg-red-600",
+      warning: "bg-amber-500",
+      info:    "bg-slate-700"
+    };
+    el.className = "px-4 py-2 rounded-lg shadow-lg text-white text-sm " + (colors[type] || colors.info);
+    el.textContent = msg;
+    host.appendChild(el);
+    setTimeout(function() { el.remove(); }, 4000);
+  }
+
+  window.__dragWO = function(ev, woId) {
+    ev.dataTransfer.setData("text/plain", woId);
+    ev.dataTransfer.effectAllowed = "move";
+  };
+
+  window.__dropWO = function(ev, machineId, dayKey) {
+    ev.preventDefault();
+    if (IS_LOCKED) { toast("Week is locked", "warning"); return; }
+    const woId = ev.dataTransfer.getData("text/plain");
+    if (!woId) return;
+
+    fetch("{{ url_for('planning.weekly_assign') }}", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ wo_id: woId, machine_id: machineId, day: dayKey })
+    })
+    .then(function(r) { return r.json().then(function(d) { return { status: r.status, data: d }; }); })
+    .then(function(res) {
+      if (res.data.ok) {
+        if (res.data.die_warning) toast("⚠ No available die — plan created but check tooling", "warning");
+        toast("Assigned ✓", "success");
+        setTimeout(function() { location.reload(); }, 600);
+      } else if (res.data.conflict) {
+        toast("Slot already booked: " + (res.data.error || ""), "error");
+        const cells = document.querySelectorAll('[data-machine-id="' + machineId + '"][data-day="' + dayKey + '"]');
+        cells.forEach(function(c) { c.classList.add("ring-2","ring-red-400","bg-red-50"); setTimeout(function(){ c.classList.remove("ring-2","ring-red-400","bg-red-50"); }, 1200); });
+      } else {
+        toast("Error: " + (res.data.error || "Unknown"), "error");
+      }
+    })
+    .catch(function(err) { toast("Network error: " + err, "error"); });
+  };
+
+  window.__removePlan = function(planId) {
+    if (!confirm("Remove this WO from its slot?")) return;
+    fetch("{{ url_for('planning.weekly_unassign') }}", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ plan_id: planId })
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+      if (d.ok) { toast("Removed", "success"); setTimeout(function(){ location.reload(); }, 500); }
+      else toast("Error: " + (d.error || ""), "error");
+    })
+    .catch(function(err) { toast("Network error: " + err, "error"); });
+  };
+
+  const lockBtn = document.getElementById("btn-lock");
+  if (lockBtn) {
+    lockBtn.addEventListener("click", function() {
+      const nextLocked = !IS_LOCKED;
+      fetch("{{ url_for('planning.weekly_lock') }}", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ week_key: WEEK_KEY, locked: nextLocked })
+      })
+      .then(function(r) { return r.json(); })
+      .then(function(d) {
+        if (d.ok) {
+          toast(nextLocked ? "Week locked ✓" : "Week unlocked ✓", "success");
+          setTimeout(function() { location.reload(); }, 500);
+        } else toast("Error: " + (d.error || ""), "error");
+      })
+      .catch(function(err) { toast("Network error: " + err, "error"); });
+    });
+  }
+})();
+</script>
+{% endblock %}

@@ -300,6 +300,10 @@
         </svg>
         APS Scheduler
       </a>
+      <a href="{{ url_for('planning.weekly') }}"
+         class="{% if request.endpoint == 'planning.weekly' %}active{% endif %}">
+        📅 Weekly Board
+      </a>
       <a href="{{ url_for('planning.index') }}"
          class="{% if request.endpoint == 'planning.index' %}active{% endif %}">
         Overview
@@ -318,7 +322,7 @@
       </a>
       <a href="{{ url_for('planning.scheduler') }}"
          class="{% if request.endpoint == 'planning.scheduler' %}active{% endif %}">
-        Scheduler (Gantt)
+        Scheduler (Legacy)
       </a>
       <a href="{{ url_for('planning.shortages') }}"
          class="{% if request.endpoint == 'planning.shortages' %}active{% endif %}">

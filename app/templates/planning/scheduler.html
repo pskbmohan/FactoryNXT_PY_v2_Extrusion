@@ -26,6 +26,20 @@
       </div>
   </div>
 
+  {# ── Tip banner: nudge users to the new Weekly Board ──────────────── #}
+  <div class="flex items-center justify-between gap-3 bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800 rounded-lg px-4 py-3">
+    <div class="flex items-center gap-2 text-sm text-indigo-900 dark:text-indigo-200">
+      <span class="text-xl">💡</span>
+      <span>
+        <strong>Tip:</strong> Try the new <strong>Weekly Planning Board</strong> for easier drag-and-drop scheduling.
+      </span>
+    </div>
+    <a href="{{ url_for('planning.weekly') }}"
+       class="inline-flex items-center gap-1 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-lg shadow-sm whitespace-nowrap">
+      Open Weekly Board &rarr;
+    </a>
+  </div>
+
   <!-- Filters -->
   <form method="get" class="bg-white dark:bg-slate-800 rounded-lg shadow p-4 grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
     <div>

@@ -19,6 +19,13 @@
           <span class="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300">
             Active: {{ version.name }}
           </span>
+          {% set vtype = (version.version_type or 'DRAFT')|upper %}
+          <span class="ml-1 inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold
+            {% if vtype == 'PUBLISHED' %}bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300
+            {% elif vtype == 'DRAFT' %}bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300
+            {% else %}bg-slate-200 text-slate-600 dark:bg-slate-700 dark:text-slate-300{% endif %}">
+            {{ vtype }}
+          </span>
         {% endif %}
       </p>
     </div>
@@ -43,6 +50,10 @@
         <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
         Replan
       </button>
+      <a href="{{ url_for('planning.weekly') }}"
+         class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg shadow-sm">
+        &#128197; Weekly Planning Board
+      </a>
     </div>
   </div>
 
@@ -77,6 +88,14 @@
       <div class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">Unscheduled WOs</div>
       <div class="mt-1 text-2xl font-bold text-slate-900 dark:text-slate-50">{{ unscheduled_count }}</div>
       <div class="mt-1 text-xs text-slate-400 dark:text-slate-500">pending scheduling</div>
+    </div>
+    <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-4">
+      <div class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">Schedule Score</div>
+      <div class="mt-1 flex items-center gap-2">
+        <span id="schedule-score-value" class="text-2xl font-bold text-slate-400 dark:text-slate-500">—</span>
+        <span id="schedule-score-pct" class="text-lg font-semibold text-slate-500 dark:text-slate-400">%</span>
+      </div>
+      <div id="schedule-score-detail" class="mt-1 text-xs text-slate-400 dark:text-slate-500">loading…</div>
     </div>
   </div>
 
@@ -122,17 +141,18 @@
       <div class="max-h-96 overflow-y-auto">
         {% if kpis.per_machine_stats %}
           {% for s in kpis.per_machine_stats %}
+          {% set pct = ((s.min / kpis.max_machine_load) * 100) if kpis.max_machine_load > 0 else 0 %}
           <div class="px-5 py-2.5">
             <div class="flex items-center justify-between text-sm">
               <span class="text-slate-700 dark:text-slate-300 font-medium">{{ s.name }}</span>
-              <span class="text-slate-500 dark:text-slate-400 font-mono text-xs">{{ s.min }} min</span>
+              <span class="text-slate-500 dark:text-slate-400 font-mono text-xs">{{ s.min }} min <span class="text-slate-400">({{ '%.0f'|format(pct) }}%)</span></span>
             </div>
             <div class="mt-1 h-2 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
               <div class="h-full rounded-full
-                    {% if kpis.max_machine_load > 0 and s.min / kpis.max_machine_load > 0.9 %}bg-red-500
-                    {% elif kpis.max_machine_load > 0 and s.min / kpis.max_machine_load > 0.7 %}bg-amber-500
+                    {% if pct > 90 %}bg-red-500
+                    {% elif pct > 70 %}bg-amber-500
                     {% else %}bg-emerald-500{% endif %}"
-                   style="width: {{ ((s.min / kpis.max_machine_load) * 100) if kpis.max_machine_load > 0 else 0 }}%"></div>
+                   style="width: {{ pct }}%"></div>
             </div>
           </div>
           {% endfor %}
@@ -264,6 +284,28 @@
       btnReplan.textContent = "Replan";
     });
   });
+
+  // ── Schedule Score fetch ──────────────────────────────────────────────
+  fetch("{{ url_for('aps.api_schedule_score') }}")
+    .then(r => r.json())
+    .then(d => {
+      const valEl = document.getElementById("schedule-score-value");
+      const detailEl = document.getElementById("schedule-score-detail");
+      if (!valEl || !detailEl) return;
+      const score = typeof d.score === "number" ? d.score : 0;
+      valEl.textContent = Math.round(score);
+      // Color by threshold
+      valEl.classList.remove("text-emerald-600","text-amber-500","text-red-600","text-slate-400");
+      if (score >= 80) valEl.classList.add("text-emerald-600","dark:text-emerald-400");
+      else if (score >= 60) valEl.classList.add("text-amber-500","dark:text-amber-400");
+      else if (score > 0) valEl.classList.add("text-red-600","dark:text-red-400");
+      const c = d.components || {};
+      detailEl.textContent = `Feasibility ${c.feasibility_pct||0}% · Util ${c.utilization_pct||0}% · On-time ${c.on_time_pct||0}%`;
+    })
+    .catch(() => {
+      const detailEl = document.getElementById("schedule-score-detail");
+      if (detailEl) detailEl.textContent = "Failed to load score";
+    });
 })();
 </script>
 {% endblock %}

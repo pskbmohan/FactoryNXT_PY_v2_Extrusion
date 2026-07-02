@@ -488,6 +488,254 @@ def api_release_entry(entry_id):
     return jsonify({'ok': True, 'status': entry.status})
 
 
+# ── New APS endpoints (schedule score, publish, auto-schedule-v2, unscheduled) ─
+
+@aps_page_bp.route('/api/schedule-score', methods=['GET'])
+def api_schedule_score():
+    """Calculate a Schedule Score (0-100) for the current version."""
+    try:
+        version = ApsScheduleVersion.query.order_by(
+            ApsScheduleVersion.created_at.desc()
+        ).first()
+        if not version:
+            return jsonify({"score": 0, "components": {}})
+
+        entries = ApsScheduleEntry.query.filter_by(version_id=version.id).all()
+        total = len(entries) or 1
+        feasible = sum(
+            1 for e in entries if (e.constraint_status or "FEASIBLE") == "FEASIBLE"
+        )
+        total_load = sum(
+            int((e.scheduled_end - e.scheduled_start).total_seconds() / 60)
+            for e in entries
+        )
+        machine_count = Machine.query.filter_by(is_active=True).count() or 1
+        days = version.planning_horizon_days or 7
+        capacity_min = days * 24 * 60 * machine_count
+        utilization = total_load / capacity_min if capacity_min else 0
+
+        on_time = 0
+        for e in entries:
+            wo = e.work_order
+            if wo and hasattr(wo, "due_date") and wo.due_date and e.scheduled_end:
+                due_dt = (
+                    datetime.combine(wo.due_date, datetime.max.time())
+                    if hasattr(wo.due_date, "year") and not hasattr(wo.due_date, "hour")
+                    else wo.due_date
+                )
+                if e.scheduled_end <= due_dt:
+                    on_time += 1
+            else:
+                on_time += 1
+
+        score = (
+            0.40 * (feasible / total)
+            + 0.30 * min(utilization / 0.85, 1.0)
+            + 0.30 * (on_time / total)
+        ) * 100
+
+        return jsonify({
+            "score": round(score, 1),
+            "components": {
+                "feasibility_pct": round((feasible / total) * 100, 1),
+                "utilization_pct": round(utilization * 100, 1),
+                "on_time_pct": round((on_time / total) * 100, 1),
+            },
+            "version_id": version.id,
+            "version_name": version.name,
+        })
+    except Exception as exc:
+        traceback.print_exc()
+        return jsonify({"error": str(exc)}), 500
+
+
+@aps_page_bp.route('/api/publish', methods=['POST'])
+def api_publish():
+    """Publish the current DRAFT schedule version to the shop floor."""
+    try:
+        data = request.json or {}
+        version_id = data.get("version_id")
+
+        if version_id:
+            version = ApsScheduleVersion.query.get_or_404(version_id)
+        else:
+            version = ApsScheduleVersion.query.order_by(
+                ApsScheduleVersion.created_at.desc()
+            ).first()
+
+        if not version:
+            return jsonify({"ok": False, "error": "No schedule version found"}), 404
+
+        if version.version_type == "PUBLISHED":
+            return jsonify({"ok": False, "error": "Version is already published"}), 400
+
+        version.version_type = "PUBLISHED"
+
+        entries = ApsScheduleEntry.query.filter_by(
+            version_id=version.id, status="PLANNED"
+        ).all()
+        dispatched = 0
+        for entry in entries:
+            if (entry.constraint_status or "FEASIBLE") == "FEASIBLE":
+                entry.status = "DISPATCHED"
+                wo = entry.work_order
+                if wo and wo.status in ("RELEASED", "PLANNED"):
+                    wo.status = "SCHEDULED"
+                    wo.scheduled_start = entry.scheduled_start
+                    wo.scheduled_end = entry.scheduled_end
+                dispatched += 1
+
+        db.session.commit()
+        return jsonify({
+            "ok": True,
+            "version_id": version.id,
+            "version_name": version.name,
+            "dispatched_entries": dispatched,
+        })
+    except Exception as exc:
+        db.session.rollback()
+        return jsonify({"ok": False, "error": str(exc)}), 500
+
+
+@aps_page_bp.route('/api/auto-schedule-v2', methods=['POST'])
+def api_auto_schedule_v2():
+    """Run scheduling with algorithm selection (FIFO / DUE_DATE / OEE_OPTIMISED)."""
+    try:
+        data = request.json or {}
+        horizon = int(data.get("horizon_days", 7))
+        algorithm = data.get("algorithm", "DUE_DATE").upper()
+
+        open_wos = WorkOrder.query.filter(
+            WorkOrder.status.in_(["RELEASED", "PLANNED"])
+        ).all()
+        machines = Machine.query.filter_by(is_active=True).all()
+
+        if not machines:
+            return jsonify({"ok": False, "error": "No active machines configured"}), 400
+
+        if algorithm == "DUE_DATE":
+            open_wos = sorted(
+                open_wos,
+                key=lambda w: (w.due_date or datetime(2099, 12, 31)),
+            )
+        elif algorithm == "OEE_OPTIMISED":
+            from collections import defaultdict
+            by_part = defaultdict(list)
+            for wo in open_wos:
+                by_part[wo.part_number or "UNKNOWN"].append(wo)
+            sorted_parts = sorted(
+                by_part.keys(),
+                key=lambda p: min(
+                    (w.due_date or datetime(2099, 12, 31)) for w in by_part[p]
+                ),
+            )
+            open_wos = [wo for p in sorted_parts for wo in by_part[p]]
+        # else FIFO: keep original order
+
+        version = ApsScheduleVersion(
+            name=f"{algorithm}-{datetime.utcnow().strftime('%Y%m%d-%H%M')}",
+            version_type="DRAFT",
+            planning_horizon_days=horizon,
+        )
+        db.session.add(version)
+        db.session.flush()
+
+        placed = 0
+        unassigned = []
+        cursor_by_machine = {m.id: datetime.utcnow() for m in machines}
+
+        for wo in open_wos:
+            mapping = MachineResourceMapping.query.filter_by(
+                part_number=wo.part_number, active=True
+            ).first()
+
+            if mapping:
+                machine = next(
+                    (m for m in machines if m.id == mapping.machine_id),
+                    machines[0],
+                )
+                cycle_min = int((mapping.cycle_time_sec or 3600) / 60)
+                setup_min = int((mapping.setup_time_sec or 0) / 60)
+                changeover_min = int((mapping.changeover_time_sec or 0) / 60)
+            else:
+                machine = min(machines, key=lambda m: cursor_by_machine[m.id])
+                cycle_min = 60
+                setup_min = 15
+                changeover_min = 30
+
+            qty = getattr(wo, "quantity", 1) or 1
+            duration_min = setup_min + cycle_min * qty
+            start = cursor_by_machine[machine.id]
+
+            horizon_end = datetime.utcnow() + timedelta(days=horizon)
+            if start + timedelta(minutes=duration_min) > horizon_end:
+                unassigned.append(wo.order_number)
+                continue
+
+            end = start + timedelta(minutes=duration_min)
+            entry = ApsScheduleEntry(
+                version_id=version.id,
+                work_order_id=wo.id,
+                machine_id=machine.id,
+                scheduled_start=start,
+                scheduled_end=end,
+                status="PLANNED",
+                constraint_status="FEASIBLE",
+                priority=getattr(wo, "priority", "medium"),
+                setup_duration_min=setup_min,
+            )
+            db.session.add(entry)
+            cursor_by_machine[machine.id] = end + timedelta(minutes=changeover_min)
+            placed += 1
+
+        db.session.commit()
+        return jsonify({
+            "ok": True,
+            "placed": placed,
+            "unassigned": unassigned,
+            "version_id": version.id,
+            "algorithm": algorithm,
+            "horizon_days": horizon,
+        })
+    except Exception as exc:
+        db.session.rollback()
+        return jsonify({"ok": False, "error": str(exc)}), 500
+
+
+@aps_page_bp.route('/api/unscheduled-wos', methods=['GET'])
+def api_unscheduled_wos():
+    """Return WOs that are RELEASED or PLANNED but NOT in the current schedule."""
+    try:
+        version = ApsScheduleVersion.query.order_by(
+            ApsScheduleVersion.created_at.desc()
+        ).first()
+        scheduled_wo_ids = set()
+        if version:
+            entries = ApsScheduleEntry.query.filter_by(version_id=version.id).all()
+            scheduled_wo_ids = {e.work_order_id for e in entries}
+
+        open_wos = WorkOrder.query.filter(
+            WorkOrder.status.in_(["RELEASED", "PLANNED"])
+        ).all()
+
+        result = []
+        for wo in open_wos:
+            if wo.id not in scheduled_wo_ids:
+                result.append({
+                    "id": str(wo.id),
+                    "work_order_number": wo.order_number,
+                    "part_number": wo.part_number,
+                    "quantity": getattr(wo, "quantity", 0),
+                    "due_date": wo.due_date.strftime("%Y-%m-%d")
+                    if wo.due_date else None,
+                    "priority": getattr(wo, "priority", "medium"),
+                })
+
+        return jsonify({"ok": True, "count": len(result), "work_orders": result})
+    except Exception as exc:
+        return jsonify({"error": str(exc)}), 500
+
+
 # ── Resource JSON API blueprint ───────────────────────────────────────────────
 aps_resource_bp = Blueprint('aps_resource', __name__, url_prefix='/aps/resource')
 
