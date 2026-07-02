@@ -1715,7 +1715,7 @@ def seed_finishing_module():
             code="ANODIZE",
             name="Anodizing",
             description="Anodic oxidation for corrosion resistance",
-            requires_plc=False,
+            requires_plc_instruction=False,
             default_parameters={},
         ),
         FinishingProcessType(
@@ -1723,7 +1723,7 @@ def seed_finishing_module():
             code="POWDER-COAT",
             name="Powder Coating",
             description="Electrostatic powder application",
-            requires_plc=True,
+            requires_plc_instruction=True,
             default_parameters={"voltage_kV": 60, "current_uA": 50, "spray_duration_min": 3},
         ),
         FinishingProcessType(
@@ -1731,7 +1731,7 @@ def seed_finishing_module():
             code="CUT",
             name="Precision Cutting",
             description="CNC cutting to final dimensions",
-            requires_plc=True,
+            requires_plc_instruction=True,
             default_parameters={"tolerance_mm": 0.1, "feed_rate_mm_min": 500},
         ),
         FinishingProcessType(
@@ -1739,7 +1739,7 @@ def seed_finishing_module():
             code="DRILL",
             name="Drilling",
             description="Hole drilling operations",
-            requires_plc=True,
+            requires_plc_instruction=True,
             default_parameters={},
         ),
         FinishingProcessType(
@@ -1747,7 +1747,7 @@ def seed_finishing_module():
             code="ASSEMBLE",
             name="Assembly",
             description="Final assembly operations",
-            requires_plc=False,
+            requires_plc_instruction=False,
             default_parameters={},
         ),
     ]
@@ -1781,7 +1781,7 @@ def seed_finishing_module():
 
         plc_cmd = None
         plc_ack = None
-        if process.requires_plc and started:
+        if process.requires_plc_instruction and started:
             plc_cmd = {"command": "START_PROCESS", "parameters": params, "timestamp": started.isoformat()}
             plc_ack = "ACK" if random.random() > 0.2 else ("NACK" if random.random() > 0.5 else None)
 
@@ -1789,15 +1789,16 @@ def seed_finishing_module():
             id=_u(),
             order_number=f"FIN-{202601 + i:05d}",
             wo_id=wo.id,
-            process_id=process.id,
+            process_type_id=process.id,
             container_id=random.choice(containers).id if containers and random.random() > 0.5 else None,
-            parameters=params,
+            sequence=i + 1,
             status="pending" if not started else ("in_progress" if not completed else "completed"),
-            started_at=started,
-            completed_at=completed,
-            operator_id=random.choice(["Oper.A", "Oper.B", "Oper.C"]) if started else None,
+            parameters=params,
             plc_command=plc_cmd,
             plc_ack_status=plc_ack,
+            operator_id=random.choice(["Oper.A", "Oper.B", "Oper.C"]) if started else None,
+            started_at=started,
+            completed_at=completed,
         ))
 
     db.session.add_all(orders)
@@ -1818,32 +1819,29 @@ def seed_logistics_module():
         PackagingSpec(
             id=_u(),
             part_number="PROF-A1",
-            packaging_method="strapped_bundle",
-            units_per_bundle=10,
-            strap_count=3,
-            bundle_weight_kg=round(random.uniform(50.0, 150.0), 2),
+            packing_method="strapped_bundle",
+            units_per_pack=10,
+            theoretical_weight_per_pack_kg=round(random.uniform(50.0, 150.0), 2),
             label_template="PROF-STD",
-            requires_pallet=random.choice([True, False]),
+            special_instructions="Handle with care",
         ),
         PackagingSpec(
             id=_u(),
             part_number="PROF-B2",
-            packaging_method="wrapped_bundle",
-            units_per_bundle=8,
-            strap_count=2,
-            bundle_weight_kg=round(random.uniform(40.0, 120.0), 2),
+            packing_method="wrapped_bundle",
+            units_per_pack=8,
+            theoretical_weight_per_pack_kg=round(random.uniform(40.0, 120.0), 2),
             label_template="PROF-STD",
-            requires_pallet=random.choice([True, False]),
+            special_instructions="Stack max 3 high",
         ),
         PackagingSpec(
             id=_u(),
             part_number="PROF-C3",
-            packaging_method="boxed",
-            units_per_box=5,
-            strap_count=0,
-            bundle_weight_kg=round(random.uniform(20.0, 60.0), 2),
+            packing_method="boxed",
+            units_per_pack=5,
+            theoretical_weight_per_pack_kg=round(random.uniform(20.0, 60.0), 2),
             label_template="BOX-STD",
-            requires_pallet=False,
+            special_instructions="Fragile items",
         ),
     ]
     db.session.add_all(specs)
@@ -1858,20 +1856,20 @@ def seed_logistics_module():
     pkg_orders = []
     for i, wo in enumerate(work_orders[:15]):
         spec = random.choice(specs)
-        units = spec.units_per_bundle if hasattr(spec, "units_per_bundle") and spec.units_per_bundle else spec.units_per_box
 
         pkg_orders.append(PackagingOrder(
             id=_u(),
-            order_number=f"PKG-{202601 + i:05d}",
-            work_order_id=wo.id,
-            spec_id=spec.id,
-            quantity=units,
+            wo_id=wo.id,
+            packaging_spec_id=spec.id,
+            pack_number=f"PKG-{202601 + i:05d}",
+            barcode=f"BC{202601 + i:08d}" if random.random() > 0.3 else None,
+            quantity_packed=spec.units_per_pack,
             status=random.choice(["pending", "packed", "released", "shipped"]),
-            theoretical_weight_kg=spec.bundle_weight_kg,
-            actual_weight_kg=round(spec.bundle_weight_kg + random.uniform(-2.0, 2.0), 2) if random.random() > 0.3 else None,
+            theoretical_weight_kg=spec.theoretical_weight_per_pack_kg,
+            actual_weight_kg=round(spec.theoretical_weight_per_pack_kg + random.uniform(-2.0, 2.0), 2) if random.random() > 0.3 else None,
+            label_printed=random.choice([True, True, False]),
             packed_at=datetime.utcnow() - timedelta(days=random.randint(0, 5)) if random.random() > 0.5 else None,
             packed_by=random.choice(["Packer.A", "Packer.B", "Packer.C"]) if random.random() > 0.5 else None,
-            label_printed=random.choice([True, True, False]),
         ))
 
     db.session.add_all(pkg_orders)
@@ -1885,18 +1883,22 @@ def seed_logistics_module():
     for i in range(5):
         planned = datetime.utcnow().date() + timedelta(days=random.randint(0, 14))
         actual = planned if random.random() > 0.7 else None
+        theoretical_weight = round(random.uniform(100.0, 500.0), 2)
 
         shipments.append(Shipment(
             id=_u(),
             shipment_number=f"SHIP-{202601 + i:05d}",
-            customer=random.choice(customers),
-            address=random.choice(addresses),
-            planned_ship_date=planned,
+            customer_name=random.choice(customers),
+            delivery_address=random.choice(addresses),
+            carrier=random.choice(["FastFreight", "HeavyHaul", "ExpressLogistics"]),
+            truck_reference=f"TRK-{random.randint(100, 999)}",
+            scheduled_ship_date=planned,
             actual_ship_date=actual,
-            status=random.choice(["pending", "shipped", "pending", "shipped"]),
-            total_packages=random.randint(2, 5),
-            total_weight_theoretical=round(random.uniform(100.0, 500.0), 2),
-            total_weight_actual=round(random.uniform(98.0, 505.0), 2) if random.random() > 0.5 else None,
+            status=random.choice(["open", "shipped", "open", "shipped"]),
+            theoretical_total_weight_kg=theoretical_weight,
+            actual_total_weight_kg=round(theoretical_weight + random.uniform(-5.0, 5.0), 2) if random.random() > 0.5 else None,
+            weight_check_status=random.choice(["OK", "OK", "CHECK"]) if random.random() > 0.5 else None,
+            weight_check_variance_percent=round(random.uniform(-2.0, 2.0), 2) if random.random() > 0.5 else None,
         ))
 
     db.session.add_all(shipments)
@@ -1904,17 +1906,18 @@ def seed_logistics_module():
 
     # Shipment lines (link packages to shipments)
     lines = []
+    shipped_pkgs = [p for p in pkg_orders if p.status in ["packed", "released"]]
     for shipment in shipments[:3]:
-        available_pkgs = [p for p in pkg_orders if p.status in ["packed", "shipped"]][:random.randint(2, 4)]
+        available_pkgs = shipped_pkgs[:random.randint(2, 4)]
         for pkg in available_pkgs:
             lines.append(ShipmentLine(
                 id=_u(),
                 shipment_id=shipment.id,
                 packaging_order_id=pkg.id,
-                work_order_id=pkg.work_order_id,
-                quantity=pkg.quantity,
-                scanned_by=random.choice(["Loader.A", "Loader.B"]) if pkg.status == "shipped" else None,
-                scanned_at=shipment.actual_ship_date if pkg.status == "shipped" else None,
+                wo_id=pkg.wo_id,
+                quantity=pkg.quantity_packed,
+                scanned_by=random.choice(["Loader.A", "Loader.B"]) if shipment.status == "shipped" else None,
+                scanned_at=shipment.actual_ship_date if shipment.status == "shipped" else None,
             ))
 
     db.session.add_all(lines)
