@@ -155,6 +155,15 @@ def create_app(config_class=Config):
             seed_data.seed_audit_trail()
             seed_data.seed_extrusion_traceability()
             seed_data.seed_aps_data()
+            # Extrusion modules seed data
+            seed_data.seed_die_lifecycle_extended()
+            seed_data.seed_material_receipt_module()
+            seed_data.seed_coating_schedule_module()
+            seed_data.seed_containers_module()
+            seed_data.seed_furnace_module()
+            seed_data.seed_finishing_module()
+            seed_data.seed_logistics_module()
+            seed_data.seed_cost_price_module()
             db.session.commit()
     except Exception as exc:  # pragma: no cover - startup seed best-effort
         try:
