@@ -8,6 +8,93 @@ import uuid
 bp = Blueprint("dies_mgmt", __name__)
 
 
+# ── AI Die Visual Inspection (demo) ────────────────────
+@bp.route("/dies/inspection")
+def inspection():
+    """Demo workspace for camera-based extrusion die visual inspection.
+
+    Renders a self-contained industrial dashboard that simulates:
+      - Live camera capture of a die face
+      - AI defect detection (cracks, wear, chipping, contamination, ...)
+      - Guided operator decision (pass / fail / maintenance ticket)
+
+    Mock inspection state is passed to the template. In production,
+    this page would be driven by a real camera stream and the
+    inference service; the template exposes placeholder hooks at
+    `cameraSource` and `aiInfer()` to wire those up later.
+    """
+    inspection_id = str(uuid.uuid4())
+    inspection_data = {
+        "id": inspection_id,
+        "dieId": "DIE-2024-0137",
+        "dieType": "Flat-port hollow profile",
+        "pressLine": "EX-04",
+        "alloy": "6063",
+        "shift": "B · Evening",
+        "operator": "R. Sharma",
+        "capturedAt": datetime.utcnow().isoformat(timespec="seconds"),
+        "aiStatus": "idle",
+        "aiModel": "ExtrusionDie-v2.3",
+        "cameraId": "CAM-01",
+        "cameraResolution": "1280x960",
+        "cameraFps": 30,
+    }
+    return render_template("dies/inspection.html", inspection_data=inspection_data)
+
+
+@bp.route("/api/dies/inspection/scenarios")
+def inspection_scenarios():
+    """Return the mock inspection scenarios as JSON.
+
+    Front-end demo uses this to illustrate what a real inference API
+    response would look like. Replace this endpoint with a call to the
+    actual inference service in production.
+    """
+    return jsonify(
+        {
+            "normal": {
+                "name": "Normal",
+                "confidence": 0.962,
+                "severity": "none",
+                "recommendation": "Die is within tolerances.",
+                "defects": [],
+            },
+            "wear": {
+                "name": "Minor wear",
+                "confidence": 0.894,
+                "severity": "low",
+                "recommendation": "Acceptable for short runs. Schedule polish.",
+                "defects": [
+                    {"type": "Wear",    "severity": "low", "confidence": 0.87, "label": "Bearing land wear"},
+                    {"type": "Scratch", "severity": "low", "confidence": 0.81, "label": "Surface scratch"},
+                ],
+            },
+            "crack": {
+                "name": "Critical crack",
+                "confidence": 0.941,
+                "severity": "critical",
+                "recommendation": "FAIL — remove from service immediately.",
+                "defects": [
+                    {"type": "Crack",    "severity": "critical", "confidence": 0.97, "label": "Radial crack"},
+                    {"type": "Crack",    "severity": "high",     "confidence": 0.91, "label": "Bearing crack"},
+                    {"type": "Chipping", "severity": "medium",   "confidence": 0.88, "label": "Edge chipping"},
+                ],
+            },
+            "contamination": {
+                "name": "Contamination",
+                "confidence": 0.902,
+                "severity": "medium",
+                "recommendation": "Run cleaning cycle, then re-inspect.",
+                "defects": [
+                    {"type": "Contamination", "severity": "medium", "confidence": 0.93, "label": "Alloy buildup"},
+                    {"type": "Clogged Port",  "severity": "medium", "confidence": 0.89, "label": "Flow blockage"},
+                    {"type": "Alignment",     "severity": "low",    "confidence": 0.78, "label": "Port offset"},
+                ],
+            },
+        }
+    )
+
+
 @bp.route("/dies")
 def list_dies():
     status_counts = (

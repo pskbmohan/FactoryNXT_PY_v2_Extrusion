@@ -432,7 +432,7 @@
   <div class="sidebar-label">Extrusion Modules</div>
 
   <!-- Extrusion Modules -->
-  <div class="nav-group {% if request.blueprint in ['cost_price','material_receipt','dies_mgmt','coating_schedule','containers','furnace','finishing','logistics'] %}open{% endif %}">
+  <div class="nav-group {% if request.blueprint in ['cost_price','material_receipt','dies_mgmt','coating_schedule','containers','furnace','finishing','logistics'] or request.endpoint == 'dies_mgmt.inspection' %}open{% endif %}">
     <div class="group-header" data-tip="Extrusion Modules">
       <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
         <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z"/>
@@ -456,8 +456,14 @@
         Alloy Stock Board
       </a>
       <a href="{{ url_for('dies_mgmt.list_dies') }}"
-         class="{% if request.blueprint == 'dies_mgmt' %}active{% endif %}">
+         class="{% if request.blueprint == 'dies_mgmt' and request.endpoint != 'dies_mgmt.inspection' %}active{% endif %}">
         Die Store
+      </a>
+      <a href="{{ url_for('dies_mgmt.inspection') }}"
+         class="{% if request.endpoint == 'dies_mgmt.inspection' %}active{% endif %}"
+         title="AI camera-based die visual inspection">
+        AI Die Inspection
+        <span class="text-[9px] px-1.5 py-0.5 rounded bg-cyan-500/15 text-cyan-300 ml-auto leading-none">AI</span>
       </a>
       <a href="{{ url_for('coating_schedule.list_entries') }}"
          class="{% if request.blueprint == 'coating_schedule' %}active{% endif %}">
