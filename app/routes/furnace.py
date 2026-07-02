@@ -64,6 +64,35 @@ def detail(id):
     programs = HeatTreatmentProgram.query.order_by(HeatTreatmentProgram.name).all()
     containers = Container.query.filter_by(status="available").order_by(Container.container_code).all()
     work_orders = WorkOrder.query.filter(WorkOrder.status.in_(["RELEASED", "RUNNING"])).order_by(WorkOrder.order_number).all()
+
+    # Get the last session with temperature data (for chart display)
+    # Get recent sessions and find the first one with temperature data
+    recent_sessions = (
+        furnace.sessions
+        .filter(FurnaceSession.temperature_log != None)
+        .order_by(FurnaceSession.created_at.desc())
+        .limit(20)
+        .all()
+    )
+    last_session = None
+    for s in recent_sessions:
+        if s.temperature_log and len(s.temperature_log) > 0:
+            last_session = s
+            break
+    last_session_data = None
+    if last_session and last_session.temperature_log:
+        # Convert temperature_log to a format the template can use
+        temp_log = last_session.temperature_log
+        if hasattr(temp_log, 'tolist'):
+            temp_log = temp_log.tolist()  # Convert numpy array if needed
+        last_session_data = {
+            'id': last_session.id,
+            'program': last_session.program.name if last_session.program else 'Unknown',
+            'status': last_session.status,
+            'temperature_log': temp_log,
+            'started_at': last_session.started_at.isoformat() if last_session.started_at else None
+        }
+
     return render_template(
         "furnace/detail.html",
         furnace=furnace,
@@ -72,6 +101,7 @@ def detail(id):
         programs=programs,
         containers=containers,
         work_orders=work_orders,
+        last_session_data=last_session_data,
     )
 
 

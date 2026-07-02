@@ -159,6 +159,53 @@
 
 <script>
 let chart = null;
+
+// Initialize chart with last session data if available and no active session
+{% if not active_session and last_session_data %}
+(function() {
+  const lastSession = {{ last_session_data|tojson }};
+  if (lastSession.temperature_log && lastSession.temperature_log.length) {
+    const ctx = document.getElementById('tempChart');
+    const labels = lastSession.temperature_log.map((p, i) => {
+      // Show timestamp if available, otherwise just index
+      if (p.timestamp) {
+        const date = new Date(p.timestamp);
+        return date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+      }
+      return `T+${i}`;
+    });
+    const data = lastSession.temperature_log.map(p => p.temp);
+    chart = new Chart(ctx, {
+      type: 'line',
+      data: { labels, datasets: [{
+        label: 'Temp °C (Last Session)',
+        data,
+        borderColor: '#3b82f6',
+        backgroundColor: 'rgba(59,130,246,0.1)',
+        tension: 0.2,
+        fill: true
+      }] },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { labels: { color: '#64748b' } },
+          title: {
+            display: true,
+            text: `Previous Session: ${lastSession.program} ({{ last_session_data.status|upper }})`,
+            color: '#64748b'
+          }
+        },
+        scales: {
+          x: { ticks: { color: '#94a3b8' }, title: { display: true, text: 'Time', color: '#64748b' } },
+          y: { ticks: { color: '#94a3b8' }, title: { display: true, text: 'Temperature (°C)', color: '#64748b' } }
+        }
+      }
+    });
+  }
+})();
+{% endif %}
+
 function fetchLive() {
   fetch("{{ url_for('furnace.live_status', id=furnace.id) }}")
     .then(r => r.json())
@@ -169,10 +216,16 @@ function fetchLive() {
       const pct = d.progress_pct || 0;
       document.getElementById('livePct').textContent = pct;
       document.getElementById('liveProgressBar').style.width = pct + '%';
-      // chart
+      // chart - update with live data if available
       if (d.temperature_log && d.temperature_log.length) {
         const ctx = document.getElementById('tempChart');
-        const labels = d.temperature_log.map((p, i) => `T+${i}`);
+        const labels = d.temperature_log.map((p, i) => {
+          if (p.timestamp) {
+            const date = new Date(p.timestamp);
+            return date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+          }
+          return `T+${i}`;
+        });
         const data = d.temperature_log.map(p => p.temp);
         if (!chart) {
           chart = new Chart(ctx, {
@@ -183,6 +236,9 @@ function fetchLive() {
         } else {
           chart.data.labels = labels;
           chart.data.datasets[0].data = data;
+          chart.data.datasets[0].label = 'Temp °C (Live)';
+          chart.data.datasets[0].borderColor = '#ef4444';
+          chart.data.datasets[0].backgroundColor = 'rgba(239,68,68,0.1)';
           chart.update();
         }
       }
