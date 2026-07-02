@@ -47,7 +47,7 @@ fi
 # ─────────────────────────────────────────────────────────────────────────
 echo "Forcing alembic_version to base_20260701 (direct SQL, bypassing Alembic)..."
 python3 - <<'PYEOF'
-import os, sys
+import os
 from sqlalchemy import create_engine, text
 
 url = os.environ["DATABASE_URL"]
@@ -55,27 +55,34 @@ engine = create_engine(url)
 target = "base_20260701"
 
 with engine.begin() as conn:
-    # Create table if it doesn't exist
+    # The alembic_version table may have accumulated multiple rows
+    # (one per branch in the old merge graph).  The table has a
+    # unique constraint on version_num (alembic_version_pkc), so we
+    # can't just UPDATE or INSERT.  Nuclear option: wipe every row
+    # then insert exactly one pointing to our single base marker.
     conn.execute(text(
         "CREATE TABLE IF NOT EXISTS alembic_version "
         "(version_num VARCHAR(32) NOT NULL PRIMARY KEY)"
     ))
-    # Read current value
-    rows = conn.execute(text("SELECT version_num FROM alembic_version")).fetchall()
-    current = rows[0][0] if rows else None
+    rows = conn.execute(text(
+        "SELECT version_num FROM alembic_version"
+    )).fetchall()
+    current_first = rows[0][0] if rows else None
+    extra_count = max(0, len(rows) - 1)
 
-    if current == target:
-        print(f"alembic_version already at {target}")
-    elif current is None:
-        conn.execute(text(
-            "INSERT INTO alembic_version (version_num) VALUES (:v)"
-        ), {"v": target})
-        print(f"Inserted alembic_version: (empty) -> {target}")
-    else:
-        conn.execute(text(
-            "UPDATE alembic_version SET version_num = :v"
-        ), {"v": target})
-        print(f"Updated alembic_version: {current} -> {target}")
+    # Delete every row (handles the multi-branch case)
+    if rows:
+        conn.execute(text("DELETE FROM alembic_version"))
+        print(
+            f"Cleared alembic_version: had {len(rows)} row(s) "
+            f"(first={current_first}, {extra_count} extra branch row(s))"
+        )
+
+    # Insert exactly one row
+    conn.execute(text(
+        "INSERT INTO alembic_version (version_num) VALUES (:v)"
+    ), {"v": target})
+    print(f"Inserted alembic_version: {target}")
 
 engine.dispose()
 PYEOF
