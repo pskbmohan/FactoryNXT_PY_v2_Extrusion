@@ -100,105 +100,103 @@
   {# ── Stats strip ─────────────────────────────────────────────────────── #}
   <div class="grid grid-cols-2 md:grid-cols-5 gap-3" id="stats-strip"></div>
 
-  {# ── Gantt host + Unscheduled sidebar ───────────────────────────────── #}
-  <div class="flex gap-4">
-  <div id="gantt-host" class="flex-1 bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
-    <div id="gantt-loader" class="py-20 text-center text-sm text-slate-500 dark:text-slate-400">
-      <svg class="w-6 h-6 mx-auto mb-2 animate-spin text-primary-600" fill="none" viewBox="0 0 24 24">
-        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"></circle>
-        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
-      </svg>
-      Loading schedule…
-    </div>
-    <div id="gantt-empty" class="hidden py-20 text-center">
-      <svg class="mx-auto h-10 w-10 text-slate-400 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
-      </svg>
-      <p class="text-sm font-medium text-slate-900 dark:text-slate-50">No schedule yet.</p>
-      <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Click <strong>Auto-Schedule</strong> to generate a finite-capacity plan or drag WOs from the unscheduled panel.</p>
-    </div>
-    <div id="gantt-scroll" class="overflow-x-auto overflow-y-hidden border-t border-slate-100 dark:border-slate-700">
-      <div id="gantt-flex" class="flex" style="min-height:400px">
-        <div id="machine-labels" class="shrink-0 border-r border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900"></div>
-        <div id="timeline-wrap" class="relative">
-          <svg id="gantt-svg" preserveAspectRatio="xMinYMin meet"></svg>
+  {# ── Gantt host + Unscheduled sidebar (flex row) ──────────────────── #}
+  <div class="flex gap-4 items-start">
+    <div id="gantt-host" class="flex-1 min-w-0 bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
+      <div id="gantt-loader" class="py-20 text-center text-sm text-slate-500 dark:text-slate-400">
+        <svg class="w-6 h-6 mx-auto mb-2 animate-spin text-primary-600" fill="none" viewBox="0 0 24 24">
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"></circle>
+          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+        </svg>
+        Loading schedule…
+      </div>
+      <div id="gantt-empty" class="hidden py-20 text-center">
+        <svg class="mx-auto h-10 w-10 text-slate-400 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+        </svg>
+        <p class="text-sm font-medium text-slate-900 dark:text-slate-50">No schedule yet.</p>
+        <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Click <strong>Auto-Schedule</strong> to generate a finite-capacity plan or drag WOs from the unscheduled panel.</p>
+      </div>
+      <div id="gantt-scroll" class="overflow-x-auto overflow-y-hidden border-t border-slate-100 dark:border-slate-700">
+        <div id="gantt-flex" class="flex" style="min-height:400px">
+          <div id="machine-labels" class="shrink-0 border-r border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900"></div>
+          <div id="timeline-wrap" class="relative">
+            <svg id="gantt-svg" preserveAspectRatio="xMinYMin meet"></svg>
+          </div>
         </div>
       </div>
-    </div>
-  </div>
 
-  {# ── Bottom row: entry list + legend ─────────────────────────────────── #}
-  <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+      {# ── Bottom row: entry list + legend (INSIDE gantt-host) ─────── #}
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 mt-4 px-4 pb-4">
 
-    {# Entry list #}
-    <div class="lg:col-span-2 bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
-      <div class="px-5 py-3.5 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between">
-        <h2 class="text-sm font-semibold text-slate-900 dark:text-slate-50">
-          Scheduled Entries
-          <span id="entry-count" class="ml-1 text-xs font-normal text-slate-500"></span>
-        </h2>
-        <div class="flex items-center gap-2">
-          <span id="version-badge" class="hidden text-xs text-slate-500 dark:text-slate-400"></span>
+        {# Entry list #}
+        <div class="lg:col-span-2 bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
+          <div class="px-5 py-3.5 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between">
+            <h2 class="text-sm font-semibold text-slate-900 dark:text-slate-50">
+              Scheduled Entries
+              <span id="entry-count" class="ml-1 text-xs font-normal text-slate-500"></span>
+            </h2>
+            <div class="flex items-center gap-2">
+              <span id="version-badge" class="hidden text-xs text-slate-500 dark:text-slate-400"></span>
+            </div>
+          </div>
+          <div class="overflow-x-auto max-h-[360px] overflow-y-auto">
+            <table class="w-full text-sm text-left">
+              <thead class="bg-slate-50 dark:bg-slate-700/50 text-slate-600 dark:text-slate-400 uppercase tracking-wider text-xs font-semibold border-b border-slate-200 dark:border-slate-700 sticky top-0">
+                <tr>
+                  <th class="px-3 py-2">Machine</th>
+                  <th class="px-3 py-2">WO</th>
+                  <th class="px-3 py-2">Profile</th>
+                  <th class="px-3 py-2">Start</th>
+                  <th class="px-3 py-2">End</th>
+                  <th class="px-3 py-2">Priority</th>
+                  <th class="px-3 py-2">Status</th>
+                  <th class="px-3 py-2">Constraint</th>
+                  <th class="px-3 py-2 text-right">Lock</th>
+                  <th class="px-3 py-2 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="entry-tbody" class="divide-y divide-slate-100 dark:divide-slate-700"></tbody>
+            </table>
+          </div>
         </div>
-      </div>
-      <div class="overflow-x-auto max-h-[360px] overflow-y-auto">
-        <table class="w-full text-sm text-left">
-          <thead class="bg-slate-50 dark:bg-slate-700/50 text-slate-600 dark:text-slate-400 uppercase tracking-wider text-xs font-semibold border-b border-slate-200 dark:border-slate-700 sticky top-0">
-            <tr>
-              <th class="px-3 py-2">Machine</th>
-              <th class="px-3 py-2">WO</th>
-              <th class="px-3 py-2">Profile</th>
-              <th class="px-3 py-2">Start</th>
-              <th class="px-3 py-2">End</th>
-              <th class="px-3 py-2">Priority</th>
-              <th class="px-3 py-2">Status</th>
-              <th class="px-3 py-2">Constraint</th>
-              <th class="px-3 py-2 text-right">Lock</th>
-              <th class="px-3 py-2 text-right">Actions</th>
-            </tr>
-          </thead>
-          <tbody id="entry-tbody" class="divide-y divide-slate-100 dark:divide-slate-700"></tbody>
-        </table>
-      </div>
-    </div>
 
-    {# Legend + KPIs #}
-    <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-5 space-y-4">
-      <div>
-        <h3 class="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400 mb-2">Legend</h3>
-        <div class="grid grid-cols-2 gap-x-4 gap-y-1.5">
-          <label class="inline-flex items-center text-xs text-slate-700 dark:text-slate-300"><span class="w-3 h-3 rounded bg-emerald-500 mr-2"></span>Feasible</label>
-          <label class="inline-flex items-center text-xs text-slate-700 dark:text-slate-300"><span class="w-3 h-3 rounded bg-red-500 mr-2"></span>Infeasible</label>
-          <label class="inline-flex items-center text-xs text-slate-700 dark:text-slate-300"><span class="w-3 h-3 rounded bg-amber-500 mr-2"></span>Warning</label>
-          <label class="inline-flex items-center text-xs text-slate-700 dark:text-slate-300"><span class="w-3 h-3 rounded bg-slate-400 mr-2"></span>Planned</label>
-          <label class="inline-flex items-center text-xs text-slate-700 dark:text-slate-300"><span class="w-3 h-3 rounded bg-indigo-600 mr-2"></span>Running</label>
-          <label class="inline-flex items-center text-xs text-slate-700 dark:text-slate-300"><span class="w-3 h-3 rounded bg-slate-800 mr-2"></span>Maintenance</label>
-          <label class="inline-flex items-center text-xs text-slate-700 dark:text-slate-300"><span class="w-3 h-3 rounded bg-slate-300 mr-2 border border-slate-700"></span>Setup window</label>
-          <label class="inline-flex items-center text-xs text-slate-700 dark:text-slate-300"><span class="w-3 h-3 rounded border-2 border-amber-500 mr-2"></span>Locked</label>
+        {# Legend + KPIs #}
+        <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-5 space-y-4">
+          <div>
+            <h3 class="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400 mb-2">Legend</h3>
+            <div class="grid grid-cols-2 gap-x-4 gap-y-1.5">
+              <label class="inline-flex items-center text-xs text-slate-700 dark:text-slate-300"><span class="w-3 h-3 rounded bg-emerald-500 mr-2"></span>Feasible</label>
+              <label class="inline-flex items-center text-xs text-slate-700 dark:text-slate-300"><span class="w-3 h-3 rounded bg-red-500 mr-2"></span>Infeasible</label>
+              <label class="inline-flex items-center text-xs text-slate-700 dark:text-slate-300"><span class="w-3 h-3 rounded bg-amber-500 mr-2"></span>Warning</label>
+              <label class="inline-flex items-center text-xs text-slate-700 dark:text-slate-300"><span class="w-3 h-3 rounded bg-slate-400 mr-2"></span>Planned</label>
+              <label class="inline-flex items-center text-xs text-slate-700 dark:text-slate-300"><span class="w-3 h-3 rounded bg-indigo-600 mr-2"></span>Running</label>
+              <label class="inline-flex items-center text-xs text-slate-700 dark:text-slate-300"><span class="w-3 h-3 rounded bg-slate-800 mr-2"></span>Maintenance</label>
+              <label class="inline-flex items-center text-xs text-slate-700 dark:text-slate-300"><span class="w-3 h-3 rounded bg-slate-300 mr-2 border border-slate-700"></span>Setup window</label>
+              <label class="inline-flex items-center text-xs text-slate-700 dark:text-slate-300"><span class="w-3 h-3 rounded border-2 border-amber-500 mr-2"></span>Locked</label>
+            </div>
+          </div>
+          <div>
+            <h3 class="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400 mb-2">KPIs</h3>
+            <div id="kpi-mini" class="space-y-2"></div>
+          </div>
         </div>
-      </div>
-      <div>
-        <h3 class="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400 mb-2">KPIs</h3>
-        <div id="kpi-mini" class="space-y-2"></div>
+
       </div>
     </div>
 
-  </div>
+    {# ── Unscheduled WOs sidebar (flex sibling of gantt-host) ──── #}
+    <aside id="unscheduled-sidebar" class="w-72 flex-shrink-0 bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden flex flex-col max-h-[calc(100vh-260px)]">
+      <div class="px-4 py-3 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between bg-slate-50 dark:bg-slate-900/40">
+        <h2 class="text-sm font-semibold text-slate-900 dark:text-slate-50">Unscheduled WOs</h2>
+        <span id="unscheduled-count-badge" class="text-xs font-medium px-2 py-0.5 rounded-full bg-primary-100 text-primary-700 dark:bg-primary-900/40 dark:text-primary-300">—</span>
+      </div>
+      <div class="flex-1 overflow-y-auto p-2 space-y-2" id="unscheduled-wo-list">
+        <div class="text-center text-xs text-slate-400 italic py-6">Loading…</div>
+      </div>
+    </aside>
 
-</div>
-
-{# ── Unscheduled WOs sidebar ───────────────────────────────────────────── #}
-<aside class="w-72 flex-shrink-0 bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden flex flex-col max-h-[calc(100vh-260px)]">
-  <div class="px-4 py-3 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between bg-slate-50 dark:bg-slate-900/40">
-    <h2 class="text-sm font-semibold text-slate-900 dark:text-slate-50">Unscheduled WOs</h2>
-    <span id="unscheduled-count-badge" class="text-xs font-medium px-2 py-0.5 rounded-full bg-primary-100 text-primary-700 dark:bg-primary-900/40 dark:text-primary-300">—</span>
-  </div>
-  <div class="flex-1 overflow-y-auto p-2 space-y-2" id="unscheduled-wo-list">
-    <div class="text-center text-xs text-slate-400 italic py-6">Loading…</div>
-  </div>
-</aside>
-
-</div>{# close flex gap-4 wrapper #}
+  </div>{# close flex gap-4 wrapper #}
 
 {# ── Run Schedule v2 modal ────────────────────────────────────────────── #}
 <div id="modal-run-schedule" class="hidden fixed inset-0 z-[90] flex items-center justify-center bg-slate-900/50">
