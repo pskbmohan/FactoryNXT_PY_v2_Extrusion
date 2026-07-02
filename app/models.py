@@ -1141,8 +1141,8 @@ class CoatingScheduleEntry(db.Model):
     status = db.Column(db.String(32), default="planned")
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
-    work_order = db.relationship("WorkOrder", backref="coating_entries")
-    color = db.relationship("CoatingColor", backref="schedule_entries")
+    work_order = db.relationship("WorkOrder", backref=db.backref("coating_entries", lazy="dynamic"))
+    color = db.relationship("CoatingColor", backref=db.backref("schedule_entries", lazy="dynamic"))
 
 
 # ─── EXTRUSION: CONTAINERS ─────────────────────────────────────────────
@@ -1178,8 +1178,8 @@ class ContainerWeighEvent(db.Model):
     weighed_at = db.Column(db.DateTime, default=datetime.utcnow)
     status = db.Column(db.String(16), default="OK")
 
-    work_order = db.relationship("WorkOrder", backref="container_weigh_events")
-    container = db.relationship("Container", backref="weigh_events")
+    work_order = db.relationship("WorkOrder", backref=db.backref("container_weigh_events", lazy="dynamic"))
+    container = db.relationship("Container", backref=db.backref("weigh_events", lazy="dynamic"))
 
 
 class ContainerMovement(db.Model):
@@ -1192,8 +1192,8 @@ class ContainerMovement(db.Model):
     moved_at = db.Column(db.DateTime, default=datetime.utcnow)
     wo_id = db.Column(db.String(36), db.ForeignKey("work_orders.id"), nullable=True)
 
-    work_order = db.relationship("WorkOrder", backref="container_movements")
-    container = db.relationship("Container", backref="movements")
+    work_order = db.relationship("WorkOrder", backref=db.backref("container_movements", lazy="dynamic"))
+    container = db.relationship("Container", backref=db.backref("movements", lazy="dynamic"))
 
 
 # ─── EXTRUSION: FURNACE / HEAT TREATMENT ───────────────────────────────
@@ -1242,9 +1242,9 @@ class FurnaceSession(db.Model):
     result = db.Column(db.String(16), nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
-    furnace = db.relationship("Furnace", backref="sessions")
-    program = db.relationship("HeatTreatmentProgram", backref="sessions")
-    work_order = db.relationship("WorkOrder", backref="furnace_sessions")
+    furnace = db.relationship("Furnace", backref=db.backref("sessions", lazy="dynamic"))
+    program = db.relationship("HeatTreatmentProgram", backref=db.backref("sessions", lazy="dynamic"))
+    work_order = db.relationship("WorkOrder", backref=db.backref("furnace_sessions", lazy="dynamic"))
 
 
 # ─── EXTRUSION: FINISHING PROCESSES ────────────────────────────────────
@@ -1276,9 +1276,9 @@ class FinishingOrder(db.Model):
     remarks = db.Column(db.Text, nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
-    work_order = db.relationship("WorkOrder", backref="finishing_orders")
-    process_type_ref = db.relationship("FinishingProcessType", backref="orders")
-    container_ref = db.relationship("Container", backref="finishing_orders")
+    work_order = db.relationship("WorkOrder", backref=db.backref("finishing_orders", lazy="dynamic"))
+    process_type_ref = db.relationship("FinishingProcessType", backref=db.backref("orders", lazy="dynamic"))
+    container_ref = db.relationship("Container", backref=db.backref("finishing_orders", lazy="dynamic"))
 
 
 # ─── EXTRUSION: LOGISTICS & SHIPMENT ───────────────────────────────────
@@ -1311,8 +1311,8 @@ class PackagingOrder(db.Model):
     packed_at = db.Column(db.DateTime, nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
-    work_order = db.relationship("WorkOrder", backref="packaging_orders")
-    spec = db.relationship("PackagingSpec", backref="orders")
+    work_order = db.relationship("WorkOrder", backref=db.backref("packaging_orders", lazy="dynamic"))
+    spec = db.relationship("PackagingSpec", backref=db.backref("orders", lazy="dynamic"))
 
 
 class Shipment(db.Model):
@@ -1343,6 +1343,6 @@ class ShipmentLine(db.Model):
     scanned_at = db.Column(db.DateTime, nullable=True)
     scanned_by = db.Column(db.String(128), nullable=True)
 
-    shipment = db.relationship("Shipment", backref="lines")
-    packaging_order = db.relationship("PackagingOrder", backref="shipment_lines")
-    work_order = db.relationship("WorkOrder", backref="shipment_lines")
+    shipment = db.relationship("Shipment", backref=db.backref("lines", lazy="dynamic"))
+    packaging_order = db.relationship("PackagingOrder", backref=db.backref("shipment_lines", lazy="dynamic"))
+    work_order = db.relationship("WorkOrder", backref=db.backref("shipment_lines", lazy="dynamic"))
