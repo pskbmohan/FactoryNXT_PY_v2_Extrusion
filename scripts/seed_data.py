@@ -1960,7 +1960,7 @@ def seed_cost_price_module():
         configs.append(CostPriceConfig(
             id=_u(),
             part_number=pn,
-            material_cost_per_kg=material_cost,
+            raw_material_cost_per_kg=material_cost,
             material_weight_kg=material_weight,
             machine_rate_per_hour=machine_rate,
             cycle_time_hours=cycle_time,
