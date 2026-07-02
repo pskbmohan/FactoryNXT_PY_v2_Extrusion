@@ -11,6 +11,10 @@
   }
   .dark .fx-card { background: #1e293b; border-color: #334155; }
 
+  /* Die SVG defect indicators: hidden on capture, revealed after AI analysis */
+  .die-defect { opacity: 0 !important; transition: opacity 0.8s ease; }
+  #die-wrap.analyzed .die-defect { opacity: 1 !important; }
+
   /* Camera viewport */
   .camera-view {
     position: relative;
@@ -642,6 +646,11 @@
       c.appendChild(dot);
       setTimeout(() => dot.classList.add('visible'), 200 + i * 150);
     });
+
+    // Reveal SVG-embedded defect visuals (wear, cracks, contamination)
+    // hidden by .die-defect until AI analysis completes
+    const wrap = $('#die-wrap');
+    if (wrap) wrap.classList.add('analyzed');
   }
 
   // Gallery

@@ -91,17 +91,21 @@
   </g>
 
   <!-- === DEFECT: Wear on P1 bearing land === -->
-  <path d="M260 218 Q295 200 330 218 Q340 230 330 248 Q295 260 260 248 Q250 230 260 218 Z" fill="url(#wearGrad)" stroke="#d4882a" stroke-width="1.2" opacity="0.8"/>
-  <g stroke="#d4882a" stroke-width="0.6" opacity="0.5">
-    <path d="M270 225 L285 220"/>
-    <path d="M272 232 L296 225"/>
-    <path d="M268 240 L290 235"/>
-    <path d="M275 245 L300 240"/>
+  <g class="die-defect">
+    <path d="M260 218 Q295 200 330 218 Q340 230 330 248 Q295 260 260 248 Q250 230 260 218 Z" fill="url(#wearGrad)" stroke="#d4882a" stroke-width="1.2" opacity="0.8"/>
+    <g stroke="#d4882a" stroke-width="0.6" opacity="0.5">
+      <path d="M270 225 L285 220"/>
+      <path d="M272 232 L296 225"/>
+      <path d="M268 240 L290 235"/>
+      <path d="M275 245 L300 240"/>
+    </g>
+    <text x="295" y="275" font-family="monospace" font-size="9" fill="#e8a030" text-anchor="middle" opacity="0.9">WEAR P1</text>
   </g>
-  <text x="295" y="275" font-family="monospace" font-size="9" fill="#e8a030" text-anchor="middle" opacity="0.9">WEAR P1</text>
 
   <!-- === DEFECT: Surface scratch near P4 === -->
-  <path d="M265 395 Q280 408 295 400 Q315 388 335 402 Q348 410 340 418 Q310 415 290 420 Q272 415 265 395" fill="none" stroke="#a0a4a8" stroke-width="1.5" opacity="0.7"/>
+  <g class="die-defect">
+    <path d="M265 395 Q280 408 295 400 Q315 388 335 402 Q348 410 340 418 Q310 415 290 420 Q272 415 265 395" fill="none" stroke="#a0a4a8" stroke-width="1.5" opacity="0.7"/>
+  </g>
 
   <!-- Port labels -->
   <g font-family="monospace" font-size="10" fill="#8a9094" opacity="0.7">

@@ -81,11 +81,13 @@
     <ellipse cx="480" cy="440" rx="46" ry="26" fill="#0a0c10" stroke="#3a4044"/>
     <!-- P3 with buildup -->
     <ellipse cx="665" cy="230" rx="40" ry="30" fill="#0a0c10" stroke="#3a4044"/>
-    <ellipse cx="665" cy="230" rx="30" ry="22" fill="url(#buildup1)" opacity="0.6"/>
+    <ellipse class="die-defect" cx="665" cy="230" rx="30" ry="22" fill="url(#buildup1)" opacity="0.6"/>
     <!-- P6 partially clogged -->
     <ellipse cx="665" cy="410" rx="42" ry="28" fill="#0a0c10" stroke="#3a4044"/>
-    <ellipse cx="665" cy="410" rx="20" ry="15" fill="url(#buildup2)" opacity="0.55"/>
-    <ellipse cx="665" cy="410" rx="12" ry="9" fill="#040608" opacity="0.8"/>
+    <g class="die-defect">
+      <ellipse cx="665" cy="410" rx="20" ry="15" fill="url(#buildup2)" opacity="0.55"/>
+      <ellipse cx="665" cy="410" rx="12" ry="9" fill="#040608" opacity="0.8"/>
+    </g>
   </g>
 
   <!-- Bearing lands -->
@@ -99,14 +101,14 @@
   </g>
 
   <!-- Alloy buildup residue (general smears) -->
-  <g opacity="0.4">
+  <g class="die-defect" opacity="0.4">
     <ellipse cx="645" cy="220" rx="18" ry="10" fill="#8b5e14" opacity="0.4" transform="rotate(-15 645 220)"/>
     <ellipse cx="685" cy="240" rx="14" ry="8" fill="#7a5010" opacity="0.35" transform="rotate(20 685 240)"/>
     <ellipse cx="650" cy="250" rx="10" ry="6" fill="#6d4a10" opacity="0.3"/>
   </g>
 
   <!-- Alignment offset indicator on P3 (subtle dashed misalignment) -->
-  <ellipse cx="668" cy="233" rx="50" ry="40" fill="none" stroke="#f59e0b" stroke-width="0.8" stroke-dasharray="3 3" opacity="0.4"/>
+  <ellipse class="die-defect" cx="668" cy="233" rx="50" ry="40" fill="none" stroke="#f59e0b" stroke-width="0.8" stroke-dasharray="3 3" opacity="0.4"/>
 
   <!-- Port labels -->
   <g font-family="monospace" font-size="10" fill="#8a9094" opacity="0.7">
@@ -118,8 +120,8 @@
     <text x="665" y="440" text-anchor="middle">P6</text>
   </g>
 
-  <!-- Defect annotations -->
-  <g font-family="monospace" font-size="8" fill="#f59e0b" font-weight="600">
+  <!-- Defect annotations — revealed after AI analysis -->
+  <g class="die-defect" font-family="monospace" font-size="8" fill="#f59e0b" font-weight="600">
     <circle cx="665" cy="220" r="3" fill="#f59e0b"/>
     <text x="683" y="205" opacity="0.9">BUILDUP P3</text>
     <circle cx="665" cy="410" r="3" fill="#f97316"/>

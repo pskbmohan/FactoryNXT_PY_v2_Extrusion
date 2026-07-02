@@ -96,35 +96,36 @@
     <text x="665" y="448" text-anchor="middle">P6</text>
   </g>
 
-  <!-- ========= CRACKS (CRITICAL) ========= -->
+  <!-- ========= CRACKS (CRITICAL) — revealed after AI analysis ========= -->
+  <g class="die-defect">
+    <!-- Critical radial crack from P2 bearing land -->
+    <g filter="url(#glow)">
+      <path d="M455 178 L462 165 L458 152 L467 138 L463 125 L472 110"
+            fill="none" stroke="#cc2020" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M462 165 L475 160 L482 148"
+            fill="none" stroke="#cc2020" stroke-width="1.6" stroke-linecap="round" opacity="0.8"/>
+    </g>
+    <!-- Secondary crack branch -->
+    <path d="M467 138 L458 130 L463 118" fill="none" stroke="#ee3030" stroke-width="1.2" stroke-linecap="round" opacity="0.7"/>
 
-  <!-- Critical radial crack from P2 bearing land -->
-  <g filter="url(#glow)">
-    <path d="M455 178 L462 165 L458 152 L467 138 L463 125 L472 110"
-          fill="none" stroke="#cc2020" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-    <path d="M462 165 L475 160 L482 148"
-          fill="none" stroke="#cc2020" stroke-width="1.6" stroke-linecap="round" opacity="0.8"/>
-  </g>
-  <!-- Secondary crack branch -->
-  <path d="M467 138 L458 130 L463 118" fill="none" stroke="#ee3030" stroke-width="1.2" stroke-linecap="round" opacity="0.7"/>
+    <!-- Crack at P5 (lower bearing) -->
+    <path d="M455 428 L460 418 L456 408 L462 398 L457 388"
+          fill="none" stroke="#cc2020" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" filter="url(#glow)"/>
 
-  <!-- Crack at P5 (lower bearing) -->
-  <path d="M455 428 L460 418 L456 408 L462 398 L457 388"
-        fill="none" stroke="#cc2020" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" filter="url(#glow)"/>
+    <!-- Chipping near P2 crack origin -->
+    <g>
+      <polygon points="475,152 482,148 484,156 478,160" fill="#d0d4d8" stroke="#a0a4a8" stroke-width="1" opacity="0.7"/>
+      <polygon points="482,146 487,142 489,150" fill="#d8dcd0" stroke="#b0b4b8" stroke-width="0.8" opacity="0.6"/>
+    </g>
 
-  <!-- Chipping near P2 crack origin -->
-  <g>
-    <polygon points="475,152 482,148 484,156 478,160" fill="#d0d4d8" stroke="#a0a4a8" stroke-width="1" opacity="0.7"/>
-    <polygon points="482,146 487,142 489,150" fill="#d8dcd0" stroke="#b0b4b8" stroke-width="0.8" opacity="0.6"/>
-  </g>
-
-  <!-- Crack annotation callouts (small) -->
-  <g font-family="monospace" font-size="9" fill="#ef4444" font-weight="600">
-    <circle cx="472" cy="110" r="3" fill="#ef4444"/>
-    <text x="490" y="112" opacity="0.9">CRACK RADIAL</text>
-    <circle cx="457" cy="388" r="3" fill="#ef4444"/>
-    <text x="474" y="390" opacity="0.9">CRACK BEARING</text>
-    <text x="490" y="155" fill="#f59e0b" opacity="0.8" font-size="8">CHIP</text>
+    <!-- Crack annotation callouts (small) -->
+    <g font-family="monospace" font-size="9" fill="#ef4444" font-weight="600">
+      <circle cx="472" cy="110" r="3" fill="#ef4444"/>
+      <text x="490" y="112" opacity="0.9">CRACK RADIAL</text>
+      <circle cx="457" cy="388" r="3" fill="#ef4444"/>
+      <text x="474" y="390" opacity="0.9">CRACK BEARING</text>
+      <text x="490" y="155" fill="#f59e0b" opacity="0.8" font-size="8">CHIP</text>
+    </g>
   </g>
 
   <!-- Scale markers -->
