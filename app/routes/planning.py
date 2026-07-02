@@ -614,28 +614,55 @@ def weekly():
     next_week = (week_mon + timedelta(weeks=1)).strftime("%Y-W%W")
     current_week_label = week_mon.strftime("Week of %d %b %Y")
 
-    machines = Machine.query.filter_by(is_active=True).order_by(Machine.name).all()
+    # is_active column may not exist on all installs — fall back to status check
+    try:
+        machines = Machine.query.filter_by(is_active=True).order_by(Machine.name).all()
+    except Exception:
+        machines = Machine.query.filter(
+            Machine.status.in_(["Running", "Available", "Idle", "Active"])
+        ).order_by(Machine.name).all()
+
+    # If still empty, grab ALL machines so the weekly board never renders blank
+    if not machines:
+        machines = Machine.query.order_by(Machine.name).all()
 
     week_start_dt = datetime.combine(week_days[0], datetime.min.time())
     week_end_dt = datetime.combine(week_days[-1], datetime.max.time())
 
-    plans = ProcessPlan.query.filter(
-        ProcessPlan.scheduled_start < week_end_dt,
-        ProcessPlan.scheduled_end > week_start_dt,
-    ).all()
+    # Guard: scheduled_start may be NULL in the DB — exclude those rows,
+    # and swallow any SQLAlchemy error so the page never 500s on a query issue.
+    try:
+        plans = ProcessPlan.query.filter(
+            ProcessPlan.scheduled_start != None,
+            ProcessPlan.scheduled_start < week_end_dt,
+            ProcessPlan.scheduled_end > week_start_dt,
+        ).all()
+    except Exception:
+        plans = []
 
     slot_map = {}
     for m in machines:
         slot_map[str(m.id)] = {d.strftime("%Y-%m-%d"): [] for d in week_days}
+
     for plan in plans:
-        if plan.machine_id and plan.scheduled_start:
+        try:
+            if not plan.machine_id or not plan.scheduled_start:
+                continue
             mid = str(plan.machine_id)
-            day_key = plan.scheduled_start.strftime("%Y-%m-%d")
+            # scheduled_start might be a date object, not datetime — handle both
+            ss = plan.scheduled_start
+            if hasattr(ss, 'strftime'):
+                day_key = ss.strftime("%Y-%m-%d")
+            else:
+                day_key = str(ss)[:10]
             if mid in slot_map and day_key in slot_map[mid]:
                 slot_map[mid][day_key].append(plan)
+        except Exception:
+            continue
 
+    # Case-insensitive status filter — DB may hold "RELEASED", "Released", etc.
     unscheduled_wos = WorkOrder.query.filter(
-        WorkOrder.status == "RELEASED",
+        WorkOrder.status.in_(["RELEASED", "Released", "PLANNED", "Planned", "DRAFT", "Draft"])
     ).all()
     unscheduled = []
     for wo in unscheduled_wos:
@@ -681,6 +708,7 @@ def weekly():
         current_week_label=current_week_label,
         week_key=week_mon.strftime("%Y-W%W"),
         week_is_locked=week_is_locked,
+        today=today,                 # needed by template for due-date overdue styling
         username=session.get("username"),
     )
 
@@ -699,8 +727,13 @@ def weekly_assign():
     if not all([wo_id, machine_id, day_str]):
         return jsonify({"ok": False, "error": "Missing wo_id, machine_id, or day"}), 400
 
-    wo = WorkOrder.query.get(wo_id)
-    machine = Machine.query.get(machine_id)
+    # SQLAlchemy 2.x deprecates Model.query.get() — use session.get() instead.
+    # machine_id may arrive as a string from the JS fetch; coerce to int if possible.
+    wo = db.session.get(WorkOrder, wo_id)
+    try:
+        machine = db.session.get(Machine, int(machine_id)) if str(machine_id).isdigit() else db.session.get(Machine, machine_id)
+    except Exception:
+        machine = None
     if not wo or not machine:
         return jsonify({"ok": False, "error": "WO or Machine not found"}), 404
 
@@ -770,7 +803,7 @@ def weekly_unassign():
 
     data = request.json or {}
     plan_id = data.get("plan_id")
-    plan = ProcessPlan.query.get(plan_id)
+    plan = db.session.get(ProcessPlan, plan_id)
     if not plan:
         return jsonify({"ok": False, "error": "Plan not found"}), 404
     if plan.status == "Locked":

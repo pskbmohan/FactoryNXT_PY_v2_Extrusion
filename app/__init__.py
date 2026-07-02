@@ -104,6 +104,18 @@ def create_app(config_class=Config):
     app.register_blueprint(logistics_bp)
     app.register_blueprint(docs_bp)
 
+    # ── Flask CLI: seed-planning ──────────────────────────────────────────
+    @app.cli.command("seed-planning")
+    def seed_planning_command():
+        """Seed Machines, WOs, ProcessPlans, MachineResourceMappings and APS data."""
+        import os
+        import sys
+        _root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        if _root not in sys.path:
+            sys.path.insert(0, _root)
+        from seed_planning_aps import seed
+        seed()
+
     # Auto-seed demo data so every screen has content on first run.
     # Runs only once the DB is up; silent on error.
     try:

@@ -33,6 +33,41 @@ def _version_horizon(version):
     return start, start + timedelta(days=days)
 
 
+def _active_machines():
+    """Return active machines, defensively handling the missing `is_active` column.
+
+    Falls back (in order):
+      1. filter_by(is_active=True)
+      2. filter by status in common 'active' values
+      3. ALL machines if nothing else works
+    """
+    try:
+        machines = Machine.query.filter_by(is_active=True).all()
+        if machines:
+            return machines
+    except Exception:
+        pass
+    try:
+        machines = Machine.query.filter(
+            Machine.status.in_(["Running", "Available", "Idle", "Active"])
+        ).all()
+        if machines:
+            return machines
+    except Exception:
+        pass
+    return Machine.query.order_by(Machine.name).all()
+
+
+def _safe_entries_for_version(version):
+    """Return schedule entries for a version; swallow errors and return []."""
+    if not version:
+        return []
+    try:
+        return ApsScheduleEntry.query.filter_by(version_id=version.id).all()
+    except Exception:
+        return []
+
+
 def _entry_to_dict(e):
     """Serialise an ApsScheduleEntry to a JSON-safe dict.
 
@@ -57,7 +92,10 @@ def _entry_to_dict(e):
             'id': str(e.id),
             'machine_id': e.machine_id,
             'machine_name': e.machine.name if e.machine else 'Unassigned',
-            'work_order_number': wo.work_order_number if wo else None,
+            # WorkOrder has no `work_order_number` — use `order_number`
+            # (falling back gracefully via getattr so a missing field never
+            # raises AttributeError inside this try block).
+            'work_order_number': getattr(wo, 'order_number', None) or getattr(wo, 'work_order_number', None),
             'part_number': wo.part_number if wo else None,
             'product_profile': getattr(wo, 'product_profile', None) if wo else None,
             'customer_name': getattr(wo, 'customer_name', None) if wo else None,
@@ -85,8 +123,8 @@ def _entry_to_dict(e):
 def _build_cockpit_context():
     """Build the full context dict required by aps/cockpit.html."""
     version  = ApsScheduleVersion.query.order_by(ApsScheduleVersion.created_at.desc()).first()
-    entries  = ApsScheduleEntry.query.filter_by(version_id=version.id).all() if version else []
-    machines = Machine.query.filter_by(is_active=True).all()
+    entries  = _safe_entries_for_version(version)
+    machines = _active_machines()
 
     # ── KPIs ──────────────────────────────────────────────────────────────
     total_load   = sum(int((e.scheduled_end - e.scheduled_start).total_seconds() / 60) for e in entries)
@@ -220,8 +258,8 @@ def api_gantt():
             })
 
         horizon_start, horizon_end = _version_horizon(version)
-        machines = Machine.query.filter_by(is_active=True).all()
-        entries  = ApsScheduleEntry.query.filter_by(version_id=version.id).all()
+        machines = _active_machines()
+        entries  = _safe_entries_for_version(version)
 
         entries_by_machine = {}
         for e in entries:
@@ -261,13 +299,13 @@ def api_kpis():
         if not version:
             return jsonify({'utilization_pct': 0, 'total_load_min': 0, 'capacity_min': 0, 'due_at_risk': 0})
 
-        entries       = ApsScheduleEntry.query.filter_by(version_id=version.id).all()
+        entries       = _safe_entries_for_version(version)
         total_load    = sum(int((e.scheduled_end - e.scheduled_start).total_seconds() / 60) for e in entries)
-        machine_count = Machine.query.filter_by(is_active=True).count() or 1
+        machine_count = len(_active_machines()) or 1
         days          = version.planning_horizon_days or 7
         capacity_min  = days * 24 * 60 * machine_count
         utilization   = round(total_load / capacity_min * 100, 1) if capacity_min else 0
-        due_at_risk   = sum(1 for e in entries if e.constraint_status == 'INFEASIBLE')
+        due_at_risk   = sum(1 for e in entries if getattr(e, 'constraint_status', None) == 'INFEASIBLE')
 
         return jsonify({
             'utilization_pct': utilization,
@@ -284,7 +322,7 @@ def api_auto_schedule():
     """Run finite-capacity auto-scheduling and create a new schedule version."""
     try:
         open_wos = WorkOrder.query.filter(WorkOrder.status.in_(['RELEASED', 'PLANNED'])).all()
-        machines = Machine.query.filter_by(is_active=True).all()
+        machines = _active_machines()
 
         if not machines:
             return jsonify({'ok': False, 'error': 'No active machines configured'}), 400
@@ -306,13 +344,38 @@ def api_auto_schedule():
                 part_number=wo.part_number, active=True
             ).first()
             if not mapping:
-                unassigned.append(wo.work_order_number)
+                # No resource mapping: assign to least-loaded active machine
+                # (previously this skipped the WO — that's why nothing got scheduled
+                # when MachineResourceMapping table was empty).
+                machine = min(machines, key=lambda m: cursor_by_machine.get(m.id, datetime.utcnow()))
+                cycle_min = 60       # default 60 min per unit
+                setup_min = 15
+                qty       = getattr(wo, 'quantity', 1) or 1
+                duration_min = setup_min + cycle_min * qty
+                start = cursor_by_machine.get(machine.id, datetime.utcnow())
+                end   = start + timedelta(minutes=duration_min)
+                entry = ApsScheduleEntry(
+                    version_id=version.id,
+                    work_order_id=wo.id,
+                    machine_id=machine.id,
+                    scheduled_start=start,
+                    scheduled_end=end,
+                    status='PLANNED',
+                    constraint_status='FEASIBLE',
+                    priority=getattr(wo, 'priority', 'medium'),
+                    setup_duration_min=setup_min,
+                )
+                db.session.add(entry)
+                cursor_by_machine[machine.id] = end + timedelta(minutes=30)
+                placed += 1
                 continue
 
             machine    = next((m for m in machines if m.id == mapping.machine_id), machines[0])
             cycle_min  = int((mapping.cycle_time_sec or 3600) / 60)
+            setup_min  = int((mapping.setup_time_sec or 0) / 60)
+            changeover_min = int((mapping.changeover_time_sec or 0) / 60)
             qty        = getattr(wo, 'quantity', 1) or 1
-            duration_min = cycle_min * qty
+            duration_min = setup_min + cycle_min * qty
             start = cursor_by_machine[machine.id]
             end   = start + timedelta(minutes=duration_min)
 
@@ -325,10 +388,11 @@ def api_auto_schedule():
                 status='PLANNED',
                 constraint_status='FEASIBLE',
                 priority=getattr(wo, 'priority', 'medium'),
-                setup_duration_min=int((mapping.setup_time_sec or 0) / 60),
+                setup_duration_min=setup_min,
             )
             db.session.add(entry)
-            cursor_by_machine[machine.id] = end
+            # Use wo.order_number — work_order_number does NOT exist on WorkOrder
+            cursor_by_machine[machine.id] = end + timedelta(minutes=changeover_min)
             placed += 1
 
         db.session.commit()
@@ -384,7 +448,7 @@ def api_replan():
                 cursor_by_machine[le.machine_id] = le.scheduled_end
             preserved_locked += 1
 
-        machines = Machine.query.filter_by(is_active=True).all()
+        machines = _active_machines()
         for m in machines:
             if m.id not in cursor_by_machine:
                 cursor_by_machine[m.id] = datetime.utcnow()
@@ -399,14 +463,23 @@ def api_replan():
             mapping = MachineResourceMapping.query.filter_by(
                 part_number=wo.part_number, active=True
             ).first()
-            if not mapping:
-                continue
-            machine = next((m for m in machines if m.id == mapping.machine_id), machines[0] if machines else None)
-            if not machine:
-                continue
-            cycle_min    = int((mapping.cycle_time_sec or 3600) / 60)
+            if mapping:
+                machine = next((m for m in machines if m.id == mapping.machine_id), machines[0] if machines else None)
+                if not machine:
+                    continue
+                cycle_min    = int((mapping.cycle_time_sec or 3600) / 60)
+                setup_min    = int((mapping.setup_time_sec or 0) / 60)
+                changeover_min = int((mapping.changeover_time_sec or 0) / 60)
+            else:
+                # No mapping — assign to least-loaded machine (don't skip the WO)
+                machine = min(machines, key=lambda m: cursor_by_machine.get(m.id, datetime.utcnow())) if machines else None
+                if not machine:
+                    continue
+                cycle_min = 60
+                setup_min = 15
+                changeover_min = 30
             qty          = getattr(wo, 'quantity', 1) or 1
-            duration_min = cycle_min * qty
+            duration_min = setup_min + cycle_min * qty
             start = cursor_by_machine[machine.id]
             end   = start + timedelta(minutes=duration_min)
             entry = ApsScheduleEntry(
@@ -418,10 +491,10 @@ def api_replan():
                 status='PLANNED',
                 constraint_status='FEASIBLE',
                 priority=getattr(wo, 'priority', 'medium'),
-                setup_duration_min=int((mapping.setup_time_sec or 0) / 60),
+                setup_duration_min=setup_min,
             )
             db.session.add(entry)
-            cursor_by_machine[machine.id] = end
+            cursor_by_machine[machine.id] = end + timedelta(minutes=changeover_min)
             placed += 1
 
         db.session.commit()

@@ -995,23 +995,49 @@
     return fetch(API.gantt, { headers: { Accept: "application/json" } })
       .then(r => r.json())
       .then(data => {
+        if (data.error) {
+          showGanttEmpty("No schedule data: " + data.error);
+          return;
+        }
         version = data.version;
-        machines = data.machines;
+        machines = data.machines || [];
         entriesByMachine = data.entries_by_machine || {};
         blockedByMachine = data.blocked_by_machine || {};
         horizon = data.horizon;
         // Populate machine filter dropdown
         const sel = document.getElementById("filter-machine");
-        const current = sel.value;
-        sel.innerHTML = '<option value="">All machines</option>' +
-          machines.map(m => `<option value="${m.id}">${m.name} (${m.status})</option>`).join("");
-        sel.value = current;
+        const current = sel ? sel.value : "";
+        if (sel) {
+          sel.innerHTML = '<option value="">All machines</option>' +
+            machines.map(m => `<option value="${m.id}">${m.name} (${m.status})</option>`).join("");
+          sel.value = current;
+        }
+        if (!machines || machines.length === 0) {
+          showGanttEmpty("No active machines found. Add machines in Plant Setup → Machines.");
+          return;
+        }
+        const allEntries = Object.values(entriesByMachine).flat();
+        if (allEntries.length === 0) {
+          showGanttEmpty('No scheduled entries. Click <strong>Auto-Schedule</strong> or <strong>▶ Run Schedule</strong> to generate a plan.');
+          return;
+        }
+        loader.classList.add("hidden");
         empty.classList.add("hidden");
         render();
       })
       .catch(err => {
         loader.textContent = "Failed to load schedule: " + err.message;
       });
+  }
+
+  function showGanttEmpty(msg) {
+    if (loader) loader.classList.add("hidden");
+    const emptyDiv = document.getElementById("gantt-empty");
+    if (emptyDiv) {
+      emptyDiv.classList.remove("hidden");
+      const p = emptyDiv.querySelector("p.text-xs");
+      if (p) p.innerHTML = msg;
+    }
   }
 
   // ── Event wiring ───────────────────────────────────────────────────────────
@@ -1053,7 +1079,9 @@
     if (!document.hidden) renderAll();
   });
 
-  // Initial
+  // Initial — expose renderAll globally so the v2 Run Schedule handler
+  // (in the separate script block below) can refresh the Gantt after a run.
+  window.apsRenderAll = renderAll;
   renderAll();
 })();
 </script>
@@ -1170,26 +1198,25 @@
     const algorithm = document.getElementById("modal-algorithm").value;
     runConfirm.disabled = true;
     runConfirm.textContent = "Scheduling…";
+    // Try v2 first, fall back to v1 (auto-schedule) if v2 fails with 4xx/5xx
     fetch(URL_SCHEDULE_V2, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ horizon_days: horizon, algorithm: algorithm })
     })
-    .then(r => r.json())
+    .then(r => r.ok ? r.json() : fetch("{{ url_for('aps.api_auto_schedule') }}", {
+      method: "POST", headers: { "Content-Type": "application/json" }
+    }).then(r2 => r2.json()))
     .then(d => {
       closeModal("modal-run-schedule");
       if (d.ok) {
         toast("Schedule run complete — " + d.placed + " placed, " + (d.unassigned || []).length + " unassigned", "ok");
-        // refresh gantt + score
-        if (typeof window.dispatchEvent === "function") {
-          const evt = new CustomEvent("aps:schedule-changed");
-          window.dispatchEvent(evt);
-        }
+        // refresh gantt + score + unscheduled panel
+        setTimeout(function() {
+          if (typeof window.apsRenderAll === "function") window.apsRenderAll();
+        }, 500);
         setTimeout(loadScore, 500);
         setTimeout(loadUnscheduled, 500);
-        // trigger existing refresh button
-        const ref = document.getElementById("btn-refresh");
-        if (ref) ref.click();
       } else {
         toast("Schedule failed: " + (d.error || "Unknown"), "error");
       }
