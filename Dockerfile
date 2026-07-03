@@ -15,8 +15,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy app source
 COPY . .
 
-# Expose Flask default port
-EXPOSE 5555
+# Expose Flask default port + device-facing HTTP port
+EXPOSE 5555 5556
 
 # Use sh to invoke entrypoint to avoid executable bit issues
 ENTRYPOINT ["sh", "/app/entrypoint.sh"]

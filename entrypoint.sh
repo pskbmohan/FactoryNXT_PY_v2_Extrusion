@@ -118,5 +118,27 @@ else
 fi
 # ─────────────────────────────────────────────────────────────────────────────
 
+# ── Device-facing plain-HTTP listener ───────────────────────────────────────
+# Why a second port: the main web app sits behind Cloudflare, which forces
+# HTTPS. The Wattmon device only speaks plain HTTP (no TLS), so any POST to
+# ext-app.factorynxt.com:80 gets a 301 → HTTPS. To bypass Cloudflare for
+# device traffic we expose a second Flask instance on a dedicated port that
+# the device can reach directly at the origin (no proxy, no TLS, no redirect).
+#
+# Device POSTs to:
+#     http://<origin-host>:<DEVICES_PORT>/integrations/csv-upload
+#
+# Default DEVICES_PORT = 5556. Override via environment variable.
+DEVICES_PORT="${DEVICES_PORT:-5556}"
+echo "Starting device listener on port ${DEVICES_PORT} (plain HTTP, bypasses Cloudflare)..."
+python3 -c "
+from app import create_app
+app = create_app()
+app.run(host='0.0.0.0', port=${DEVICES_PORT}, debug=False, use_reloader=False)
+" >> /var/log/wattmon-device.log 2>&1 &
+DEVICES_PID=$!
+echo "Device listener started (PID ${DEVICES_PID})"
+# ─────────────────────────────────────────────────────────────────────────────
+
 echo "Starting Flask app on port 5555..."
-exec python -c "from app import create_app; app = create_app(); app.run(host='0.0.0.0', port=5555, debug=True)"
+exec python3 -c "from app import create_app; app = create_app(); app.run(host='0.0.0.0', port=5555, debug=True)"
