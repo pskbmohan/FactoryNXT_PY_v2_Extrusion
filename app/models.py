@@ -1373,6 +1373,10 @@ class WattmonUpload(db.Model):
     filename = db.Column(db.String(256), nullable=False, default="upload.csv")
     row_count = db.Column(db.Integer, nullable=False, default=0)
     uploaded_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    # Async-processing state: raw POST body is saved to disk immediately,
+    # then a background thread parses + inserts the CSV rows.
+    status = db.Column(db.String(16), nullable=False, default="pending")    # pending / success / failed
+    error_detail = db.Column(db.Text, nullable=True)
 
     readings = db.relationship(
         "WattmonReading",

@@ -1,26 +1,43 @@
 {% extends "layout.html" %}
 {% block title %}Wattmon Uploads{% endblock %}
 
+{% macro status_badge(status) %}
+  {% if status == 'success' %}
+    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
+      <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 mr-1.5"></span>stored
+    </span>
+  {% elif status == 'failed' %}
+    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-50 text-red-700 border border-red-200" title="failed">
+      <span class="w-1.5 h-1.5 rounded-full bg-red-500 mr-1.5"></span>failed
+    </span>
+  {% else %}
+    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-50 text-amber-700 border border-amber-200">
+      <span class="w-1.5 h-1.5 rounded-full bg-amber-500 mr-1.5 animate-pulse"></span>processing
+    </span>
+  {% endif %}
+{% endmacro %}
+
 {% block content %}
+{% if any_pending %}
+<script>setTimeout(function(){ window.location.reload(); }, 3000);</script>
+{% endif %}
+
 <div class="mb-6 flex items-start justify-between">
   <div>
     <h1 class="text-2xl font-bold text-slate-900">Wattmon Uploads</h1>
     <p class="text-sm text-slate-500 mt-1">
       CSV payloads received from the Wattmon integration device.
-      Every upload is stored row-by-row in the <code class="px-1 py-0.5 rounded bg-slate-100 text-xs text-slate-700">wattmon_readings</code> table
-      with a fixed 216-column schema.
+      Every upload is stored row-by-row in the <code class="px-1 py-0.5 rounded bg-slate-100 text-xs text-slate-700">wattmon_readings</code> table.
     </p>
   </div>
-  <div class="flex items-center gap-2">
-    <a href="{{ url_for('integrations.csv_upload') }}"
-       class="inline-flex items-center px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-lg shadow-sm transition-colors">
-      <svg class="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-              d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5-5m0 0l5 5m-5-5v12" />
-      </svg>
-      New Upload
-    </a>
-  </div>
+  <a href="{{ url_for('integrations.csv_upload') }}"
+     class="inline-flex items-center px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-lg shadow-sm transition-colors">
+    <svg class="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5-5m0 0l5 5m-5-5v12" />
+    </svg>
+    New Upload
+  </a>
 </div>
 
 {% if uploads %}
@@ -30,9 +47,10 @@
       <thead class="bg-slate-50 text-slate-600 uppercase tracking-wider text-xs font-semibold border-b border-slate-200">
         <tr>
           <th class="px-5 py-3">ID</th>
-          <th class="px-5 py-3">Source (Key)</th>
+          <th class="px-5 py-3">Source</th>
           <th class="px-5 py-3">Filename</th>
           <th class="px-5 py-3 text-right">Rows</th>
+          <th class="px-5 py-3">Status</th>
           <th class="px-5 py-3">Uploaded At</th>
           <th class="px-5 py-3 text-right">Actions</th>
         </tr>
@@ -49,7 +67,19 @@
             {% endif %}
           </td>
           <td class="px-5 py-3 text-slate-700 truncate max-w-xs" title="{{ u.filename }}">{{ u.filename }}</td>
-          <td class="px-5 py-3 text-right tabular-nums text-slate-700">{{ "{:,}".format(u.row_count) }}</td>
+          <td class="px-5 py-3 text-right tabular-nums text-slate-700">
+            {% if u.status == 'pending' %}
+              <span class="text-slate-400 italic">…</span>
+            {% else %}
+              {{ "{:,}".format(u.row_count) }}
+            {% endif %}
+          </td>
+          <td class="px-5 py-3">
+            {{ status_badge(u.status) }}
+            {% if u.error_detail %}
+              <span class="ml-1 text-xs text-red-600" title="{{ u.error_detail }}">⚠</span>
+            {% endif %}
+          </td>
           <td class="px-5 py-3 text-slate-700">
             <span class="font-medium text-slate-900">{{ u.uploaded_at.strftime('%Y-%m-%d %H:%M:%S') }}</span>
             <span class="text-xs text-slate-400 ml-1">UTC</span>
@@ -60,7 +90,7 @@
               View
             </a>
             <form method="post" action="{{ url_for('integrations.wattmon_delete', upload_id=u.id) }}"
-                  onsubmit="return confirm('Delete upload #{{ u.id }} and all {{ '{:,}'.format(u.row_count) }} of its rows?');"
+                  onsubmit="return confirm('Delete upload #{{ u.id }}?');"
                   class="inline">
               <button type="submit" class="text-xs font-medium text-red-600 hover:text-red-800">Delete</button>
             </form>

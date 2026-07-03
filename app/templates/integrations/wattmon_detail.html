@@ -2,6 +2,26 @@
 {% block title %}Wattmon Upload #{{ upload.id }}{% endblock %}
 
 {% block content %}
+{% if upload.status == 'pending' %}
+<script>setTimeout(function(){ window.location.reload(); }, 2000);</script>
+{% endif %}
+
+{% macro status_badge(status) %}
+  {% if status == 'success' %}
+    <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
+      <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 mr-1.5"></span>Stored
+    </span>
+  {% elif status == 'failed' %}
+    <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-red-50 text-red-700 border border-red-200">
+      <span class="w-1.5 h-1.5 rounded-full bg-red-500 mr-1.5"></span>Failed
+    </span>
+  {% else %}
+    <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-amber-50 text-amber-700 border border-amber-200">
+      <span class="w-1.5 h-1.5 rounded-full bg-amber-500 mr-1.5 animate-pulse"></span>Processing…
+    </span>
+  {% endif %}
+{% endmacro %}
+
 <!-- Header / back-link ribbon -->
 <div class="flex items-center justify-between mb-2">
   <a href="{{ url_for('integrations.wattmon_list') }}"
@@ -12,7 +32,7 @@
     All uploads
   </a>
   <form method="post" action="{{ url_for('integrations.wattmon_delete', upload_id=upload.id) }}"
-        onsubmit="return confirm('Delete upload #{{ upload.id }} and all {{ '{:,}'.format(upload.row_count) }} of its rows?');">
+        onsubmit="return confirm('Delete upload #{{ upload.id }}?');">
     <button type="submit" class="inline-flex items-center px-3 py-1.5 text-sm font-medium text-red-700 bg-red-50 hover:bg-red-100 rounded-lg border border-red-200">
       Delete
     </button>
@@ -21,7 +41,10 @@
 
 <!-- Upload summary -->
 <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5 mb-6">
-  <h1 class="text-xl font-bold text-slate-900 mb-4">Wattmon Upload <span class="text-slate-400">#{{ upload.id }}</span></h1>
+  <div class="flex items-center justify-between mb-4">
+    <h1 class="text-xl font-bold text-slate-900">Wattmon Upload <span class="text-slate-400">#{{ upload.id }}</span></h1>
+    {{ status_badge(upload.status) }}
+  </div>
   <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm">
     <div>
       <div class="text-xs uppercase tracking-wider text-slate-500 mb-1">Source key</div>
@@ -33,7 +56,13 @@
     </div>
     <div>
       <div class="text-xs uppercase tracking-wider text-slate-500 mb-1">Rows stored</div>
-      <div class="font-semibold text-slate-900 tabular-nums">{{ "{:,}".format(total_readings) }}</div>
+      <div class="font-semibold text-slate-900 tabular-nums">
+        {% if upload.status == 'pending' %}
+          <span class="text-slate-400 italic">…</span>
+        {% else %}
+          {{ "{:,}".format(total_readings) }}
+        {% endif %}
+      </div>
     </div>
     <div>
       <div class="text-xs uppercase tracking-wider text-slate-500 mb-1">Uploaded at</div>
@@ -44,6 +73,15 @@
       <div class="text-slate-700 truncate" title="{{ upload.filename }}">{{ upload.filename }}</div>
     </div>
   </div>
+  {% if upload.status == 'failed' and upload.error_detail %}
+  <div class="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-800">
+    <span class="font-semibold">Error:</span> {{ upload.error_detail }}
+  </div>
+  {% elif upload.status == 'pending' %}
+  <div class="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-800">
+    Raw body received. A background worker is parsing the CSV and inserting rows — this page refreshes automatically.
+  </div>
+  {% endif %}
 </div>
 
 {% if readings %}
