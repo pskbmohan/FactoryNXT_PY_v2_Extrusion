@@ -1346,3 +1346,644 @@ class ShipmentLine(db.Model):
     shipment = db.relationship("Shipment", backref=db.backref("lines", lazy="dynamic"))
     packaging_order = db.relationship("PackagingOrder", backref=db.backref("shipment_lines", lazy="dynamic"))
     work_order = db.relationship("WorkOrder", backref=db.backref("shipment_lines", lazy="dynamic"))
+
+
+# ─── WATMON ENERGY METER INTEGRATION ───────────────────────────────────────
+# Fixed-column readings table for the Wattmon CSV export. Columns mirror the
+# canonical header list produced by the Wattmon integration device. Any rows
+# uploaded via POST /integrations/csv-upload are persisted here row-by-row.
+#
+# 216 columns in total:
+#   - 1 common timestamp (ts)
+#   - 1 common timestamp string (timestamp)
+#   - 71 columns × 3 Schneider power meter serials (540420085805,
+#     540420080451, 540420075852, 540420085806, 540420085810, 540420085804,
+#     540420082234, 540420085811, 540420080682)  -- 9 meters × 71 cols each
+#     NOTE: the canonical list actually contains 9 Schneider serials, not 3.
+#   - 19 columns × 1 Rishabh meter (2303051510)
+#
+# All values stored as TEXT because Wattmon CSV payload values are plain
+# strings ("0", "0.000", "411.788", ...). Numeric parsing is left to the
+# read-side when calculations are needed.
+class WattmonUpload(db.Model):
+    """Metadata for each POST to /integrations/csv-upload."""
+    __tablename__ = "wattmon_uploads"
+    id = db.Column(db.Integer, primary_key=True)
+    source_key = db.Column(db.String(128), nullable=True, index=True)       # device MAC from `key=` field
+    filename = db.Column(db.String(256), nullable=False, default="upload.csv")
+    row_count = db.Column(db.Integer, nullable=False, default=0)
+    uploaded_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+
+    readings = db.relationship(
+        "WattmonReading",
+        backref=db.backref("upload", lazy="joined"),
+        lazy="dynamic",
+        cascade="all, delete-orphan",
+        order_by="WattmonReading.id",
+    )
+
+
+# Build the WattmonReading model with fixed columns derived from the canonical
+# Wattmon CSV header list. Using column_list + TEXT keeps inserts fast and
+# schema stable even as the device adds new meters.
+_WATMON_COLUMNS = [
+    "ts",
+    # Schneider 540420085805
+    "m_schneider_540420085805_AC_Active_Power",
+    "m_schneider_540420085805_AC_Reactive_Power",
+    "m_schneider_540420085805_AC_Apparent_Power",
+    "m_schneider_540420085805_kWh_Total_Active",
+    "m_schneider_540420085805_kVARh_Total_Active",
+    "m_schneider_540420085805_kVAh_Total_Active",
+    "m_schneider_540420085805_AC_Current_A",
+    "m_schneider_540420085805_AC_Current_B",
+    "m_schneider_540420085805_AC_Current_C",
+    "m_schneider_540420085805_AC_Voltage_AB",
+    "m_schneider_540420085805_AC_Voltage_BC",
+    "m_schneider_540420085805_AC_Voltage_CA",
+    "m_schneider_540420085805_AC_Voltage_AN",
+    "m_schneider_540420085805_AC_Voltage_BN",
+    "m_schneider_540420085805_AC_Voltage_CN",
+    "m_schneider_540420085805_AC_Active_Power_A",
+    "m_schneider_540420085805_AC_Active_Power_B",
+    "m_schneider_540420085805_AC_Active_Power_C",
+    "m_schneider_540420085805_AC_Reactive_Power_A",
+    "m_schneider_540420085805_AC_Reactive_Power_B",
+    "m_schneider_540420085805_AC_Reactive_Power_C",
+    "m_schneider_540420085805_AC_Apparent_Power_A",
+    "m_schneider_540420085805_AC_Apparent_Power_B",
+    "m_schneider_540420085805_AC_Apparent_Power_C",
+    "m_schneider_540420085805_AC_PF_A",
+    "m_schneider_540420085805_AC_PF_B",
+    "m_schneider_540420085805_AC_PF_C",
+    "m_schneider_540420085805_AC_PF",
+    "m_schneider_540420085805_AC_Frequency",
+    # Schneider 540420080451
+    "m_schneider_540420080451_AC_Active_Power",
+    "m_schneider_540420080451_AC_Reactive_Power",
+    "m_schneider_540420080451_AC_Apparent_Power",
+    "m_schneider_540420080451_kWh_Total_Active",
+    "m_schneider_540420080451_kVARh_Total_Active",
+    "m_schneider_540420080451_kVAh_Total_Active",
+    "m_schneider_540420080451_AC_Current_A",
+    "m_schneider_540420080451_AC_Current_B",
+    "m_schneider_540420080451_AC_Current_C",
+    "m_schneider_540420080451_AC_Voltage_AB",
+    "m_schneider_540420080451_AC_Voltage_BC",
+    "m_schneider_540420080451_AC_Voltage_CA",
+    "m_schneider_540420080451_AC_Voltage_AN",
+    "m_schneider_540420080451_AC_Voltage_BN",
+    "m_schneider_540420080451_AC_Voltage_CN",
+    "m_schneider_540420080451_AC_Active_Power_A",
+    "m_schneider_540420080451_AC_Active_Power_B",
+    "m_schneider_540420080451_AC_Active_Power_C",
+    "m_schneider_540420080451_AC_Reactive_Power_A",
+    "m_schneider_540420080451_AC_Reactive_Power_B",
+    "m_schneider_540420080451_AC_Reactive_Power_C",
+    "m_schneider_540420080451_AC_Apparent_Power_A",
+    "m_schneider_540420080451_AC_Apparent_Power_B",
+    "m_schneider_540420080451_AC_Apparent_Power_C",
+    "m_schneider_540420080451_AC_PF_A",
+    "m_schneider_540420080451_AC_PF_B",
+    "m_schneider_540420080451_AC_PF_C",
+    "m_schneider_540420080451_AC_PF",
+    "m_schneider_540420080451_AC_Frequency",
+    # Schneider 540420075852
+    "m_schneider_540420075852_AC_Active_Power",
+    "m_schneider_540420075852_AC_Reactive_Power",
+    "m_schneider_540420075852_AC_Apparent_Power",
+    "m_schneider_540420075852_kWh_Total_Active",
+    "m_schneider_540420075852_kVARh_Total_Active",
+    "m_schneider_540420075852_kVAh_Total_Active",
+    "m_schneider_540420075852_AC_Current_A",
+    "m_schneider_540420075852_AC_Current_B",
+    "m_schneider_540420075852_AC_Current_C",
+    "m_schneider_540420075852_AC_Voltage_AB",
+    "m_schneider_540420075852_AC_Voltage_BC",
+    "m_schneider_540420075852_AC_Voltage_CA",
+    "m_schneider_540420075852_AC_Voltage_AN",
+    "m_schneider_540420075852_AC_Voltage_BN",
+    "m_schneider_540420075852_AC_Voltage_CN",
+    "m_schneider_540420075852_AC_Active_Power_A",
+    "m_schneider_540420075852_AC_Active_Power_B",
+    "m_schneider_540420075852_AC_Active_Power_C",
+    "m_schneider_540420075852_AC_Reactive_Power_A",
+    "m_schneider_540420075852_AC_Reactive_Power_B",
+    "m_schneider_540420075852_AC_Reactive_Power_C",
+    "m_schneider_540420075852_AC_Apparent_Power_A",
+    "m_schneider_540420075852_AC_Apparent_Power_B",
+    "m_schneider_540420075852_AC_Apparent_Power_C",
+    "m_schneider_540420075852_AC_PF_A",
+    "m_schneider_540420075852_AC_PF_B",
+    "m_schneider_540420075852_AC_PF_C",
+    "m_schneider_540420075852_AC_PF",
+    "m_schneider_540420075852_AC_Frequency",
+    # Schneider 540420085806
+    "m_schneider_540420085806_AC_Active_Power",
+    "m_schneider_540420085806_AC_Reactive_Power",
+    "m_schneider_540420085806_AC_Apparent_Power",
+    "m_schneider_540420085806_kWh_Total_Active",
+    "m_schneider_540420085806_kVARh_Total_Active",
+    "m_schneider_540420085806_kVAh_Total_Active",
+    "m_schneider_540420085806_AC_Current_A",
+    "m_schneider_540420085806_AC_Current_B",
+    "m_schneider_540420085806_AC_Current_C",
+    "m_schneider_540420085806_AC_Voltage_AB",
+    "m_schneider_540420085806_AC_Voltage_BC",
+    "m_schneider_540420085806_AC_Voltage_CA",
+    "m_schneider_540420085806_AC_Voltage_AN",
+    "m_schneider_540420085806_AC_Voltage_BN",
+    "m_schneider_540420085806_AC_Voltage_CN",
+    "m_schneider_540420085806_AC_Active_Power_A",
+    "m_schneider_540420085806_AC_Active_Power_B",
+    "m_schneider_540420085806_AC_Active_Power_C",
+    "m_schneider_540420085806_AC_Reactive_Power_A",
+    "m_schneider_540420085806_AC_Reactive_Power_B",
+    "m_schneider_540420085806_AC_Reactive_Power_C",
+    "m_schneider_540420085806_AC_Apparent_Power_A",
+    "m_schneider_540420085806_AC_Apparent_Power_B",
+    "m_schneider_540420085806_AC_Apparent_Power_C",
+    "m_schneider_540420085806_AC_PF_A",
+    "m_schneider_540420085806_AC_PF_B",
+    "m_schneider_540420085806_AC_PF_C",
+    "m_schneider_540420085806_AC_PF",
+    "m_schneider_540420085806_AC_Frequency",
+    # Schneider 540420085810
+    "m_schneider_540420085810_AC_Active_Power",
+    "m_schneider_540420085810_AC_Reactive_Power",
+    "m_schneider_540420085810_AC_Apparent_Power",
+    "m_schneider_540420085810_kWh_Total_Active",
+    "m_schneider_540420085810_kVARh_Total_Active",
+    "m_schneider_540420085810_kVAh_Total_Active",
+    "m_schneider_540420085810_AC_Current_A",
+    "m_schneider_540420085810_AC_Current_B",
+    "m_schneider_540420085810_AC_Current_C",
+    "m_schneider_540420085810_AC_Voltage_AB",
+    "m_schneider_540420085810_AC_Voltage_BC",
+    "m_schneider_540420085810_AC_Voltage_CA",
+    "m_schneider_540420085810_AC_Voltage_AN",
+    "m_schneider_540420085810_AC_Voltage_BN",
+    "m_schneider_540420085810_AC_Voltage_CN",
+    "m_schneider_540420085810_AC_Active_Power_A",
+    "m_schneider_540420085810_AC_Active_Power_B",
+    "m_schneider_540420085810_AC_Active_Power_C",
+    "m_schneider_540420085810_AC_Reactive_Power_A",
+    "m_schneider_540420085810_AC_Reactive_Power_B",
+    "m_schneider_540420085810_AC_Reactive_Power_C",
+    "m_schneider_540420085810_AC_Apparent_Power_A",
+    "m_schneider_540420085810_AC_Apparent_Power_B",
+    "m_schneider_540420085810_AC_Apparent_Power_C",
+    "m_schneider_540420085810_AC_PF_A",
+    "m_schneider_540420085810_AC_PF_B",
+    "m_schneider_540420085810_AC_PF_C",
+    "m_schneider_540420085810_AC_PF",
+    "m_schneider_540420085810_AC_Frequency",
+    # Schneider 540420085804
+    "m_schneider_540420085804_AC_Active_Power",
+    "m_schneider_540420085804_AC_Reactive_Power",
+    "m_schneider_540420085804_AC_Apparent_Power",
+    "m_schneider_540420085804_kWh_Total_Active",
+    "m_schneider_540420085804_kVARh_Total_Active",
+    "m_schneider_540420085804_kVAh_Total_Active",
+    "m_schneider_540420085804_AC_Current_A",
+    "m_schneider_540420085804_AC_Current_B",
+    "m_schneider_540420085804_AC_Current_C",
+    "m_schneider_540420085804_AC_Voltage_AB",
+    "m_schneider_540420085804_AC_Voltage_BC",
+    "m_schneider_540420085804_AC_Voltage_CA",
+    "m_schneider_540420085804_AC_Voltage_AN",
+    "m_schneider_540420085804_AC_Voltage_BN",
+    "m_schneider_540420085804_AC_Voltage_CN",
+    "m_schneider_540420085804_AC_Active_Power_A",
+    "m_schneider_540420085804_AC_Active_Power_B",
+    "m_schneider_540420085804_AC_Active_Power_C",
+    "m_schneider_540420085804_AC_Reactive_Power_A",
+    "m_schneider_540420085804_AC_Reactive_Power_B",
+    "m_schneider_540420085804_AC_Reactive_Power_C",
+    "m_schneider_540420085804_AC_Apparent_Power_A",
+    "m_schneider_540420085804_AC_Apparent_Power_B",
+    "m_schneider_540420085804_AC_Apparent_Power_C",
+    "m_schneider_540420085804_AC_PF_A",
+    "m_schneider_540420085804_AC_PF_B",
+    "m_schneider_540420085804_AC_PF_C",
+    "m_schneider_540420085804_AC_PF",
+    "m_schneider_540420085804_AC_Frequency",
+    # Schneider 540420082234
+    "m_schneider_540420082234_AC_Active_Power",
+    "m_schneider_540420082234_AC_Reactive_Power",
+    "m_schneider_540420082234_AC_Apparent_Power",
+    "m_schneider_540420082234_kWh_Total_Active",
+    "m_schneider_540420082234_kVARh_Total_Active",
+    "m_schneider_540420082234_kVAh_Total_Active",
+    "m_schneider_540420082234_AC_Current_A",
+    "m_schneider_540420082234_AC_Current_B",
+    "m_schneider_540420082234_AC_Current_C",
+    "m_schneider_540420082234_AC_Voltage_AB",
+    "m_schneider_540420082234_AC_Voltage_BC",
+    "m_schneider_540420082234_AC_Voltage_CA",
+    "m_schneider_540420082234_AC_Voltage_AN",
+    "m_schneider_540420082234_AC_Voltage_BN",
+    "m_schneider_540420082234_AC_Voltage_CN",
+    "m_schneider_540420082234_AC_Active_Power_A",
+    "m_schneider_540420082234_AC_Active_Power_B",
+    "m_schneider_540420082234_AC_Active_Power_C",
+    "m_schneider_540420082234_AC_Reactive_Power_A",
+    "m_schneider_540420082234_AC_Reactive_Power_B",
+    "m_schneider_540420082234_AC_Reactive_Power_C",
+    "m_schneider_540420082234_AC_Apparent_Power_A",
+    "m_schneider_540420082234_AC_Apparent_Power_B",
+    "m_schneider_540420082234_AC_Apparent_Power_C",
+    "m_schneider_540420082234_AC_PF_A",
+    "m_schneider_540420082234_AC_PF_B",
+    "m_schneider_540420082234_AC_PF_C",
+    "m_schneider_540420082234_AC_PF",
+    "m_schneider_540420082234_AC_Frequency",
+    # Schneider 540420085811
+    "m_schneider_540420085811_AC_Active_Power",
+    "m_schneider_540420085811_AC_Reactive_Power",
+    "m_schneider_540420085811_AC_Apparent_Power",
+    "m_schneider_540420085811_kWh_Total_Active",
+    "m_schneider_540420085811_kVARh_Total_Active",
+    "m_schneider_540420085811_kVAh_Total_Active",
+    "m_schneider_540420085811_AC_Current_A",
+    "m_schneider_540420085811_AC_Current_B",
+    "m_schneider_540420085811_AC_Current_C",
+    "m_schneider_540420085811_AC_Voltage_AB",
+    "m_schneider_540420085811_AC_Voltage_BC",
+    "m_schneider_540420085811_AC_Voltage_CA",
+    "m_schneider_540420085811_AC_Voltage_AN",
+    "m_schneider_540420085811_AC_Voltage_BN",
+    "m_schneider_540420085811_AC_Voltage_CN",
+    "m_schneider_540420085811_AC_Active_Power_A",
+    "m_schneider_540420085811_AC_Active_Power_B",
+    "m_schneider_540420085811_AC_Active_Power_C",
+    "m_schneider_540420085811_AC_Reactive_Power_A",
+    "m_schneider_540420085811_AC_Reactive_Power_B",
+    "m_schneider_540420085811_AC_Reactive_Power_C",
+    "m_schneider_540420085811_AC_Apparent_Power_A",
+    "m_schneider_540420085811_AC_Apparent_Power_B",
+    "m_schneider_540420085811_AC_Apparent_Power_C",
+    "m_schneider_540420085811_AC_PF_A",
+    "m_schneider_540420085811_AC_PF_B",
+    "m_schneider_540420085811_AC_PF_C",
+    "m_schneider_540420085811_AC_PF",
+    "m_schneider_540420085811_AC_Frequency",
+    # Schneider 540420080682
+    "m_schneider_540420080682_AC_Active_Power",
+    "m_schneider_540420080682_AC_Reactive_Power",
+    "m_schneider_540420080682_AC_Apparent_Power",
+    "m_schneider_540420080682_kWh_Total_Active",
+    "m_schneider_540420080682_kVARh_Total_Active",
+    "m_schneider_540420080682_kVAh_Total_Active",
+    "m_schneider_540420080682_AC_Current_A",
+    "m_schneider_540420080682_AC_Current_B",
+    "m_schneider_540420080682_AC_Current_C",
+    "m_schneider_540420080682_AC_Voltage_AB",
+    "m_schneider_540420080682_AC_Voltage_BC",
+    "m_schneider_540420080682_AC_Voltage_CA",
+    "m_schneider_540420080682_AC_Voltage_AN",
+    "m_schneider_540420080682_AC_Voltage_BN",
+    "m_schneider_540420080682_AC_Voltage_CN",
+    "m_schneider_540420080682_AC_Active_Power_A",
+    "m_schneider_540420080682_AC_Active_Power_B",
+    "m_schneider_540420080682_AC_Active_Power_C",
+    "m_schneider_540420080682_AC_Reactive_Power_A",
+    "m_schneider_540420080682_AC_Reactive_Power_B",
+    "m_schneider_540420080682_AC_Reactive_Power_C",
+    "m_schneider_540420080682_AC_Apparent_Power_A",
+    "m_schneider_540420080682_AC_Apparent_Power_B",
+    "m_schneider_540420080682_AC_Apparent_Power_C",
+    "m_schneider_540420080682_AC_PF_A",
+    "m_schneider_540420080682_AC_PF_B",
+    "m_schneider_540420080682_AC_PF_C",
+    "m_schneider_540420080682_AC_PF",
+    "m_schneider_540420080682_AC_Frequency",
+    # Rishabh 2303051510
+    "m_rishabh_2303051510_AC_Active_Power",
+    "m_rishabh_2303051510_AC_Reactive_Power",
+    "m_rishabh_2303051510_AC_Apparent_Power",
+    "m_rishabh_2303051510_kWh_Total_Import",
+    "m_rishabh_2303051510_kWh_Total_Export",
+    "m_rishabh_2303051510_AC_Voltage_AN",
+    "m_rishabh_2303051510_AC_Voltage_BN",
+    "m_rishabh_2303051510_AC_Voltage_CN",
+    "m_rishabh_2303051510_AC_Current_A",
+    "m_rishabh_2303051510_AC_Current_B",
+    "m_rishabh_2303051510_AC_Current_C",
+    "m_rishabh_2303051510_AC_Active_Power_A",
+    "m_rishabh_2303051510_AC_Active_Power_B",
+    "m_rishabh_2303051510_AC_Active_Power_C",
+    "m_rishabh_2303051510_AC_PF",
+    "m_rishabh_2303051510_AC_Frequency",
+    "m_rishabh_2303051510_kVARh_Lead",
+    "m_rishabh_2303051510_kVARh_Lag",
+    "m_rishabh_2303051510_kVAh_Total_Active",
+]
+
+
+class WattmonReading(db.Model):
+    """One Wattmon meter reading per data row uploaded."""
+    __tablename__ = "wattmon_readings"
+    __table_args__ = (
+        db.Index("ix_wattmon_readings_upload_ts", "upload_id", "ts"),
+    )
+
+    id = db.Column(db.Integer, primary_key=True)
+    upload_id = db.Column(db.Integer, db.ForeignKey("wattmon_uploads.id"), nullable=False, index=True)
+
+    # Common columns present on every row
+    ts = db.Column(db.Text, nullable=True, index=True)          # unix epoch seconds
+    timestamp = db.Column(db.Text, nullable=True)               # ISO-ish string when provided
+
+    # Schneider 540420085805
+    m_schneider_540420085805_AC_Active_Power = db.Column(db.Text)
+    m_schneider_540420085805_AC_Reactive_Power = db.Column(db.Text)
+    m_schneider_540420085805_AC_Apparent_Power = db.Column(db.Text)
+    m_schneider_540420085805_kWh_Total_Active = db.Column(db.Text)
+    m_schneider_540420085805_kVARh_Total_Active = db.Column(db.Text)
+    m_schneider_540420085805_kVAh_Total_Active = db.Column(db.Text)
+    m_schneider_540420085805_AC_Current_A = db.Column(db.Text)
+    m_schneider_540420085805_AC_Current_B = db.Column(db.Text)
+    m_schneider_540420085805_AC_Current_C = db.Column(db.Text)
+    m_schneider_540420085805_AC_Voltage_AB = db.Column(db.Text)
+    m_schneider_540420085805_AC_Voltage_BC = db.Column(db.Text)
+    m_schneider_540420085805_AC_Voltage_CA = db.Column(db.Text)
+    m_schneider_540420085805_AC_Voltage_AN = db.Column(db.Text)
+    m_schneider_540420085805_AC_Voltage_BN = db.Column(db.Text)
+    m_schneider_540420085805_AC_Voltage_CN = db.Column(db.Text)
+    m_schneider_540420085805_AC_Active_Power_A = db.Column(db.Text)
+    m_schneider_540420085805_AC_Active_Power_B = db.Column(db.Text)
+    m_schneider_540420085805_AC_Active_Power_C = db.Column(db.Text)
+    m_schneider_540420085805_AC_Reactive_Power_A = db.Column(db.Text)
+    m_schneider_540420085805_AC_Reactive_Power_B = db.Column(db.Text)
+    m_schneider_540420085805_AC_Reactive_Power_C = db.Column(db.Text)
+    m_schneider_540420085805_AC_Apparent_Power_A = db.Column(db.Text)
+    m_schneider_540420085805_AC_Apparent_Power_B = db.Column(db.Text)
+    m_schneider_540420085805_AC_Apparent_Power_C = db.Column(db.Text)
+    m_schneider_540420085805_AC_PF_A = db.Column(db.Text)
+    m_schneider_540420085805_AC_PF_B = db.Column(db.Text)
+    m_schneider_540420085805_AC_PF_C = db.Column(db.Text)
+    m_schneider_540420085805_AC_PF = db.Column(db.Text)
+    m_schneider_540420085805_AC_Frequency = db.Column(db.Text)
+    # Schneider 540420080451
+    m_schneider_540420080451_AC_Active_Power = db.Column(db.Text)
+    m_schneider_540420080451_AC_Reactive_Power = db.Column(db.Text)
+    m_schneider_540420080451_AC_Apparent_Power = db.Column(db.Text)
+    m_schneider_540420080451_kWh_Total_Active = db.Column(db.Text)
+    m_schneider_540420080451_kVARh_Total_Active = db.Column(db.Text)
+    m_schneider_540420080451_kVAh_Total_Active = db.Column(db.Text)
+    m_schneider_540420080451_AC_Current_A = db.Column(db.Text)
+    m_schneider_540420080451_AC_Current_B = db.Column(db.Text)
+    m_schneider_540420080451_AC_Current_C = db.Column(db.Text)
+    m_schneider_540420080451_AC_Voltage_AB = db.Column(db.Text)
+    m_schneider_540420080451_AC_Voltage_BC = db.Column(db.Text)
+    m_schneider_540420080451_AC_Voltage_CA = db.Column(db.Text)
+    m_schneider_540420080451_AC_Voltage_AN = db.Column(db.Text)
+    m_schneider_540420080451_AC_Voltage_BN = db.Column(db.Text)
+    m_schneider_540420080451_AC_Voltage_CN = db.Column(db.Text)
+    m_schneider_540420080451_AC_Active_Power_A = db.Column(db.Text)
+    m_schneider_540420080451_AC_Active_Power_B = db.Column(db.Text)
+    m_schneider_540420080451_AC_Active_Power_C = db.Column(db.Text)
+    m_schneider_540420080451_AC_Reactive_Power_A = db.Column(db.Text)
+    m_schneider_540420080451_AC_Reactive_Power_B = db.Column(db.Text)
+    m_schneider_540420080451_AC_Reactive_Power_C = db.Column(db.Text)
+    m_schneider_540420080451_AC_Apparent_Power_A = db.Column(db.Text)
+    m_schneider_540420080451_AC_Apparent_Power_B = db.Column(db.Text)
+    m_schneider_540420080451_AC_Apparent_Power_C = db.Column(db.Text)
+    m_schneider_540420080451_AC_PF_A = db.Column(db.Text)
+    m_schneider_540420080451_AC_PF_B = db.Column(db.Text)
+    m_schneider_540420080451_AC_PF_C = db.Column(db.Text)
+    m_schneider_540420080451_AC_PF = db.Column(db.Text)
+    m_schneider_540420080451_AC_Frequency = db.Column(db.Text)
+    # Schneider 540420075852
+    m_schneider_540420075852_AC_Active_Power = db.Column(db.Text)
+    m_schneider_540420075852_AC_Reactive_Power = db.Column(db.Text)
+    m_schneider_540420075852_AC_Apparent_Power = db.Column(db.Text)
+    m_schneider_540420075852_kWh_Total_Active = db.Column(db.Text)
+    m_schneider_540420075852_kVARh_Total_Active = db.Column(db.Text)
+    m_schneider_540420075852_kVAh_Total_Active = db.Column(db.Text)
+    m_schneider_540420075852_AC_Current_A = db.Column(db.Text)
+    m_schneider_540420075852_AC_Current_B = db.Column(db.Text)
+    m_schneider_540420075852_AC_Current_C = db.Column(db.Text)
+    m_schneider_540420075852_AC_Voltage_AB = db.Column(db.Text)
+    m_schneider_540420075852_AC_Voltage_BC = db.Column(db.Text)
+    m_schneider_540420075852_AC_Voltage_CA = db.Column(db.Text)
+    m_schneider_540420075852_AC_Voltage_AN = db.Column(db.Text)
+    m_schneider_540420075852_AC_Voltage_BN = db.Column(db.Text)
+    m_schneider_540420075852_AC_Voltage_CN = db.Column(db.Text)
+    m_schneider_540420075852_AC_Active_Power_A = db.Column(db.Text)
+    m_schneider_540420075852_AC_Active_Power_B = db.Column(db.Text)
+    m_schneider_540420075852_AC_Active_Power_C = db.Column(db.Text)
+    m_schneider_540420075852_AC_Reactive_Power_A = db.Column(db.Text)
+    m_schneider_540420075852_AC_Reactive_Power_B = db.Column(db.Text)
+    m_schneider_540420075852_AC_Reactive_Power_C = db.Column(db.Text)
+    m_schneider_540420075852_AC_Apparent_Power_A = db.Column(db.Text)
+    m_schneider_540420075852_AC_Apparent_Power_B = db.Column(db.Text)
+    m_schneider_540420075852_AC_Apparent_Power_C = db.Column(db.Text)
+    m_schneider_540420075852_AC_PF_A = db.Column(db.Text)
+    m_schneider_540420075852_AC_PF_B = db.Column(db.Text)
+    m_schneider_540420075852_AC_PF_C = db.Column(db.Text)
+    m_schneider_540420075852_AC_PF = db.Column(db.Text)
+    m_schneider_540420075852_AC_Frequency = db.Column(db.Text)
+    # Schneider 540420085806
+    m_schneider_540420085806_AC_Active_Power = db.Column(db.Text)
+    m_schneider_540420085806_AC_Reactive_Power = db.Column(db.Text)
+    m_schneider_540420085806_AC_Apparent_Power = db.Column(db.Text)
+    m_schneider_540420085806_kWh_Total_Active = db.Column(db.Text)
+    m_schneider_540420085806_kVARh_Total_Active = db.Column(db.Text)
+    m_schneider_540420085806_kVAh_Total_Active = db.Column(db.Text)
+    m_schneider_540420085806_AC_Current_A = db.Column(db.Text)
+    m_schneider_540420085806_AC_Current_B = db.Column(db.Text)
+    m_schneider_540420085806_AC_Current_C = db.Column(db.Text)
+    m_schneider_540420085806_AC_Voltage_AB = db.Column(db.Text)
+    m_schneider_540420085806_AC_Voltage_BC = db.Column(db.Text)
+    m_schneider_540420085806_AC_Voltage_CA = db.Column(db.Text)
+    m_schneider_540420085806_AC_Voltage_AN = db.Column(db.Text)
+    m_schneider_540420085806_AC_Voltage_BN = db.Column(db.Text)
+    m_schneider_540420085806_AC_Voltage_CN = db.Column(db.Text)
+    m_schneider_540420085806_AC_Active_Power_A = db.Column(db.Text)
+    m_schneider_540420085806_AC_Active_Power_B = db.Column(db.Text)
+    m_schneider_540420085806_AC_Active_Power_C = db.Column(db.Text)
+    m_schneider_540420085806_AC_Reactive_Power_A = db.Column(db.Text)
+    m_schneider_540420085806_AC_Reactive_Power_B = db.Column(db.Text)
+    m_schneider_540420085806_AC_Reactive_Power_C = db.Column(db.Text)
+    m_schneider_540420085806_AC_Apparent_Power_A = db.Column(db.Text)
+    m_schneider_540420085806_AC_Apparent_Power_B = db.Column(db.Text)
+    m_schneider_540420085806_AC_Apparent_Power_C = db.Column(db.Text)
+    m_schneider_540420085806_AC_PF_A = db.Column(db.Text)
+    m_schneider_540420085806_AC_PF_B = db.Column(db.Text)
+    m_schneider_540420085806_AC_PF_C = db.Column(db.Text)
+    m_schneider_540420085806_AC_PF = db.Column(db.Text)
+    m_schneider_540420085806_AC_Frequency = db.Column(db.Text)
+    # Schneider 540420085810
+    m_schneider_540420085810_AC_Active_Power = db.Column(db.Text)
+    m_schneider_540420085810_AC_Reactive_Power = db.Column(db.Text)
+    m_schneider_540420085810_AC_Apparent_Power = db.Column(db.Text)
+    m_schneider_540420085810_kWh_Total_Active = db.Column(db.Text)
+    m_schneider_540420085810_kVARh_Total_Active = db.Column(db.Text)
+    m_schneider_540420085810_kVAh_Total_Active = db.Column(db.Text)
+    m_schneider_540420085810_AC_Current_A = db.Column(db.Text)
+    m_schneider_540420085810_AC_Current_B = db.Column(db.Text)
+    m_schneider_540420085810_AC_Current_C = db.Column(db.Text)
+    m_schneider_540420085810_AC_Voltage_AB = db.Column(db.Text)
+    m_schneider_540420085810_AC_Voltage_BC = db.Column(db.Text)
+    m_schneider_540420085810_AC_Voltage_CA = db.Column(db.Text)
+    m_schneider_540420085810_AC_Voltage_AN = db.Column(db.Text)
+    m_schneider_540420085810_AC_Voltage_BN = db.Column(db.Text)
+    m_schneider_540420085810_AC_Voltage_CN = db.Column(db.Text)
+    m_schneider_540420085810_AC_Active_Power_A = db.Column(db.Text)
+    m_schneider_540420085810_AC_Active_Power_B = db.Column(db.Text)
+    m_schneider_540420085810_AC_Active_Power_C = db.Column(db.Text)
+    m_schneider_540420085810_AC_Reactive_Power_A = db.Column(db.Text)
+    m_schneider_540420085810_AC_Reactive_Power_B = db.Column(db.Text)
+    m_schneider_540420085810_AC_Reactive_Power_C = db.Column(db.Text)
+    m_schneider_540420085810_AC_Apparent_Power_A = db.Column(db.Text)
+    m_schneider_540420085810_AC_Apparent_Power_B = db.Column(db.Text)
+    m_schneider_540420085810_AC_Apparent_Power_C = db.Column(db.Text)
+    m_schneider_540420085810_AC_PF_A = db.Column(db.Text)
+    m_schneider_540420085810_AC_PF_B = db.Column(db.Text)
+    m_schneider_540420085810_AC_PF_C = db.Column(db.Text)
+    m_schneider_540420085810_AC_PF = db.Column(db.Text)
+    m_schneider_540420085810_AC_Frequency = db.Column(db.Text)
+    # Schneider 540420085804
+    m_schneider_540420085804_AC_Active_Power = db.Column(db.Text)
+    m_schneider_540420085804_AC_Reactive_Power = db.Column(db.Text)
+    m_schneider_540420085804_AC_Apparent_Power = db.Column(db.Text)
+    m_schneider_540420085804_kWh_Total_Active = db.Column(db.Text)
+    m_schneider_540420085804_kVARh_Total_Active = db.Column(db.Text)
+    m_schneider_540420085804_kVAh_Total_Active = db.Column(db.Text)
+    m_schneider_540420085804_AC_Current_A = db.Column(db.Text)
+    m_schneider_540420085804_AC_Current_B = db.Column(db.Text)
+    m_schneider_540420085804_AC_Current_C = db.Column(db.Text)
+    m_schneider_540420085804_AC_Voltage_AB = db.Column(db.Text)
+    m_schneider_540420085804_AC_Voltage_BC = db.Column(db.Text)
+    m_schneider_540420085804_AC_Voltage_CA = db.Column(db.Text)
+    m_schneider_540420085804_AC_Voltage_AN = db.Column(db.Text)
+    m_schneider_540420085804_AC_Voltage_BN = db.Column(db.Text)
+    m_schneider_540420085804_AC_Voltage_CN = db.Column(db.Text)
+    m_schneider_540420085804_AC_Active_Power_A = db.Column(db.Text)
+    m_schneider_540420085804_AC_Active_Power_B = db.Column(db.Text)
+    m_schneider_540420085804_AC_Active_Power_C = db.Column(db.Text)
+    m_schneider_540420085804_AC_Reactive_Power_A = db.Column(db.Text)
+    m_schneider_540420085804_AC_Reactive_Power_B = db.Column(db.Text)
+    m_schneider_540420085804_AC_Reactive_Power_C = db.Column(db.Text)
+    m_schneider_540420085804_AC_Apparent_Power_A = db.Column(db.Text)
+    m_schneider_540420085804_AC_Apparent_Power_B = db.Column(db.Text)
+    m_schneider_540420085804_AC_Apparent_Power_C = db.Column(db.Text)
+    m_schneider_540420085804_AC_PF_A = db.Column(db.Text)
+    m_schneider_540420085804_AC_PF_B = db.Column(db.Text)
+    m_schneider_540420085804_AC_PF_C = db.Column(db.Text)
+    m_schneider_540420085804_AC_PF = db.Column(db.Text)
+    m_schneider_540420085804_AC_Frequency = db.Column(db.Text)
+    # Schneider 540420082234
+    m_schneider_540420082234_AC_Active_Power = db.Column(db.Text)
+    m_schneider_540420082234_AC_Reactive_Power = db.Column(db.Text)
+    m_schneider_540420082234_AC_Apparent_Power = db.Column(db.Text)
+    m_schneider_540420082234_kWh_Total_Active = db.Column(db.Text)
+    m_schneider_540420082234_kVARh_Total_Active = db.Column(db.Text)
+    m_schneider_540420082234_kVAh_Total_Active = db.Column(db.Text)
+    m_schneider_540420082234_AC_Current_A = db.Column(db.Text)
+    m_schneider_540420082234_AC_Current_B = db.Column(db.Text)
+    m_schneider_540420082234_AC_Current_C = db.Column(db.Text)
+    m_schneider_540420082234_AC_Voltage_AB = db.Column(db.Text)
+    m_schneider_540420082234_AC_Voltage_BC = db.Column(db.Text)
+    m_schneider_540420082234_AC_Voltage_CA = db.Column(db.Text)
+    m_schneider_540420082234_AC_Voltage_AN = db.Column(db.Text)
+    m_schneider_540420082234_AC_Voltage_BN = db.Column(db.Text)
+    m_schneider_540420082234_AC_Voltage_CN = db.Column(db.Text)
+    m_schneider_540420082234_AC_Active_Power_A = db.Column(db.Text)
+    m_schneider_540420082234_AC_Active_Power_B = db.Column(db.Text)
+    m_schneider_540420082234_AC_Active_Power_C = db.Column(db.Text)
+    m_schneider_540420082234_AC_Reactive_Power_A = db.Column(db.Text)
+    m_schneider_540420082234_AC_Reactive_Power_B = db.Column(db.Text)
+    m_schneider_540420082234_AC_Reactive_Power_C = db.Column(db.Text)
+    m_schneider_540420082234_AC_Apparent_Power_A = db.Column(db.Text)
+    m_schneider_540420082234_AC_Apparent_Power_B = db.Column(db.Text)
+    m_schneider_540420082234_AC_Apparent_Power_C = db.Column(db.Text)
+    m_schneider_540420082234_AC_PF_A = db.Column(db.Text)
+    m_schneider_540420082234_AC_PF_B = db.Column(db.Text)
+    m_schneider_540420082234_AC_PF_C = db.Column(db.Text)
+    m_schneider_540420082234_AC_PF = db.Column(db.Text)
+    m_schneider_540420082234_AC_Frequency = db.Column(db.Text)
+    # Schneider 540420085811
+    m_schneider_540420085811_AC_Active_Power = db.Column(db.Text)
+    m_schneider_540420085811_AC_Reactive_Power = db.Column(db.Text)
+    m_schneider_540420085811_AC_Apparent_Power = db.Column(db.Text)
+    m_schneider_540420085811_kWh_Total_Active = db.Column(db.Text)
+    m_schneider_540420085811_kVARh_Total_Active = db.Column(db.Text)
+    m_schneider_540420085811_kVAh_Total_Active = db.Column(db.Text)
+    m_schneider_540420085811_AC_Current_A = db.Column(db.Text)
+    m_schneider_540420085811_AC_Current_B = db.Column(db.Text)
+    m_schneider_540420085811_AC_Current_C = db.Column(db.Text)
+    m_schneider_540420085811_AC_Voltage_AB = db.Column(db.Text)
+    m_schneider_540420085811_AC_Voltage_BC = db.Column(db.Text)
+    m_schneider_540420085811_AC_Voltage_CA = db.Column(db.Text)
+    m_schneider_540420085811_AC_Voltage_AN = db.Column(db.Text)
+    m_schneider_540420085811_AC_Voltage_BN = db.Column(db.Text)
+    m_schneider_540420085811_AC_Voltage_CN = db.Column(db.Text)
+    m_schneider_540420085811_AC_Active_Power_A = db.Column(db.Text)
+    m_schneider_540420085811_AC_Active_Power_B = db.Column(db.Text)
+    m_schneider_540420085811_AC_Active_Power_C = db.Column(db.Text)
+    m_schneider_540420085811_AC_Reactive_Power_A = db.Column(db.Text)
+    m_schneider_540420085811_AC_Reactive_Power_B = db.Column(db.Text)
+    m_schneider_540420085811_AC_Reactive_Power_C = db.Column(db.Text)
+    m_schneider_540420085811_AC_Apparent_Power_A = db.Column(db.Text)
+    m_schneider_540420085811_AC_Apparent_Power_B = db.Column(db.Text)
+    m_schneider_540420085811_AC_Apparent_Power_C = db.Column(db.Text)
+    m_schneider_540420085811_AC_PF_A = db.Column(db.Text)
+    m_schneider_540420085811_AC_PF_B = db.Column(db.Text)
+    m_schneider_540420085811_AC_PF_C = db.Column(db.Text)
+    m_schneider_540420085811_AC_PF = db.Column(db.Text)
+    m_schneider_540420085811_AC_Frequency = db.Column(db.Text)
+    # Schneider 540420080682
+    m_schneider_540420080682_AC_Active_Power = db.Column(db.Text)
+    m_schneider_540420080682_AC_Reactive_Power = db.Column(db.Text)
+    m_schneider_540420080682_AC_Apparent_Power = db.Column(db.Text)
+    m_schneider_540420080682_kWh_Total_Active = db.Column(db.Text)
+    m_schneider_540420080682_kVARh_Total_Active = db.Column(db.Text)
+    m_schneider_540420080682_kVAh_Total_Active = db.Column(db.Text)
+    m_schneider_540420080682_AC_Current_A = db.Column(db.Text)
+    m_schneider_540420080682_AC_Current_B = db.Column(db.Text)
+    m_schneider_540420080682_AC_Current_C = db.Column(db.Text)
+    m_schneider_540420080682_AC_Voltage_AB = db.Column(db.Text)
+    m_schneider_540420080682_AC_Voltage_BC = db.Column(db.Text)
+    m_schneider_540420080682_AC_Voltage_CA = db.Column(db.Text)
+    m_schneider_540420080682_AC_Voltage_AN = db.Column(db.Text)
+    m_schneider_540420080682_AC_Voltage_BN = db.Column(db.Text)
+    m_schneider_540420080682_AC_Voltage_CN = db.Column(db.Text)
+    m_schneider_540420080682_AC_Active_Power_A = db.Column(db.Text)
+    m_schneider_540420080682_AC_Active_Power_B = db.Column(db.Text)
+    m_schneider_540420080682_AC_Active_Power_C = db.Column(db.Text)
+    m_schneider_540420080682_AC_Reactive_Power_A = db.Column(db.Text)
+    m_schneider_540420080682_AC_Reactive_Power_B = db.Column(db.Text)
+    m_schneider_540420080682_AC_Reactive_Power_C = db.Column(db.Text)
+    m_schneider_540420080682_AC_Apparent_Power_A = db.Column(db.Text)
+    m_schneider_540420080682_AC_Apparent_Power_B = db.Column(db.Text)
+    m_schneider_540420080682_AC_Apparent_Power_C = db.Column(db.Text)
+    m_schneider_540420080682_AC_PF_A = db.Column(db.Text)
+    m_schneider_540420080682_AC_PF_B = db.Column(db.Text)
+    m_schneider_540420080682_AC_PF_C = db.Column(db.Text)
+    m_schneider_540420080682_AC_PF = db.Column(db.Text)
+    m_schneider_540420080682_AC_Frequency = db.Column(db.Text)
+    # Rishabh 2303051510
+    m_rishabh_2303051510_AC_Active_Power = db.Column(db.Text)
+    m_rishabh_2303051510_AC_Reactive_Power = db.Column(db.Text)
+    m_rishabh_2303051510_AC_Apparent_Power = db.Column(db.Text)
+    m_rishabh_2303051510_kWh_Total_Import = db.Column(db.Text)
+    m_rishabh_2303051510_kWh_Total_Export = db.Column(db.Text)
+    m_rishabh_2303051510_AC_Voltage_AN = db.Column(db.Text)
+    m_rishabh_2303051510_AC_Voltage_BN = db.Column(db.Text)
+    m_rishabh_2303051510_AC_Voltage_CN = db.Column(db.Text)
+    m_rishabh_2303051510_AC_Current_A = db.Column(db.Text)
+    m_rishabh_2303051510_AC_Current_B = db.Column(db.Text)
+    m_rishabh_2303051510_AC_Current_C = db.Column(db.Text)
+    m_rishabh_2303051510_AC_Active_Power_A = db.Column(db.Text)
+    m_rishabh_2303051510_AC_Active_Power_B = db.Column(db.Text)
+    m_rishabh_2303051510_AC_Active_Power_C = db.Column(db.Text)
+    m_rishabh_2303051510_AC_PF = db.Column(db.Text)
+    m_rishabh_2303051510_AC_Frequency = db.Column(db.Text)
+    m_rishabh_2303051510_kVARh_Lead = db.Column(db.Text)
+    m_rishabh_2303051510_kVARh_Lag = db.Column(db.Text)
+    m_rishabh_2303051510_kVAh_Total_Active = db.Column(db.Text)
+
+

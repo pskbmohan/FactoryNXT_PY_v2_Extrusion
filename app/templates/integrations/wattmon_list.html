@@ -1,0 +1,104 @@
+{% extends "layout.html" %}
+{% block title %}Wattmon Uploads{% endblock %}
+
+{% block content %}
+<div class="mb-6 flex items-start justify-between">
+  <div>
+    <h1 class="text-2xl font-bold text-slate-900">Wattmon Uploads</h1>
+    <p class="text-sm text-slate-500 mt-1">
+      CSV payloads received from the Wattmon integration device.
+      Every upload is stored row-by-row in the <code class="px-1 py-0.5 rounded bg-slate-100 text-xs text-slate-700">wattmon_readings</code> table
+      with a fixed 216-column schema.
+    </p>
+  </div>
+  <div class="flex items-center gap-2">
+    <a href="{{ url_for('integrations.csv_upload') }}"
+       class="inline-flex items-center px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-lg shadow-sm transition-colors">
+      <svg class="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5-5m0 0l5 5m-5-5v12" />
+      </svg>
+      New Upload
+    </a>
+  </div>
+</div>
+
+{% if uploads %}
+<div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+  <div class="overflow-x-auto">
+    <table class="w-full text-left text-sm">
+      <thead class="bg-slate-50 text-slate-600 uppercase tracking-wider text-xs font-semibold border-b border-slate-200">
+        <tr>
+          <th class="px-5 py-3">ID</th>
+          <th class="px-5 py-3">Source (Key)</th>
+          <th class="px-5 py-3">Filename</th>
+          <th class="px-5 py-3 text-right">Rows</th>
+          <th class="px-5 py-3">Uploaded At</th>
+          <th class="px-5 py-3 text-right">Actions</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-slate-100">
+        {% for u in uploads %}
+        <tr class="hover:bg-slate-50 transition-colors">
+          <td class="px-5 py-3 font-mono text-xs text-slate-500">#{{ u.id }}</td>
+          <td class="px-5 py-3">
+            {% if u.source_key %}
+              <code class="px-1.5 py-0.5 rounded bg-slate-100 text-slate-800 text-xs">{{ u.source_key }}</code>
+            {% else %}
+              <span class="text-slate-400 italic">—</span>
+            {% endif %}
+          </td>
+          <td class="px-5 py-3 text-slate-700 truncate max-w-xs" title="{{ u.filename }}">{{ u.filename }}</td>
+          <td class="px-5 py-3 text-right tabular-nums text-slate-700">{{ "{:,}".format(u.row_count) }}</td>
+          <td class="px-5 py-3 text-slate-700">
+            <span class="font-medium text-slate-900">{{ u.uploaded_at.strftime('%Y-%m-%d %H:%M:%S') }}</span>
+            <span class="text-xs text-slate-400 ml-1">UTC</span>
+          </td>
+          <td class="px-5 py-3 text-right space-x-2">
+            <a href="{{ url_for('integrations.wattmon_detail', upload_id=u.id) }}"
+               class="inline-flex items-center text-xs font-medium text-primary-700 hover:text-primary-900">
+              View
+            </a>
+            <form method="post" action="{{ url_for('integrations.wattmon_delete', upload_id=u.id) }}"
+                  onsubmit="return confirm('Delete upload #{{ u.id }} and all {{ '{:,}'.format(u.row_count) }} of its rows?');"
+                  class="inline">
+              <button type="submit" class="text-xs font-medium text-red-600 hover:text-red-800">Delete</button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% if pagination.pages > 1 %}
+<nav class="mt-4 flex justify-center gap-2 text-sm">
+  {% if pagination.has_prev %}
+    <a href="{{ url_for('integrations.wattmon_list', page=pagination.prev_num) }}"
+       class="px-3 py-1.5 rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-50">← Previous</a>
+  {% endif %}
+  <span class="px-3 py-1.5 text-slate-500">
+    Page {{ pagination.page }} of {{ pagination.pages }}
+  </span>
+  {% if pagination.has_next %}
+    <a href="{{ url_for('integrations.wattmon_list', page=pagination.next_num) }}"
+       class="px-3 py-1.5 rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-50">Next →</a>
+  {% endif %}
+</nav>
+{% endif %}
+
+{% else %}
+<div class="bg-white rounded-xl border border-slate-200 shadow-sm p-10 text-center">
+  <svg class="mx-auto w-12 h-12 text-slate-300 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+          d="M9 12h6m-3-3v6m-7 4h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+  </svg>
+  <h3 class="text-sm font-semibold text-slate-900">No uploads yet</h3>
+  <p class="text-xs text-slate-500 mt-1">
+    POST a Wattmon CSV to <code class="px-1.5 py-0.5 rounded bg-slate-100">{{ url_for('integrations.csv_upload_submit', _external=False) }}</code>
+    to populate this log.
+  </p>
+</div>
+{% endif %}
+{% endblock %}

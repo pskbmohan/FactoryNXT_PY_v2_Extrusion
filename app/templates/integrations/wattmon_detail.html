@@ -1,0 +1,114 @@
+{% extends "layout.html" %}
+{% block title %}Wattmon Upload #{{ upload.id }}{% endblock %}
+
+{% block content %}
+<!-- Header / back-link ribbon -->
+<div class="flex items-center justify-between mb-2">
+  <a href="{{ url_for('integrations.wattmon_list') }}"
+     class="text-sm text-slate-500 hover:text-primary-700 inline-flex items-center">
+    <svg class="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+    </svg>
+    All uploads
+  </a>
+  <form method="post" action="{{ url_for('integrations.wattmon_delete', upload_id=upload.id) }}"
+        onsubmit="return confirm('Delete upload #{{ upload.id }} and all {{ '{:,}'.format(upload.row_count) }} of its rows?');">
+    <button type="submit" class="inline-flex items-center px-3 py-1.5 text-sm font-medium text-red-700 bg-red-50 hover:bg-red-100 rounded-lg border border-red-200">
+      Delete
+    </button>
+  </form>
+</div>
+
+<!-- Upload summary -->
+<div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5 mb-6">
+  <h1 class="text-xl font-bold text-slate-900 mb-4">Wattmon Upload <span class="text-slate-400">#{{ upload.id }}</span></h1>
+  <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm">
+    <div>
+      <div class="text-xs uppercase tracking-wider text-slate-500 mb-1">Source key</div>
+      {% if upload.source_key %}
+        <code class="px-1.5 py-0.5 rounded bg-slate-100 text-slate-800 text-xs">{{ upload.source_key }}</code>
+      {% else %}
+        <span class="text-slate-400 italic">—</span>
+      {% endif %}
+    </div>
+    <div>
+      <div class="text-xs uppercase tracking-wider text-slate-500 mb-1">Rows stored</div>
+      <div class="font-semibold text-slate-900 tabular-nums">{{ "{:,}".format(total_readings) }}</div>
+    </div>
+    <div>
+      <div class="text-xs uppercase tracking-wider text-slate-500 mb-1">Uploaded at</div>
+      <div class="font-semibold text-primary-700">{{ upload.uploaded_at.strftime('%Y-%m-%d %H:%M:%S') }} <span class="text-xs text-slate-400 font-normal">UTC</span></div>
+    </div>
+    <div>
+      <div class="text-xs uppercase tracking-wider text-slate-500 mb-1">Filename</div>
+      <div class="text-slate-700 truncate" title="{{ upload.filename }}">{{ upload.filename }}</div>
+    </div>
+  </div>
+</div>
+
+{% if readings %}
+<!-- Readings table -->
+<div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+  <div class="px-5 py-3 border-b border-slate-200 bg-slate-50/50 flex items-center justify-between">
+    <h2 class="text-base font-semibold text-slate-900">
+      Meter readings
+      <span class="ml-2 text-xs font-normal text-slate-500">
+        page {{ readings_pagination.page }} of {{ readings_pagination.pages }}
+        · showing {{ readings|length }} / {{ "{:,}".format(total_readings) }} rows
+      </span>
+    </h2>
+    <div class="text-xs text-slate-500">{{ columns|length }} columns · stored in <code class="font-mono">wattmon_readings</code></div>
+  </div>
+  <div class="overflow-x-auto max-h-[72vh] overflow-y-auto">
+    <table class="w-full text-left text-xs font-mono whitespace-nowrap">
+      <thead class="bg-slate-100 text-slate-700 uppercase tracking-wider text-[10px] font-semibold sticky top-0 shadow-sm z-10">
+        <tr>
+          <th class="px-3 py-2 border-b border-slate-200 bg-slate-100 text-slate-500">#</th>
+          {% for col in columns %}
+          <th class="px-2 py-2 border-b border-slate-200 bg-slate-100" title="{{ col }}">{{ col }}</th>
+          {% endfor %}
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-slate-100">
+        {% for r in readings %}
+        <tr class="hover:bg-slate-50 transition-colors">
+          <td class="px-3 py-1.5 text-slate-400 select-none">{{ loop.index + ((readings_pagination.page - 1) * readings_pagination.per_page) }}</td>
+          {% for col in columns %}
+          <td class="px-2 py-1.5 text-slate-700">{{ r[col] if r[col] is defined and r[col] is not none else '' }}</td>
+          {% endfor %}
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% if readings_pagination.pages > 1 %}
+<nav class="mt-4 flex justify-center gap-2 text-sm">
+  {% if readings_pagination.has_prev %}
+    <a href="{{ url_for('integrations.wattmon_detail', upload_id=upload.id, page=readings_pagination.prev_num, per_page=readings_pagination.per_page) }}"
+       class="px-3 py-1.5 rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-50">← Previous</a>
+  {% endif %}
+  <form method="get" class="flex items-center gap-2">
+    <label for="per_page" class="text-xs text-slate-500">Rows/page</label>
+    <select name="per_page" id="per_page"
+            onchange="this.form.submit()"
+            class="px-2 py-1 text-xs rounded-lg border border-slate-200 bg-white text-slate-700">
+      {% for n in [50, 100, 250, 500, 1000] %}
+      <option value="{{ n }}" {% if readings_pagination.per_page == n %}selected{% endif %}>{{ n }}</option>
+      {% endfor %}
+    </select>
+  </form>
+  {% if readings_pagination.has_next %}
+    <a href="{{ url_for('integrations.wattmon_detail', upload_id=upload.id, page=readings_pagination.next_num, per_page=readings_pagination.per_page) }}"
+       class="px-3 py-1.5 rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-50">Next →</a>
+  {% endif %}
+</nav>
+{% endif %}
+
+{% else %}
+<div class="bg-white rounded-xl border border-slate-200 shadow-sm p-10 text-center">
+  <p class="text-sm text-slate-500">This upload has no readings stored. Check why the rows did not insert.</p>
+</div>
+{% endif %}
+{% endblock %}

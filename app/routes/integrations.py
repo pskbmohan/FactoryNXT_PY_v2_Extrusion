@@ -1,6 +1,8 @@
 import csv
 import io
-from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, session
+import os
+from flask import Blueprint, current_app, render_template, request, redirect, url_for, flash, jsonify, session
+from werkzeug.utils import secure_filename
 from .. import db
 from ..models import Integration, ErpSyncLog, Webhook, ApiKey, IntegrationJob
 from datetime import datetime, timedelta
@@ -317,11 +319,43 @@ def erp_reprocess():
     return redirect(url_for("integrations.erp_sync"))
 
 
-# ── CSV upload & preview ────────────────────────────────────────────────────
-@bp.route("/csv-upload", methods=["GET"])
-def csv_upload():
-    """Display the CSV upload form."""
-    return render_template("integrations/csv_upload.html")
+# ── Wattmon integration: CSV upload & log viewer ─────────────────────────────
+#
+# The Wattmon integration device pushes its energy-meter data as a POST to
+# /integrations/csv-upload with ``application/x-www-form-urlencoded``:
+#
+#     key=<MAC>&data=<csv-body>
+#
+# where ``<csv-body>`` is the full CSV (header row + data rows, ``\n``
+# separated). The endpoint below parses that body, stores rows in the
+# :class:`WattmonReading` table with fixed columns mirroring the canonical
+# header list (216 columns: ts, timestamp, 9 Schneider series × 31 cols each,
+# 1 Rishabh series × 19 cols), and returns ``{"status":"ok",...}`` so the
+# device does not time out.
+#
+# Browser-style multipart uploads and raw ``text/csv`` POSTs are still
+# accepted for ad-hoc testing.
+#
+# View pages:
+#   GET  /integrations/csv-upload          — upload form + API docs
+#   GET  /integrations/wattmon             — list of uploads w/ timestamps
+#   GET  /integrations/wattmon/<id>        — one upload + all its readings
+#   POST /integrations/wattmon/<id>/delete — remove an upload
+
+_WATMON_HEADER_TO_COL = None  # lazily populated by _wattmon_map()
+
+
+def _wattmon_map():
+    """Return {csv_header_name: WattmonReading column attribute} once."""
+    global _WATMON_HEADER_TO_COL
+    from .. import models as m
+    if _WATMON_HEADER_TO_COL is None:
+        _WATMON_HEADER_TO_COL = {}
+        for h in m._WATMON_COLUMNS:
+            attr = getattr(m.WattmonReading, h, None)
+            if attr is not None:
+                _WATMON_HEADER_TO_COL[h] = attr
+    return _WATMON_HEADER_TO_COL
 
 
 def _wants_json():
@@ -329,129 +363,234 @@ def _wants_json():
     best = request.accept_mimetypes.best_match(["application/json", "text/html"])
     return (
         best == "application/json"
-        or request.content_type == "text/csv"
-        or request.content_type == "application/json"
+        or (request.content_type or "").startswith("text/csv")
+        or (request.content_type or "").startswith("application/json")
         or request.headers.get("X-Requested-With") == "XMLHttpRequest"
     )
 
 
+def _parse_csv_body(raw_bytes):
+    """Decode + parse CSV bytes, returning (headers, rows).
+    Raises ``ValueError`` on empty / unparseable inputs.
+    """
+    text = raw_bytes.decode("utf-8-sig")
+    reader = csv.reader(io.StringIO(text))
+    try:
+        headers = next(reader)
+    except StopIteration:
+        raise ValueError("The CSV file is empty.")
+    rows = [r for r in reader if any(cell.strip() for cell in r)]
+    if not rows:
+        raise ValueError("CSV has headers but no data rows.")
+    # Normalise header whitespace (keep column names as-is, they include dots)
+    headers = [h.strip() for h in headers]
+    return headers, rows
+
+
+@bp.route("/csv-upload", methods=["GET"])
+def csv_upload():
+    """Display the CSV upload form (Wattmon integration)."""
+    from ..models import WattmonUpload
+    latest = WattmonUpload.query.order_by(WattmonUpload.uploaded_at.desc()).first()
+    return render_template("integrations/csv_upload.html", latest=latest)
+
+
 @bp.route("/csv-upload", methods=["POST"])
 def csv_upload_submit():
-    """Accept a CSV POST from another server (no authentication).
+    """Accept a Wattmon CSV POST (no authentication required).
 
-    Accepted request shapes:
-      1. ``multipart/form-data`` with a ``csv_file`` field (file upload).
-      2. Raw body with ``Content-Type: text/csv`` (server-to-server push).
+    Supported shapes:
+      1. ``application/x-www-form-urlencoded`` with fields ``key`` and ``data``
+         (the real integration device).
+      2. ``multipart/form-data`` with a ``csv_file`` field (browser upload).
+      3. Raw body with ``Content-Type: text/csv`` (server-to-server push).
 
-    Returns JSON for API clients or redirects to the preview screen for browsers.
+    All shapes parse the same CSV header list and insert rows into the fixed
+    ``wattmon_readings`` table. Returns JSON for non-browser callers so the
+    device gets a real ``200`` response body.
     """
+    from ..models import WattmonUpload, WattmonReading
+
     raw_bytes = b""
     filename = "upload.csv"
+    source_key = None
 
     if request.content_type and "multipart/form-data" in request.content_type:
-        # Shape 1: multipart form upload
         uploaded = request.files.get("csv_file")
         if not uploaded or not uploaded.filename:
-            err = {"error": "no_file", "message": "No csv_file field found in the multipart upload."}
+            err = {"error": "no_file", "message": "No csv_file field in the multipart upload."}
             if _wants_json():
                 return jsonify(err), 400
             flash(err["message"], "warning")
             return redirect(url_for("integrations.csv_upload"))
         filename = uploaded.filename or "upload.csv"
+        source_key = request.form.get("key")
         raw_bytes = uploaded.stream.read()
-    else:
-        # Shape 2: raw CSV body (another server POSTing text/csv)
-        raw_bytes = request.get_data()
+    elif request.content_type and "application/x-www-form-urlencoded" in request.content_type:
+        # Shape 1: the Wattmon device's key=MAC&data=<csv> payload
+        source_key = request.form.get("key") or request.args.get("key")
+        data_field = request.form.get("data", "")
         filename = (
             request.headers.get("X-Filename")
             or request.args.get("filename")
-            or "upload.csv"
+            or f"wattmon_{source_key or 'unknown'}.csv"
+        )
+        raw_bytes = data_field.encode("utf-8") if data_field else b""
+    else:
+        # Shape 3: raw CSV body
+        raw_bytes = request.get_data()
+        source_key = request.headers.get("X-Key") or request.args.get("key")
+        filename = (
+            request.headers.get("X-Filename")
+            or request.args.get("filename")
+            or f"wattmon_{source_key or 'unknown'}.csv"
         )
 
     if not raw_bytes:
         err = {"error": "empty_body", "message": "The request body was empty."}
         if _wants_json():
             return jsonify(err), 400
-        flash("The uploaded file is empty.", "warning")
+        flash("The uploaded CSV is empty.", "warning")
         return redirect(url_for("integrations.csv_upload"))
 
     try:
-        text = raw_bytes.decode("utf-8-sig")
-        reader = csv.reader(io.StringIO(text))
-
-        try:
-            headers = next(reader)
-        except StopIteration:
-            err = {"error": "empty_file", "message": "The CSV file is empty."}
-            if _wants_json():
-                return jsonify(err), 400
-            flash("The uploaded CSV file is empty.", "warning")
-            return redirect(url_for("integrations.csv_upload"))
-
-        rows = list(reader)
-        # Drop completely blank rows
-        rows = [r for r in rows if any(cell.strip() for cell in r)]
-
-        if not rows:
-            err = {"error": "no_data", "message": "CSV has headers but no data rows."}
-            if _wants_json():
-                return jsonify(err), 400
-            flash("The CSV file has headers but no data rows.", "warning")
-            return redirect(url_for("integrations.csv_upload"))
-
-        headers = [h.strip() for h in headers]
-
-        csv_data = {
-            "filename": filename,
-            "headers": headers,
-            "row_count": len(rows),
-            "rows": rows[:500],
-            "truncated": len(rows) > 500,
-            "uploaded_at": datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S UTC"),
-        }
-        session["csv_data"] = csv_data
-
+        headers, rows = _parse_csv_body(raw_bytes)
     except UnicodeDecodeError:
         err = {"error": "bad_encoding", "message": "Could not decode file; ensure UTF-8."}
         if _wants_json():
             return jsonify(err), 400
-        flash("Could not decode file. Please ensure it is a UTF-8 encoded CSV.", "warning")
+        flash("Could not decode file. Please ensure it is UTF-8 encoded.", "warning")
         return redirect(url_for("integrations.csv_upload"))
-    except csv.Error as e:
-        err = {"error": "csv_parse_error", "message": f"CSV parsing error: {e}"}
+    except ValueError as e:
+        # empty_file / no_data
+        err = {"error": "invalid_csv", "message": str(e)}
         if _wants_json():
             return jsonify(err), 400
-        flash(f"CSV parsing error: {e}", "warning")
+        flash(str(e), "warning")
         return redirect(url_for("integrations.csv_upload"))
+    except csv.Error as e:
+        err = {"error": "csv_parse_error", "message": f"CSV parse error: {e}"}
+        if _wants_json():
+            return jsonify(err), 400
+        flash(f"CSV parse error: {e}", "warning")
+        return redirect(url_for("integrations.csv_upload"))
+
+    # Build column-name → index mapping so we can zip headers with each row,
+    # then insert into WattmonReading with only the known fixed columns.
+    col_by_name = _wattmon_map()
+    header_index = {h: i for i, h in enumerate(headers)}
+
+    upload = WattmonUpload(
+        source_key=source_key,
+        filename=filename,
+        row_count=len(rows),
+        uploaded_at=datetime.utcnow(),
+    )
+    db.session.add(upload)
+    db.session.flush()  # populate upload.id before wiring children
+
+    readings = []
+    for row in rows:
+        values = {}
+        for col_name, col_attr in col_by_name.items():
+            idx = header_index.get(col_name)
+            if idx is not None and idx < len(row):
+                cell = row[idx]
+                values[col_attr.key] = cell
+        # `timestamp` is not sent in the CSV; derive it from the unix epoch `ts`.
+        ts_val = values.get("ts")
+        if ts_val:
+            try:
+                epoch = int(float(str(ts_val).strip()))
+                values["timestamp"] = datetime.utcfromtimestamp(epoch).strftime(
+                    "%Y-%m-%d %H:%M:%S"
+                )
+            except (ValueError, OverflowError, OSError):
+                values["timestamp"] = str(ts_val)
+        readings.append(WattmonReading(upload_id=upload.id, **values))
+
+    db.session.add_all(readings)
+    db.session.commit()
+
+    result = {
+        "status": "ok",
+        "upload_id": upload.id,
+        "source_key": source_key,
+        "filename": filename,
+        "row_count": upload.row_count,
+        "columns": len(headers),
+        "headers": headers,
+        "uploaded_at": upload.uploaded_at.strftime("%Y-%m-%d %H:%M:%S UTC"),
+        "detail_url": url_for("integrations.wattmon_detail", upload_id=upload.id, _external=False),
+    }
 
     if _wants_json():
-        return jsonify({
-            "status": "ok",
-            "filename": csv_data["filename"],
-            "row_count": csv_data["row_count"],
-            "columns": len(csv_data["headers"]),
-            "headers": csv_data["headers"],
-            "truncated": csv_data["truncated"],
-            "preview_url": url_for("integrations.csv_preview", _external=False),
-        }), 200
+        return jsonify(result), 200
 
-    return redirect(url_for("integrations.csv_preview"))
+    flash(
+        f"Wattmon upload stored: {upload.row_count} rows from {filename} "
+        f"(key={source_key or '-'}).",
+        "success",
+    )
+    return redirect(url_for("integrations.wattmon_detail", upload_id=upload.id))
 
 
-@bp.route("/csv-preview", methods=["GET"])
-def csv_preview():
-    """Display the contents of the most recently uploaded CSV file."""
-    csv_data = session.get("csv_data")
-    if not csv_data:
-        flash("No CSV data available. Please upload a file first.", "info")
-        return redirect(url_for("integrations.csv_upload"))
-    return render_template("integrations/csv_preview.html", csv_data=csv_data)
+@bp.route("/wattmon", methods=["GET"])
+def wattmon_list():
+    """List every Wattmon CSV upload with its source and upload timestamp."""
+    from ..models import WattmonUpload
+    page = request.args.get("page", 1, type=int)
+    per_page = request.args.get("per_page", 50, type=int)
+    per_page = max(10, min(per_page, 500))
+    q = WattmonUpload.query.order_by(WattmonUpload.uploaded_at.desc())
+    pagination = q.paginate(page=page, per_page=per_page, error_out=False)
+    return render_template(
+        "integrations/wattmon_list.html",
+        uploads=pagination.items,
+        pagination=pagination,
+    )
 
 
-@bp.route("/csv-clear", methods=["POST"])
-def csv_clear():
-    """Clear the stored CSV data from session."""
-    session.pop("csv_data", None)
-    flash("CSV data cleared.", "info")
-    return redirect(url_for("integrations.csv_upload"))
+@bp.route("/wattmon/<int:upload_id>", methods=["GET"])
+def wattmon_detail(upload_id):
+    """Show one upload + its readings with uploaded timestamp."""
+    from ..models import WattmonUpload, WattmonReading
+    upload = WattmonUpload.query.get_or_404(upload_id)
+    # Paginate readings so huge uploads don't swamp the template
+    page = request.args.get("page", 1, type=int)
+    per_page = request.args.get("per_page", 100, type=int)
+    per_page = max(10, min(per_page, 1000))
+    readings_q = upload.readings.order_by(WattmonReading.id.asc())
+    readings_page = readings_q.paginate(page=page, per_page=per_page, error_out=False)
+
+    # Use canonical columns from the model (in order) so the table header is stable
+    import app.models as m
+    columns = m._WATMON_COLUMNS
+
+    # Pre-build per-row dicts keyed by column name so the template can do
+    # `row[col]` on a plain dict (SQLAlchemy models don't support subscript).
+    readings_rows = []
+    for r in readings_page.items:
+        row_dict = {col: (getattr(r, col) or "") for col in columns}
+        readings_rows.append(row_dict)
+
+    return render_template(
+        "integrations/wattmon_detail.html",
+        upload=upload,
+        readings=readings_rows,
+        readings_pagination=readings_page,
+        columns=columns,
+        total_readings=upload.row_count,
+    )
+
+
+@bp.route("/wattmon/<int:upload_id>/delete", methods=["POST"])
+def wattmon_delete(upload_id):
+    """Delete an upload and its readings (cascades)."""
+    from ..models import WattmonUpload
+    upload = WattmonUpload.query.get_or_404(upload_id)
+    db.session.delete(upload)
+    db.session.commit()
+    flash(f"Wattmon upload #{upload.id} deleted.", "success")
+    return redirect(url_for("integrations.wattmon_list"))
 
