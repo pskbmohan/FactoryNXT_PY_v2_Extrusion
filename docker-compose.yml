@@ -23,7 +23,7 @@ services:
     restart: always
     ports:
       - "5555:5555"
-      - "5556:5556"
+      - "80:80"
     depends_on:
       db:
         condition: service_healthy
@@ -31,7 +31,6 @@ services:
       FLASK_ENV: development
       SECRET_KEY: changeme
       DATABASE_URL: postgresql+psycopg2://postgres:postgres@db:5432/factorynxt
-      DEVICES_PORT: 5556
     volumes:
       - .:/app
 

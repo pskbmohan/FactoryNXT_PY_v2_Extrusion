@@ -118,27 +118,29 @@ else
 fi
 # ─────────────────────────────────────────────────────────────────────────────
 
-# ── Device-facing plain-HTTP listener ───────────────────────────────────────
-# Why a second port: the main web app sits behind Cloudflare, which forces
-# HTTPS. The Wattmon device only speaks plain HTTP (no TLS), so any POST to
-# ext-app.factorynxt.com:80 gets a 301 → HTTPS. To bypass Cloudflare for
-# device traffic we expose a second Flask instance on a dedicated port that
-# the device can reach directly at the origin (no proxy, no TLS, no redirect).
+# ── Two ports, one Flask app ────────────────────────────────────────────────
+# - Port 5555: web UI (browser + Cloudflare HTTPS)
+# - Port 80:   Wattmon device upload (plain HTTP, direct to origin, no TLS)
+#
+# The Wattmon device only speaks HTTP, so any POST to :5555 (behind
+# Cloudflare) gets a 301 → HTTPS and the device times out. Port 80 bypasses
+# Cloudflare entirely so the device can POST directly to the origin.
 #
 # Device POSTs to:
-#     http://<origin-host>:<DEVICES_PORT>/integrations/csv-upload
+#     http://<origin-host>/integrations/csv-upload
 #
-# Default DEVICES_PORT = 5556. Override via environment variable.
-DEVICES_PORT="${DEVICES_PORT:-5556}"
-echo "Starting device listener on port ${DEVICES_PORT} (plain HTTP, bypasses Cloudflare)..."
+WEB_PORT="${WEB_PORT:-5555}"
+echo "Starting Flask app on port ${WEB_PORT} (web UI) + port 80 (Wattmon device)..."
 python3 -c "
 from app import create_app
 app = create_app()
-app.run(host='0.0.0.0', port=${DEVICES_PORT}, debug=False, use_reloader=False)
+app.run(host='0.0.0.0', port=${WEB_PORT}, debug=False, use_reloader=False)
 " >> /var/log/wattmon-device.log 2>&1 &
-DEVICES_PID=$!
-echo "Device listener started (PID ${DEVICES_PID})"
-# ─────────────────────────────────────────────────────────────────────────────
-
-echo "Starting Flask app on port 5555..."
-exec python3 -c "from app import create_app; app = create_app(); app.run(host='0.0.0.0', port=5555, debug=True)"
+WEB_PID=$!
+echo "Web listener started (PID ${WEB_PID})"
+# Foreground: port 80 (keeps container alive)
+exec python3 -c "
+from app import create_app
+app = create_app()
+app.run(host='0.0.0.0', port=80, debug=False, use_reloader=False)
+"
