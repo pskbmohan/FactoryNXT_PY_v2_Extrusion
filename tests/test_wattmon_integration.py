@@ -295,13 +295,13 @@ def test_reference_script_time_guard():
 Manual curl tests for the Flask route:
 
 1. Standard form POST:
-    curl -X POST http://localhost:5000/integrations/csv-upload \\
+    curl -X POST https://ext-app.factorynxt.com/integrations/csv-upload \\
       -H "Content-Type: application/x-www-form-urlencoded" \\
       --data-urlencode "key=test-device" \\
       --data-urlencode "data=ts,a,b\r\n1,10,20\r\n2,11,21"
 
 2. Repeated form POST:
-    curl -X POST http://localhost:5000/integrations/csv-upload \\
+    curl -X POST https://ext-app.factorynxt.com/integrations/csv-upload \\
       -H "Content-Type: application/x-www-form-urlencoded" \\
       --data-urlencode "key=test-device" \\
       --data-urlencode "data=ts,a,b" \\

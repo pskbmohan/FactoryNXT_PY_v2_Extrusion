@@ -63,7 +63,7 @@ EXPORT_EXECUTION_GUARD  = 25       # seconds — hard-stop row collection
 # Target server (device config would typically override this via env / cmdline).
 WATMON_ENDPOINT = os.environ.get(
     "WATMON_ENDPOINT",
-    "http://ext-app.factorynxt.com/integrations/csv-upload",
+    "https://ext-app.factorynxt.com/integrations/csv-upload",
 )
 DEVICE_KEY = os.environ.get("DEVICE_KEY", "9C-95-6E-53-28-17")
 
@@ -221,6 +221,8 @@ def post_with_curl(url, form_body, connect_t, read_t):
             [
                 "curl", "-sS", "-X", "POST", url,
                 "-H", "Content-Type: application/x-www-form-urlencoded",
+                "-H", "Accept: application/json, text/html, */*",
+                "-L",  # follow redirects
                 "--connect-timeout", str(connect_t),
                 "--max-time", str(read_t),
                 "-d", form_body,
@@ -246,10 +248,18 @@ def post_with_urllib(url, form_body, read_t):
         req = urllib.request.Request(
             url,
             data=form_body.encode("utf-8"),
-            headers={"Content-Type": "application/x-www-form-urlencoded"},
+            headers={
+                "Content-Type": "application/x-www-form-urlencoded",
+                "Accept": "application/json, text/html, */*",
+            },
             method="POST",
         )
-        with urllib.request.urlopen(req, timeout=read_t) as resp:
+        # Build an opener that follows redirects and handles HTTPS
+        opener = urllib.request.build_opener(
+            urllib.request.HTTPRedirectHandler,
+            urllib.request.HTTPSHandler(context=__import__("ssl").create_default_context()),
+        )
+        with opener.open(req, timeout=read_t) as resp:
             body = resp.read(512).decode("utf-8", errors="replace")
             return {"status": resp.status, "body": body}
     except urllib.error.HTTPError as e:
@@ -265,15 +275,22 @@ def post_with_urllib(url, form_body, read_t):
 
 def post_with_socket(url, form_body, connect_t, read_t):
     try:
+        import ssl
         from urllib.parse import urlparse
         parsed = urlparse(url)
         host = parsed.hostname
         port = parsed.port or (443 if parsed.scheme == "https" else 80)
         path = parsed.path or "/"
 
+        # Create socket with appropriate timeout
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         s.settimeout(connect_t)
         s.connect((host, port))
+
+        # Wrap with SSL if HTTPS
+        if parsed.scheme == "https":
+            context = ssl.create_default_context()
+            s = context.wrap_socket(s, server_hostname=host)
 
         body_bytes = form_body.encode("utf-8")
         request_line = (
@@ -282,6 +299,7 @@ def post_with_socket(url, form_body, connect_t, read_t):
             f"Content-Type: application/x-www-form-urlencoded\r\n"
             f"Content-Length: {len(body_bytes)}\r\n"
             f"Connection: close\r\n"
+            f"Accept: application/json, text/html, */*\r\n"
             f"\r\n"
         ).encode("ascii") + body_bytes
 
