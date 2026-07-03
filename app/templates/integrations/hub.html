@@ -83,4 +83,24 @@
     </table>
   </div>
 </div>
+
+<!-- Quick Actions -->
+<div class="mt-6">
+  <h2 class="text-base font-semibold text-slate-900 mb-3">Quick Actions</h2>
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+    <a href="{{ url_for('integrations.csv_upload') }}"
+       class="flex items-center p-4 bg-white rounded-xl border border-slate-200 shadow-sm hover:border-primary-300 hover:shadow transition-all">
+      <span class="flex-shrink-0 flex items-center justify-center w-10 h-10 rounded-lg bg-primary-50 text-primary-700 mr-3">
+        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5-5m0 0l5 5m-5-5v12" />
+        </svg>
+      </span>
+      <div>
+        <div class="text-sm font-semibold text-slate-900">CSV Import</div>
+        <div class="text-xs text-slate-500">Upload &amp; preview CSV data</div>
+      </div>
+    </a>
+  </div>
+</div>
 </div>{% endblock %}

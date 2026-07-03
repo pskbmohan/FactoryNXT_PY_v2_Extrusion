@@ -1,4 +1,6 @@
-from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify
+import csv
+import io
+from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, session
 from .. import db
 from ..models import Integration, ErpSyncLog, Webhook, ApiKey, IntegrationJob
 from datetime import datetime, timedelta
@@ -313,3 +315,143 @@ def erp_reprocess():
         "success" if failed == 0 else "warning",
     )
     return redirect(url_for("integrations.erp_sync"))
+
+
+# ── CSV upload & preview ────────────────────────────────────────────────────
+@bp.route("/csv-upload", methods=["GET"])
+def csv_upload():
+    """Display the CSV upload form."""
+    return render_template("integrations/csv_upload.html")
+
+
+def _wants_json():
+    """Return True when the caller is a server / API client (not a browser form)."""
+    best = request.accept_mimetypes.best_match(["application/json", "text/html"])
+    return (
+        best == "application/json"
+        or request.content_type == "text/csv"
+        or request.content_type == "application/json"
+        or request.headers.get("X-Requested-With") == "XMLHttpRequest"
+    )
+
+
+@bp.route("/csv-upload", methods=["POST"])
+def csv_upload_submit():
+    """Accept a CSV POST from another server (no authentication).
+
+    Accepted request shapes:
+      1. ``multipart/form-data`` with a ``csv_file`` field (file upload).
+      2. Raw body with ``Content-Type: text/csv`` (server-to-server push).
+
+    Returns JSON for API clients or redirects to the preview screen for browsers.
+    """
+    raw_bytes = b""
+    filename = "upload.csv"
+
+    if request.content_type and "multipart/form-data" in request.content_type:
+        # Shape 1: multipart form upload
+        uploaded = request.files.get("csv_file")
+        if not uploaded or not uploaded.filename:
+            err = {"error": "no_file", "message": "No csv_file field found in the multipart upload."}
+            if _wants_json():
+                return jsonify(err), 400
+            flash(err["message"], "warning")
+            return redirect(url_for("integrations.csv_upload"))
+        filename = uploaded.filename or "upload.csv"
+        raw_bytes = uploaded.stream.read()
+    else:
+        # Shape 2: raw CSV body (another server POSTing text/csv)
+        raw_bytes = request.get_data()
+        filename = (
+            request.headers.get("X-Filename")
+            or request.args.get("filename")
+            or "upload.csv"
+        )
+
+    if not raw_bytes:
+        err = {"error": "empty_body", "message": "The request body was empty."}
+        if _wants_json():
+            return jsonify(err), 400
+        flash("The uploaded file is empty.", "warning")
+        return redirect(url_for("integrations.csv_upload"))
+
+    try:
+        text = raw_bytes.decode("utf-8-sig")
+        reader = csv.reader(io.StringIO(text))
+
+        try:
+            headers = next(reader)
+        except StopIteration:
+            err = {"error": "empty_file", "message": "The CSV file is empty."}
+            if _wants_json():
+                return jsonify(err), 400
+            flash("The uploaded CSV file is empty.", "warning")
+            return redirect(url_for("integrations.csv_upload"))
+
+        rows = list(reader)
+        # Drop completely blank rows
+        rows = [r for r in rows if any(cell.strip() for cell in r)]
+
+        if not rows:
+            err = {"error": "no_data", "message": "CSV has headers but no data rows."}
+            if _wants_json():
+                return jsonify(err), 400
+            flash("The CSV file has headers but no data rows.", "warning")
+            return redirect(url_for("integrations.csv_upload"))
+
+        headers = [h.strip() for h in headers]
+
+        csv_data = {
+            "filename": filename,
+            "headers": headers,
+            "row_count": len(rows),
+            "rows": rows[:500],
+            "truncated": len(rows) > 500,
+            "uploaded_at": datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S UTC"),
+        }
+        session["csv_data"] = csv_data
+
+    except UnicodeDecodeError:
+        err = {"error": "bad_encoding", "message": "Could not decode file; ensure UTF-8."}
+        if _wants_json():
+            return jsonify(err), 400
+        flash("Could not decode file. Please ensure it is a UTF-8 encoded CSV.", "warning")
+        return redirect(url_for("integrations.csv_upload"))
+    except csv.Error as e:
+        err = {"error": "csv_parse_error", "message": f"CSV parsing error: {e}"}
+        if _wants_json():
+            return jsonify(err), 400
+        flash(f"CSV parsing error: {e}", "warning")
+        return redirect(url_for("integrations.csv_upload"))
+
+    if _wants_json():
+        return jsonify({
+            "status": "ok",
+            "filename": csv_data["filename"],
+            "row_count": csv_data["row_count"],
+            "columns": len(csv_data["headers"]),
+            "headers": csv_data["headers"],
+            "truncated": csv_data["truncated"],
+            "preview_url": url_for("integrations.csv_preview", _external=False),
+        }), 200
+
+    return redirect(url_for("integrations.csv_preview"))
+
+
+@bp.route("/csv-preview", methods=["GET"])
+def csv_preview():
+    """Display the contents of the most recently uploaded CSV file."""
+    csv_data = session.get("csv_data")
+    if not csv_data:
+        flash("No CSV data available. Please upload a file first.", "info")
+        return redirect(url_for("integrations.csv_upload"))
+    return render_template("integrations/csv_preview.html", csv_data=csv_data)
+
+
+@bp.route("/csv-clear", methods=["POST"])
+def csv_clear():
+    """Clear the stored CSV data from session."""
+    session.pop("csv_data", None)
+    flash("CSV data cleared.", "info")
+    return redirect(url_for("integrations.csv_upload"))
+

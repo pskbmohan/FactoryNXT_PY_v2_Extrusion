@@ -1,0 +1,89 @@
+{% extends "layout.html" %}
+{% block title %}CSV Preview — {{ csv_data.filename }}{% endblock %}
+
+{% block content %}
+<!-- Header -->
+<div class="mb-6 flex items-start justify-between">
+  <div>
+    <h1 class="text-2xl font-bold text-slate-900">CSV Preview</h1>
+    <p class="text-sm text-slate-500 mt-1">
+      <span class="font-medium text-slate-700">{{ csv_data.filename }}</span>
+      <span class="mx-1.5 text-slate-300">·</span>
+      {{ csv_data.row_count }} {{ 'row' if csv_data.row_count == 1 else 'rows' }}
+      <span class="mx-1.5 text-slate-300">·</span>
+      uploaded {{ csv_data.uploaded_at }}
+    </p>
+  </div>
+  <div class="flex items-center gap-2">
+    <a href="{{ url_for('integrations.csv_upload') }}"
+       class="inline-flex items-center px-4 py-2 bg-white hover:bg-slate-50 text-slate-700 text-sm font-medium rounded-lg border border-slate-200 shadow-sm transition-colors">
+      <svg class="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+      </svg>
+      Upload Another
+    </a>
+    <form method="post" action="{{ url_for('integrations.csv_clear') }}" class="inline">
+      <button type="submit"
+              class="inline-flex items-center px-4 py-2 bg-red-50 hover:bg-red-100 text-red-700 text-sm font-medium rounded-lg border border-red-200 shadow-sm transition-colors">
+        <svg class="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M1 7h22M8 7V5a2 2 0 012-2h4a2 2 0 012 2v2" />
+        </svg>
+        Clear
+      </button>
+    </form>
+  </div>
+</div>
+
+{% if csv_data.truncated %}
+<div class="mb-4 bg-amber-50 border border-amber-200 text-amber-800 text-sm rounded-lg px-4 py-3 flex items-start">
+  <svg class="w-5 h-5 mr-2 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+          d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+  </svg>
+  <span>
+    Preview is limited to <strong>500 rows</strong>. The uploaded file contained
+    {{ csv_data.row_count }} rows — the remainder has been truncated.
+  </span>
+</div>
+{% endif %}
+
+<!-- Data Table -->
+<div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+  <div class="px-6 py-4 border-b border-slate-200 bg-slate-50/50 flex items-center justify-between">
+    <h3 class="text-base font-semibold text-slate-900">
+      Data Preview
+      <span class="ml-2 text-xs font-normal text-slate-500">
+        showing {{ [['rows'|length, 500]|min, csv_data.row_count]|min }} of {{ csv_data.row_count }} rows
+      </span>
+    </h3>
+    <span class="text-xs text-slate-500">{{ csv_data.headers|length }} columns</span>
+  </div>
+  <div class="overflow-x-auto max-h-[70vh] overflow-y-auto">
+    <table class="w-full text-left text-sm whitespace-nowrap">
+      <thead class="bg-slate-100 text-slate-700 uppercase tracking-wider text-xs font-semibold sticky top-0 shadow-sm">
+        <tr>
+          <th class="px-4 py-3 border-b border-slate-200 bg-slate-100 text-slate-500">#</th>
+          {% for header in csv_data.headers %}
+          <th class="px-4 py-3 border-b border-slate-200 bg-slate-100">{{ header or '—' }}</th>
+          {% endfor %}
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-slate-100 font-mono text-xs">
+        {% for row in csv_data.rows %}
+        <tr class="hover:bg-slate-50 transition-colors">
+          <td class="px-4 py-2 text-slate-400 select-none">{{ loop.index }}</td>
+          {% for cell in row %}
+          <td class="px-4 py-2 text-slate-700 max-w-xs truncate" title="{{ cell }}">{{ cell }}</td>
+          {% endfor %}
+          {# Pad short rows so column alignment stays consistent #}
+          {% for _ in range(csv_data.headers|length - row|length) %}
+          <td class="px-4 py-2 text-slate-300">—</td>
+          {% endfor %}
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

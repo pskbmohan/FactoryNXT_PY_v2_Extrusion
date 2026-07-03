@@ -29,7 +29,7 @@ def inspection():
         "dieId": "DIE-2024-0137",
         "dieType": "Flat-port hollow profile",
         "pressLine": "EX-04",
-        "alloy": "6063",
+        "alloy": "6063-T6",
         "shift": "B · Evening",
         "operator": "R. Sharma",
         "capturedAt": datetime.utcnow().isoformat(timespec="seconds"),
@@ -38,6 +38,12 @@ def inspection():
         "cameraId": "CAM-01",
         "cameraResolution": "1280x960",
         "cameraFps": 30,
+        "pressCount": 12840,
+        "pressCountLimit": 20000,
+        "inspectionCount30d": 64,
+        "passRate30d": 87.5,
+        "avgDefects30d": 0.83,
+        "uptimePct30d": 97.2,
     }
     return render_template("dies/inspection.html", inspection_data=inspection_data)
 

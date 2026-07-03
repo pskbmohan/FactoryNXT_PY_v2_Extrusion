@@ -315,15 +315,16 @@
             <div class="sum-row"><span class="k">Alloy</span>        <span class="v">{{ d.alloy }} <span class="text-slate-400 text-xs">T6</span></span></div>
             <div class="sum-row"><span class="k">Shift</span>        <span class="v">{{ d.shift }}</span></div>
             <div class="sum-row"><span class="k">Operator</span>     <span class="v">{{ d.operator }}</span></div>
-            <div class="sum-row"><span class="k">Captured</span>     <span class="v mono" id="captured-at">—</span></div>
+            <div class="sum-row"><span class="k">Captured</span>     <span class="v mono" id="captured-at">{{ d.capturedAt }}</span></div>
             <div class="sum-row"><span class="k">Press Count</span>  <span class="v mono">12,840 <span class="text-slate-400 text-xs">/ 20,000</span></span></div>
+            <div class="sum-row"><span class="k">Inspections (30d)</span><span class="v mono">64</span></div>
           </div>
         </div>
         <!-- Timeline -->
         <div class="fx-card lg:col-span-3">
           <div class="px-4 py-3 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between">
             <span class="text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider">Inspection Event Log</span>
-            <span class="text-[10px] mono text-slate-400" id="event-count">0 events</span>
+            <span class="text-[10px] mono text-slate-400" id="event-count">2 events</span>
           </div>
           <div class="p-4 max-h-[280px] overflow-y-auto">
             <div class="timeline" id="timeline"></div>
@@ -337,8 +338,8 @@
           <div class="px-4 py-3 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between">
             <span class="text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider">Detected Defects</span>
             <div class="flex items-center gap-2">
-              <span class="text-[10px] mono text-slate-400" id="defect-cnt">0 findings</span>
-              <span id="sev-chip" class="s-chip neutral"><span class="led" style="background:#94a3b8"></span>No analysis</span>
+              <span class="text-[10px] mono text-slate-400" id="defect-cnt">2 findings</span>
+              <span id="sev-chip" class="s-chip ok"><span class="led"></span>LOW</span>
             </div>
           </div>
           <div class="p-4">
@@ -369,29 +370,29 @@
               </div>
               <div class="flex-1 rounded-lg overflow-hidden border-2 border-indigo-200 dark:border-indigo-800">
                 <div class="bg-indigo-50 dark:bg-indigo-900/30 text-[10px] uppercase tracking-wider text-indigo-600 dark:text-indigo-300 px-2.5 py-1">After · AI</div>
-                <div class="aspect-[3/2] bg-slate-200 dark:bg-slate-900 flex items-center justify-center text-indigo-500 text-xs mono" id="thumb-after">—</div>
+                <div class="aspect-[3/2] bg-slate-200 dark:bg-slate-900 flex items-center justify-center text-indigo-500 text-xs mono" id="thumb-after">2 found</div>
               </div>
             </div>
             <!-- KPI row -->
             <div class="grid grid-cols-3 gap-3">
               <div class="rounded-lg bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-700 p-3">
                 <div class="text-[10px] text-slate-400 uppercase tracking-wider">Pass Rate</div>
-                <div class="text-lg font-bold text-emerald-600 dark:text-emerald-400">92%</div>
+                <div class="text-lg font-bold text-emerald-600 dark:text-emerald-400">87.5%</div>
               </div>
               <div class="rounded-lg bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-700 p-3">
                 <div class="text-[10px] text-slate-400 uppercase tracking-wider">Avg Defects</div>
-                <div class="text-lg font-bold text-indigo-600 dark:text-indigo-400">0.8</div>
+                <div class="text-lg font-bold text-indigo-600 dark:text-indigo-400">0.83</div>
               </div>
               <div class="rounded-lg bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-700 p-3">
                 <div class="text-[10px] text-slate-400 uppercase tracking-wider">Uptime</div>
-                <div class="text-lg font-bold text-amber-600 dark:text-amber-400">98%</div>
+                <div class="text-lg font-bold text-amber-600 dark:text-amber-400">97.2%</div>
               </div>
             </div>
             <!-- Sparkline -->
             <div class="mt-4">
               <div class="flex items-center justify-between text-[10px] text-slate-400 mb-1">
                 <span>Defects per inspection</span>
-                <span class="mono">avg 0.8</span>
+                <span class="mono">avg 0.83</span>
               </div>
               <svg viewBox="0 0 260 60" class="w-full h-14 text-emerald-500">
                 <path fill="currentColor" fill-opacity="0.08" d="M0,60 L0,48 8,42 16,46 24,38 32,32 40,40 48,36 56,30 64,34 72,38 80,32 88,28 96,36 104,30 112,26 120,40 128,44 136,38 144,34 152,28 160,22 168,30 176,34 184,28 192,32 200,38 208,26 216,22 224,30 232,36 240,28 248,20 256,24 256,60 Z"/>
@@ -419,11 +420,11 @@
           <div class="sum-row"><span class="k">AI Model</span><span class="v mono text-[11px]">{{ d.aiModel }}</span></div>
           <div class="sum-row">
             <span class="k">Confidence</span>
-            <span class="v mono" id="conf-val">—</span>
+            <span class="v mono" id="conf-val">0.894 · 89%</span>
           </div>
         </div>
         <div class="px-4 pb-4">
-          <div class="conf-bar" id="conf-bar"><span style="width:0%"></span></div>
+          <div class="conf-bar" id="conf-bar"><span style="width:89%"></span></div>
           <div class="text-[10px] text-slate-400 mt-1 mono">MIN threshold · 0.82</div>
         </div>
       </div>
@@ -435,10 +436,10 @@
           <div>
             <div class="flex items-center justify-between mb-1">
               <span class="text-xs text-slate-500 uppercase tracking-wider">Defect Severity</span>
-              <span id="sev-label" class="mono text-xs text-slate-400">N/A</span>
+              <span id="sev-label" class="mono text-xs text-amber-500">LOW</span>
             </div>
             <div class="sev-meter" id="sev-meter">
-              <span></span><span></span><span></span><span></span><span></span>
+              <span style="background:#eab308"></span><span></span><span></span><span></span><span></span>
             </div>
             <div class="flex justify-between text-[9px] text-slate-400 mt-1 mono">
               <span>NONE</span><span>LOW</span><span>MEDIUM</span><span>HIGH</span><span>CRITICAL</span>
@@ -446,7 +447,7 @@
           </div>
           <div class="rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/40 p-3">
             <div class="text-[10px] uppercase tracking-wider text-slate-500 mb-1">AI Recommendation</div>
-            <div id="recommendation" class="text-sm text-slate-700 dark:text-slate-200 leading-snug">Run AI analysis to receive a recommendation.</div>
+            <div id="recommendation" class="text-sm text-slate-700 dark:text-slate-200 leading-snug">Bearing land wear on P1. Acceptable for short runs — schedule polish at next service window, est. 30 min repair.</div>
           </div>
           <div class="rounded-lg border border-indigo-200 dark:border-indigo-800 bg-indigo-50 dark:bg-indigo-900/20 p-3">
             <div class="text-[10px] uppercase tracking-wider text-indigo-600 dark:text-indigo-300 mb-1">Next Action</div>
@@ -856,7 +857,7 @@
       '<div class="col-span-2"><div class="text-[10px] uppercase tracking-wider text-slate-500">Scope</div><div class="mt-1">' + def + '</div></div>' +
       '<div class="col-span-2"><div class="text-[10px] uppercase tracking-wider text-slate-500">Recommended Action</div><div style="margin-top:2px;line-height:1.4">' + sc.recommendation + '</div></div>' +
       '<div class="col-span-2 text-[11px] text-slate-500">Assigned to: Die Repair Shop · Est. time: ' +
-      ({ critical: '4–6 hrs', high: '2–4 hrs', medium: '1–2 hrs', low: '30 min', none: '30 min' }[sc.severity] || '—') +
+      ({ critical: '4–6 hrs', high: '2–4 hrs', medium: '1–2 hrs', low: '30 min', none: '—' }[sc.severity] || '—') +
       '</div></div>';
     $('#ticket-modal').classList.add('show');
     tl('done', 'Ticket generated', '#' + id + ' · drafted');
