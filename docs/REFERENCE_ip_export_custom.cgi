@@ -63,7 +63,7 @@ EXPORT_EXECUTION_GUARD  = 25       # seconds — hard-stop row collection
 # Target server (device config would typically override this via env / cmdline).
 WATMON_ENDPOINT = os.environ.get(
     "WATMON_ENDPOINT",
-    "https://ext-app.factorynxt.com/integrations/csv-upload",
+    "https://ext-app.factorynxt.com/api/csv-upload",
 )
 DEVICE_KEY = os.environ.get("DEVICE_KEY", "9C-95-6E-53-28-17")
 
