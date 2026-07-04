@@ -343,22 +343,6 @@ def erp_reprocess():
 #   GET  /integrations/wattmon/<id>        — one upload + all its readings
 #   POST /integrations/wattmon/<id>/delete — remove an upload
 
-_WATMON_HEADER_TO_COL = None  # lazily populated by _wattmon_map()
-
-
-def _wattmon_map():
-    """Return {csv_header_name: WattmonReading column attribute} once."""
-    global _WATMON_HEADER_TO_COL
-    from .. import models as m
-    if _WATMON_HEADER_TO_COL is None:
-        _WATMON_HEADER_TO_COL = {}
-        for h in m._WATMON_COLUMNS:
-            attr = getattr(m.WattmonReading, h, None)
-            if attr is not None:
-                _WATMON_HEADER_TO_COL[h] = attr
-    return _WATMON_HEADER_TO_COL
-
-
 def _wants_json():
     """Return True when the caller is a server / API client (not a browser form)."""
     best = request.accept_mimetypes.best_match(["application/json", "text/html"])
@@ -603,10 +587,14 @@ def csv_upload_submit():
 
 
 def _process_wattmon_upload(app, upload_id, csv_bytes, csv_path):
-    """Background worker: parse the decoded CSV, insert rows, update status.
+    """Background worker: parse the decoded CSV, insert EAV rows, update status.
 
-    ``csv_bytes`` is already decoded into clean UTF-8 CSV by the POST handler.
-    ``csv_path`` is the on-disk backup in case we need to re-process.
+    One (device_key, column_name, value, row_index, epoch_ts) row is stored per
+    CSV cell. Values that share a ``ts`` column share the same ``epoch_ts`` on
+    disk so the time-point can be recovered by a single SQL filter.
+
+    Rows that are shorter than the header are accepted (missing trailing columns
+    just produce fewer EAV entries) — we no longer reject them outright.
     """
     from ..models import WattmonUpload, WattmonReading
 
@@ -616,7 +604,7 @@ def _process_wattmon_upload(app, upload_id, csv_bytes, csv_path):
             return
 
         try:
-            # Use cached bytes if small enough; otherwise re-read from disk
+            # Load CSV body — prefer cached bytes, fall back to on-disk backup.
             if csv_bytes:
                 csv_text = csv_bytes.decode("utf-8-sig")
             else:
@@ -626,72 +614,83 @@ def _process_wattmon_upload(app, upload_id, csv_bytes, csv_path):
             if not csv_text.strip():
                 upload.status = "failed"
                 upload.error_detail = "CSV body is empty."
+                upload.row_count = 0
                 db.session.commit()
                 return
 
-            # Parse CSV text
+            # Parse CSV
             reader = csv.reader(io.StringIO(csv_text))
             headers = next(reader, None)
             if not headers:
                 upload.status = "failed"
                 upload.error_detail = "CSV has no header row."
+                upload.row_count = 0
                 db.session.commit()
                 return
             headers = [h.strip() for h in headers]
             header_count = len(headers)
             header_index = {h: i for i, h in enumerate(headers)}
 
-            col_by_name = _wattmon_map()
+            # Find the ts column (for epoch_ts propagation)
+            ts_hdr_idx = header_index.get("ts")
 
-            # Process rows with per-row validation
-            reading_dicts = []
-            accepted = 0
-            rejected = 0
-            skipped_reasons = []
+            device_key = upload.source_key
+            eav_rows = []         # list of dicts for bulk_insert_mappings
+            accepted = 0          # number of CSV rows accepted
+            rejected = 0          # number of rows dropped entirely
+            skipped_reasons = []  # sample of why rows were dropped
 
-            for row_num, row in enumerate(reader, start=2):
-                # Skip blank rows
+            for csv_row_idx, row in enumerate(reader):
+                # Blank rows disappear silently
                 if not any(cell.strip() for cell in row):
                     continue
 
-                # Validate column count matches header
-                if len(row) != header_count:
+                # A row with zero non-empty cells is rejected
+                if len(row) == 0 or (len(row) == 1 and not row[0].strip()):
                     rejected += 1
                     if len(skipped_reasons) < 5:
                         skipped_reasons.append(
-                            f"row {row_num}: expected {header_count} cols, got {len(row)}"
+                            f"row {csv_row_idx + 2}: effectively empty"
                         )
                     continue
 
-                values = {"upload_id": upload_id}
-                for col_name, col_attr in col_by_name.items():
-                    idx = header_index.get(col_name)
-                    if idx is not None and idx < len(row):
-                        values[col_attr.key] = row[idx]
-
-                # Derive timestamp from unix epoch ts
-                ts_val = values.get("ts")
-                if ts_val:
+                # Extract ts column as an int to group this row's EAV entries.
+                # When ts is absent or non-numeric, group rows by row_index only.
+                if ts_hdr_idx is not None and ts_hdr_idx < len(row):
                     try:
-                        epoch = int(float(str(ts_val).strip()))
-                        values["timestamp"] = datetime.utcfromtimestamp(epoch).strftime(
-                            "%Y-%m-%d %H:%M:%S"
-                        )
-                    except Exception:
-                        values["timestamp"] = str(ts_val)
+                        epoch_ts = int(float(row[ts_hdr_idx].strip()))
+                    except (ValueError, TypeError):
+                        epoch_ts = None
+                else:
+                    epoch_ts = None
 
-                reading_dicts.append(values)
+                # Emit one EAV dict per column present in this row.
+                # Truncate at header_count — extra trailing cells are ignored.
+                for col_idx, header in enumerate(headers):
+                    if col_idx >= len(row):
+                        break
+                    cell = row[col_idx].strip() if row[col_idx] else ""
+                    eav_rows.append({
+                        "upload_id": upload_id,
+                        "device_key": device_key,
+                        "column_name": header,
+                        "value": cell,
+                        "row_index": csv_row_idx,
+                        "epoch_ts": epoch_ts,
+                    })
+
                 accepted += 1
 
-                # Flush in chunks to keep memory bounded
-                if len(reading_dicts) >= 1000:
-                    db.session.bulk_insert_mappings(WattmonReading, reading_dicts)
-                    reading_dicts = []
+                # Flush in chunks to keep session memory bounded
+                if len(eav_rows) >= 500:
+                    db.session.bulk_insert_mappings(WattmonReading, eav_rows)
+                    eav_rows = []
 
-            if reading_dicts:
-                db.session.bulk_insert_mappings(WattmonReading, reading_dicts)
+            if eav_rows:
+                db.session.bulk_insert_mappings(WattmonReading, eav_rows)
 
-            # Update upload status
+            # Update the parent upload — row_count is the number of CSV rows
+            # accepted (not EAV rows, which are 216× that).
             upload.row_count = accepted
             if rejected > 0 and accepted == 0:
                 upload.status = "failed"
@@ -699,7 +698,7 @@ def _process_wattmon_upload(app, upload_id, csv_bytes, csv_path):
                 upload.status = "success"
 
             if rejected > 0:
-                suffix = "" if len(skipped_reasons) == 0 else f"; last: {skipped_reasons[-1]}"
+                suffix = "" if not skipped_reasons else f"; last: {skipped_reasons[-1]}"
                 upload.error_detail = f"{rejected} malformed row(s) skipped{suffix}"
             else:
                 upload.error_detail = None
@@ -707,10 +706,11 @@ def _process_wattmon_upload(app, upload_id, csv_bytes, csv_path):
             db.session.commit()
 
             app.logger.info(
-                "wattmon #%d: key=%s, headers=%d, accepted=%d, rejected=%d",
+                "wattmon #%d: key=%s, headers=%d, eav_rows=%d(csv_rows=%d), rejected=%d",
                 upload_id,
-                upload.source_key or "-",
+                device_key or "-",
                 header_count,
+                accepted * header_count,
                 accepted,
                 rejected,
             )
@@ -722,6 +722,7 @@ def _process_wattmon_upload(app, upload_id, csv_bytes, csv_path):
             if upload:
                 upload.status = "failed"
                 upload.error_detail = f"{type(e).__name__}: {e}"[:500]
+                upload.row_count = 0
                 db.session.commit()
 
 
@@ -753,37 +754,38 @@ def wattmon_list():
 
 @bp.route("/wattmon/<int:upload_id>", methods=["GET"])
 def wattmon_detail(upload_id):
-    """Show one upload + its readings with uploaded timestamp."""
+    """Show one upload + its EAV readings as a flat (key, column, value) list.
+
+    For every CSV row we stored N flat rows (one per cell, all sharing
+    ``row_index`` + ``epoch_ts``). The template renders them in insertion
+    order and inserts a time-point header whenever ``epoch_ts`` changes.
+    """
     from ..models import WattmonUpload, WattmonReading
     upload = db.session.get(WattmonUpload, upload_id)
     if upload is None:
         from flask import abort
         abort(404)
 
-    # Paginate readings so huge uploads don't swamp the template
+    # Paginate so huge uploads don't swamp the template. Order by the CSV
+    # row index first, then column name — keeps all values from the same
+    # time-point contiguous and alphabetically sorted within.
+    from sqlalchemy import asc
     page = request.args.get("page", 1, type=int)
-    per_page = request.args.get("per_page", 100, type=int)
-    per_page = max(10, min(per_page, 1000))
-    readings_q = upload.readings.order_by(WattmonReading.id.asc())
+    per_page = request.args.get("per_page", 500, type=int)
+    per_page = max(10, min(per_page, 5000))
+
+    readings_q = (
+        upload.readings
+        .order_by(asc(WattmonReading.row_index), asc(WattmonReading.column_name))
+    )
     readings_page = readings_q.paginate(page=page, per_page=per_page, error_out=False)
-
-    import app.models as m
-    columns = m._WATMON_COLUMNS
-
-    # Pre-build per-row dicts keyed by column name so the template can do
-    # `row[col]` on a plain dict (SQLAlchemy models don't support subscript).
-    readings_rows = []
-    for r in readings_page.items:
-        row_dict = {col: (getattr(r, col) or "") for col in columns}
-        readings_rows.append(row_dict)
 
     return render_template(
         "integrations/wattmon_detail.html",
         upload=upload,
-        readings=readings_rows,
+        readings=readings_page.items,       # WattmonReading objects directly
         readings_pagination=readings_page,
-        columns=columns,
-        total_readings=upload.row_count,
+        total_readings=readings_page.total,
     )
 
 

@@ -28,19 +28,58 @@ class _TestConfig:
 _config_mod.Config = _TestConfig
 sys.modules["app.config"] = _config_mod
 
+import threading
+import tempfile
+import os
+
 from app import create_app, db
 from app.models import WattmonUpload, WattmonReading
 
 
+class _SyncThread(threading.Thread):
+    """Thread that runs ``target(*args, **kwargs)`` synchronously in the
+    current thread. Used in tests so daemon-style workers run inline, which
+    makes the upload status deterministic and avoids SQLite threading issues.
+    """
+    def start(self):
+        # ``self._target`` and ``self._args`` / ``self._kwargs`` are the
+        # attributes ``threading.Thread.__init__`` stores.
+        if self._target is not None:
+            self._target(*self._args, **self._kwargs)
+        # Call ``run()`` only — avoid the real ``start()`` which spawns a
+        # real OS thread.
+        self._started.set()
+
+
 @pytest.fixture(scope="session")
 def app():
-    """Create a Flask app for testing with an in-memory SQLite DB."""
+    """Create a Flask app for testing with a file-backed SQLite DB.
+
+    We use a tempfile (not ``:memory:``) so the daemon thread — or its
+    synchronous replacement when ``TESTING=True`` — sees the same DB.
+    """
+    _fd, _path = tempfile.mkstemp(suffix=".db", prefix="fnxt_test_wattmon_")
+    os.close(_fd)
+
     _app = create_app()
     _app.config["TESTING"] = True
-    _app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///:memory:"
+    _app.config["SQLALCHEMY_DATABASE_URI"] = f"sqlite:///{_path}"
+    # Patch threading.Thread.start in tests so background workers execute
+    # inline rather than as a real daemon. This turns the race condition
+    # into a deterministic blocking call and also sidesteps SQLite's
+    # cross-thread connection issues.
+    _original_thread = threading.Thread
+    _app.config["_original_threading_Thread"] = _original_thread
+    threading.Thread = _SyncThread
+
     with _app.app_context():
         db.create_all()
     yield _app
+
+    threading.Thread = _original_thread
+    with _app.app_context():
+        db.session.close()
+    os.unlink(_path)
 
 
 @pytest.fixture
@@ -62,11 +101,35 @@ def clean_db(app):
 # ============================================================================
 # Helpers
 # ============================================================================
+import time
+
+
 def build_csv(rows):
     """Build a minimal Wattmon-format CSV blob (header + rows joined by \\r\\n)."""
     header = "ts,m_schneider_540420085805_AC_Active_Power,m_rishabh_2303051510_AC_PF"
     lines = [header] + rows
     return "\r\n".join(lines)
+
+
+def _poll_upload(app, upload_id, timeout=1.0, interval=0.05):
+    """Block until the background worker flips status off 'pending'.
+
+    With the synchronous-thread test setup, this normally returns on the
+    first poll after the daemon has already run.
+    """
+    with app.app_context():
+        upload = db.session.get(WattmonUpload, upload_id)
+        if upload is not None and upload.status != "pending":
+            return upload
+    # Fallback poll (shouldn't be needed with _SyncThread)
+    end = time.monotonic() + timeout
+    while time.monotonic() < end:
+        time.sleep(interval)
+        with app.app_context():
+            upload = db.session.get(WattmonUpload, upload_id)
+            if upload is not None and upload.status != "pending":
+                return upload
+    return upload
 
 
 # ============================================================================
@@ -92,11 +155,16 @@ def test_csv_upload_standard_form(client):
     assert resp.status_code == 200
     assert resp.data.decode("utf-8").strip() == "OK"
 
+    upload_id = None
     with client.application.app_context():
-        uploads = WattmonUpload.query.all()
-        assert len(uploads) == 1
-        upload = uploads[0]
+        upload_id = WattmonUpload.query.first().id
+
+
+    with client.application.app_context():
+        upload = _poll_upload(client.application, upload_id)
+        assert upload is not None
         assert upload.source_key == "9C-95-6E-53-28-17"
+        assert upload.status == "success", upload.error_detail
         assert upload.row_count == 2
 
 
@@ -128,10 +196,17 @@ def test_csv_upload_repeated_fields(client):
     assert resp.status_code == 200
     assert resp.data.decode("utf-8").strip() == "OK"
 
+    upload_id = None
     with client.application.app_context():
-        uploads = WattmonUpload.query.all()
-        assert len(uploads) == 1
-        upload = uploads[0]
+        upload_id = WattmonUpload.query.first().id
+
+
+    with client.application.app_context():
+        upload = _poll_upload(client.application, upload_id)
+        assert upload is not None
+        assert upload.source_key == "9C-95-6E-53-28-17"
+        assert upload.status == "success", upload.error_detail
+        assert upload.row_count == 2
         assert upload.source_key == "9C-95-6E-53-28-17"
         assert upload.row_count == 2
 
@@ -180,8 +255,14 @@ def test_csv_upload_missing_key(client):
 # ============================================================================
 def test_csv_upload_malformed_row_skipped(client):
     """
-    POST with one good row and one bad row (wrong column count).
-    Should return 200 + "OK"; only the good row should be inserted.
+    POST with one good row and one short row (fewer columns than header).
+
+    EAV mode tolerates short rows — it emits one DB row per available cell
+    rather than rejecting the whole CSV row. The upload should succeed with
+    row_count == 2 (both CSV rows accepted).
+
+    EAV row counts: good row contributes 3 cells, short row contributes 2
+    cells → 5 EAV rows total.
     """
     header = "ts,m_schneider_540420085805_AC_Active_Power,m_rishabh_2303051510_AC_PF"
     good_row = "1783087604,0.000,0.965"
@@ -195,15 +276,19 @@ def test_csv_upload_malformed_row_skipped(client):
     )
     assert resp.status_code == 200
 
+    upload_id = None
     with client.application.app_context():
-        uploads = WattmonUpload.query.all()
-        assert len(uploads) == 1
-        upload = uploads[0]
-        # Only the good row should be counted (background thread may still run)
-        # We check the upload record; if status='success', row_count should be 1.
-        # If status='pending', the thread hasn't run yet — skip the count check.
+        upload_id = WattmonUpload.query.first().id
+
+
+    with client.application.app_context():
+        upload = _poll_upload(client.application, upload_id)
+        assert upload is not None
         if upload.status == "success":
-            assert upload.row_count == 1
+            assert upload.row_count == 2
+            assert upload.error_detail is None
+            eav_count = db.session.query(WattmonReading).filter_by(upload_id=upload.id).count()
+            assert eav_count == 5
 
 
 # ============================================================================

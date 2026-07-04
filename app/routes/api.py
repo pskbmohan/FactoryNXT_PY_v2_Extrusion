@@ -135,7 +135,11 @@ def list_uploads():
 def get_upload(upload_id):
     """
     API endpoint to get details of a specific upload.
-    Returns JSON with upload metadata and first 10 sample rows.
+    Returns JSON with upload metadata and a sample of EAV rows.
+
+    Readings are now stored as flat (device_key, column_name, value, row_index,
+    epoch_ts) tuples — one DB row per CSV cell, not per CSV row. Sample is the
+    first 50 EAV rows ordered by insertion order.
     """
     try:
         upload = WattmonUpload.query.get(upload_id)
@@ -145,22 +149,15 @@ def get_upload(upload_id):
                 "message": f"Upload {upload_id} not found"
             }), 404
 
-        # Get sample readings (first 10)
+        # First 50 EAV rows in insertion order
         sample_rows = []
-        for reading in upload.readings.limit(10):
-            # Convert SQLAlchemy object to dict
-            row_data = {
-                "id": reading.id,
-                "ts": reading.ts,
-                "timestamp": reading.timestamp
-            }
-            # Add a few key meter fields
-            if hasattr(reading, 'm_schneider_540420085805_AC_Active_Power'):
-                row_data['main_meter_active_power'] = reading.m_schneider_540420085805_AC_Active_Power
-            if hasattr(reading, 'm_schneider_540420085805_AC_PF'):
-                row_data['main_meter_pf'] = reading.m_schneider_540420085805_AC_PF
-
-            sample_rows.append(row_data)
+        for r in upload.readings.limit(50):
+            sample_rows.append({
+                "column_name": r.column_name,
+                "value": r.value,
+                "row_index": r.row_index,
+                "epoch_ts": r.epoch_ts,
+            })
 
         return jsonify({
             "status": "success",
@@ -168,11 +165,11 @@ def get_upload(upload_id):
                 "id": upload.id,
                 "source_key": upload.source_key,
                 "filename": upload.filename,
-                "row_count": upload.row_count,
+                "row_count": upload.row_count,          # CSV rows accepted (not EAV rows)
                 "status": upload.status,
                 "uploaded_at": upload.uploaded_at.strftime("%Y-%m-%d %H:%M:%S"),
                 "error_detail": upload.error_detail,
-                "sample_rows": sample_rows
+                "sample_rows": sample_rows,
             }
         }), 200
 
