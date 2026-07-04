@@ -67,10 +67,11 @@ def csv_upload():
         with open(csv_path, "w", encoding="utf-8") as f:
             f.write(csv_text)
 
-        # Process in background thread (same as integrations endpoint)
+        # Process in background thread (same as integrations endpoint).
+        # Pass csv_bytes=None so the worker reads the on-disk CSV we just saved.
         t = threading.Thread(
             target=_process_wattmon_upload,
-            args=(app, upload.id, csv_path),
+            args=(app, upload.id, None, csv_path),
             daemon=True
         )
         t.start()
