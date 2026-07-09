@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>FactoryNXT — Structural Knowledge Graph</title>
+<style>
+  :root {
+    --bg: #0e1117;
+    --panel: #161b22;
+    --border: #30363d;
+    --text: #c9d1d9;
+    --muted: #8b949e;
+    --accent: #58a6ff;
+    --model: #ef4444;
+    --service: #3b82f6;
+    --route: #22c55e;
+    --template: #94a3b8;
+    --doc: #f59e0b;
+    --config: #f97316;
+    --file: #a78bfa;
+    --high: #ef4444;
+    --medium: #f59e0b;
+    --low: #22c55e;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    height: 100vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+  header {
+    padding: 12px 20px;
+    background: var(--panel);
+    border-bottom: 1px solid var(--border);
+  }
+  header h1 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 600;
+  }
+  header .meta {
+    color: var(--muted);
+    font-size: 12px;
+    margin-top: 2px;
+  }
+  #filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+    padding: 10px 20px;
+    background: var(--panel);
+    border-bottom: 1px solid var(--border);
+  }
+  #filters label {
+    font-size: 12px;
+    color: var(--muted);
+    margin-right: 4px;
+  }
+  #filters select, #filters input {
+    background: var(--bg);
+    color: var(--text);
+    border: 1px solid var(--border);
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+  }
+  #filters .legend {
+    display: flex;
+    gap: 10px;
+    margin-left: auto;
+    font-size: 11px;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .legend-dot { width: 10px; height: 10px; border-radius: 50%; }
+  details#session-memory {
+    background: var(--panel);
+    border-bottom: 1px solid var(--border);
+    padding: 8px 20px;
+    max-height: 40vh;
+    overflow: auto;
+  }
+  details#session-memory summary {
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 13px;
+    color: var(--accent);
+  }
+  details#session-memory pre {
+    font-size: 12px;
+    line-height: 1.5;
+    white-space: pre-wrap;
+    margin: 8px 0 0 0;
+    color: var(--text);
+  }
+  #main {
+    flex: 1;
+    display: flex;
+    position: relative;
+    min-height: 0;
+  }
+  #graph {
+    flex: 1;
+    position: relative;
+  }
+  svg { display: block; width: 100%; height: 100%; }
+  #side-panel {
+    width: 320px;
+    background: var(--panel);
+    border-left: 1px solid var(--border);
+    padding: 16px;
+    overflow-y: auto;
+    font-size: 13px;
+  }
+  #side-panel h2 {
+    margin: 0 0 8px 0;
+    font-size: 15px;
+    word-break: break-all;
+  }
+  #side-panel .field {
+    margin: 8px 0;
+  }
+  #side-panel .label {
+    color: var(--muted);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 2px;
+  }
+  #side-panel .value {
+    color: var(--text);
+  }
+  .badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 11px;
+    font-weight: 600;
+  }
+  .badge-high { background: rgba(239,68,68,0.2); color: var(--high); }
+  .badge-medium { background: rgba(245,158,11,0.2); color: var(--medium); }
+  .badge-low { background: rgba(34,197,94,0.2); color: var(--low); }
+  .node circle { stroke: #000; stroke-width: 1px; cursor: pointer; }
+  .node.selected circle { stroke: var(--accent); stroke-width: 2px; }
+  .node text { font-size: 9px; fill: var(--muted); pointer-events: none; }
+  .link { stroke: #30363d; stroke-opacity: 0.5; }
+  .link-label { font-size: 8px; fill: var(--muted); pointer-events: none; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>FactoryNXT — Structural Knowledge Graph</h1>
+  <div class="meta">Flask 3.0 + SQLAlchemy + PostgreSQL · 105 models · 39 blueprints · 6 services · 254 templates</div>
+</header>
+
+<div id="filters">
+  <label>Type:</label>
+  <select id="filter-type">
+    <option value="">all</option>
+    <option value="file">file</option>
+    <option value="model-class">model-class</option>
+    <option value="service">service</option>
+    <option value="route-blueprint">route-blueprint</option>
+    <option value="doc">doc</option>
+    <option value="config">config</option>
+  </select>
+
+  <label>Domain:</label>
+  <select id="filter-domain">
+    <option value="">all</option>
+    <option>equipment</option>
+    <option>process</option>
+    <option>quality</option>
+    <option>production</option>
+    <option>material</option>
+    <option>traceability</option>
+    <option>aps</option>
+    <option>routing</option>
+    <option>integration</option>
+    <option>legacy-smt</option>
+    <option>admin</option>
+  </select>
+
+  <label>Blast:</label>
+  <select id="filter-blast">
+    <option value="">all</option>
+    <option>high</option>
+    <option>medium</option>
+    <option>low</option>
+  </select>
+
+  <label>Edge kind:</label>
+  <select id="filter-edge">
+    <option value="">all</option>
+    <option>imports</option>
+    <option>registers-blueprint</option>
+    <option>references-model</option>
+    <option>service-uses-model</option>
+    <option>template-used-by-route</option>
+  </select>
+
+  <label>Search:</label>
+  <input id="filter-text" type="text" placeholder="name substring..." />
+
+  <div class="legend">
+    <div class="legend-item"><span class="legend-dot" style="background:var(--model)"></span>model</div>
+    <div class="legend-item"><span class="legend-dot" style="background:var(--service)"></span>service</div>
+    <div class="legend-item"><span class="legend-dot" style="background:var(--route)"></span>route</div>
+    <div class="legend-item"><span class="legend-dot" style="background:var(--file)"></span>file</div>
+    <div class="legend-item"><span class="legend-dot" style="background:var(--doc)"></span>doc</div>
+    <div class="legend-item"><span class="legend-dot" style="background:var(--config)"></span>config</div>
+  </div>
+</div>
+
+<details id="session-memory">
+  <summary>Session Memory — paste verbatim into a future Claude Code prompt before opening any file</summary>
+  <pre>
+### Session Memory: FactoryNXT_PY_v2_Extrusion
+
+Repo role: Production MES (Manufacturing Execution System) for aluminum extrusion plants.
+Python (NOT TypeScript). Reference source — we extract patterns (domain modeling, Flask app
+factory, APS scheduling, state machines, seed-data ergonomics), not copy code verbatim.
+
+Tech stack:
+- Python 3.10+ / Flask 3.0 / Flask-SQLAlchemy 3.1 / Flask-Migrate 4.0 / PostgreSQL 15
+- Jinja2 + Tailwind CSS (CDN) — server-rendered, no SPA framework
+- Docker + docker-compose + Alembic migrations
+- 6 services under app/services/: aps_engine, erp_adapter, plc_adapter, scheduler, kpi_engine, process_simulator
+
+Model layout (105 classes across 3 files):
+- app/models.py       — 94 classes / 1724 lines. HIGHEST blast radius.
+- app/models_aps.py   — 6 classes  / 188 lines.  APS versioning.
+- app/models_routing.py — 5 classes / 175 lines. V2 visual routing.
+- Coexistence note: RoutingStep (legacy) and RoutingStepV2 (V2 builder) both exist;
+  operation-execution engine reads the legacy one.
+
+Read first:
+1. README.md first 100 lines — domain overview.
+2. app/models.py first 200 lines — establishes pattern (Line, Machine, Station, WorkOrder…).
+3. app/__init__.py (full, 190 lines) — blueprint registration + auto-startup seed.
+4. app/services/aps_engine.py first 150 lines — slot math, constants, imports.
+
+Do NOT touch without understanding:
+- app/__init__.py lines 119-188 (auto-seed at EVERY startup, silent on error, order matters).
+- app/services/aps_engine.py internals (deterministic scheduler; run tests/test_aps_engine.py after any change).
+- app/__init__.py blueprint registration order.
+- scripts/seed_data.py top-level sequence.
+- app/models.py — touched by every route, service, seed, test, migration.
+
+API boundaries inconsistent: half the blueprints use url_prefix, half hardcode routes (non-blocking).
+State machines: WorkOrder (DRAFT→RELEASED→RUNNING→COMPLETED|CANCELLED), Die (22 states),
+Routing (DRAFT→RELEASED→OBSOLETE), Alert (Open→Acknowledged→Closed),
+IntegrationJob (Pending→Running→Success|Failed→RetryQueued).
+  </pre>
+</details>
+
+<div id="main">
+  <div id="graph">
+    <svg id="viz"></svg>
+  </div>
+  <div id="side-panel">
+    <h2 id="sp-title">Select a node</h2>
+    <div id="sp-content">
+      <p style="color:var(--muted)">Click any node in the graph to inspect it. Use the filter bar to narrow the view.</p>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+<script>
+// --- data inlined from graph.json (subset for visualization) ---
+const nodes = [
+  { id: "run.py", type: "file", domain: "admin", blastRadius: "high", lineCount: 6, purpose: "WSGI/dev entry point. Calls create_app() + runs Flask dev server." },
+  { id: "app/__init__.py", type: "file", domain: "admin", blastRadius: "high", lineCount: 190, purpose: "Flask app factory. Registers ~39 blueprints + runs auto-seed block lines 119-188." },
+  { id: "app/models.py", type: "file", domain: "production", blastRadius: "high", lineCount: 1724, purpose: "CORE FILE. 94 SQLAlchemy model classes. Imported by every route/service/seed/test/migration." },
+  { id: "app/models_aps.py", type: "file", domain: "aps", blastRadius: "high", lineCount: 188, purpose: "APS domain models: ApsScheduleVersion/Entry/ConstraintLog/Event." },
+  { id: "app/models_routing.py", type: "file", domain: "routing", blastRadius: "high", lineCount: 175, purpose: "V2 visual routing: RoutingMaster/StepV2/Connection/ProductAssignment/WOSnapshot." },
+  { id: "scripts/seed_data.py", type: "file", domain: "admin", blastRadius: "high", lineCount: 2061, purpose: "Demo-data seeder; invoked by app/__init__.py at EVERY startup (wrapped in try/except)." },
+  { id: "seed_planning_aps.py", type: "file", domain: "aps", blastRadius: "medium", lineCount: 650, purpose: "APS planning-side seed data; also registered as `flask seed-planning` CLI." },
+  { id: "README.md", type: "doc", domain: "admin", blastRadius: "low", lineCount: 600, purpose: "Repo overview, tech stack, module list, architecture." },
+  { id: "Dockerfile", type: "config", domain: "admin", blastRadius: "low", lineCount: 30, purpose: "Container image definition." },
+  { id: "docker-compose.yml", type: "config", domain: "admin", blastRadius: "low", lineCount: 25, purpose: "Local dev orchestration: app + PostgreSQL." },
+
+  // Key model classes (subset — high blast radius ones)
+  { id: "WorkOrder", type: "model-class", domain: "production", blastRadius: "high", lineCount: 22, purpose: "Work order — DRAFT/RELEASED/RUNNING/COMPLETED/CANCELLED state machine." },
+  { id: "Machine", type: "model-class", domain: "equipment", blastRadius: "high", lineCount: 13, purpose: "Extrusion press/machine. Tied to APS, scheduling, KPI." },
+  { id: "Die", type: "model-class", domain: "equipment", blastRadius: "high", lineCount: 38, purpose: "Extrusion die — 22-status lifecycle. Tool shop automation pivot." },
+  { id: "Billet", type: "model-class", domain: "material", blastRadius: "high", lineCount: 17, purpose: "Aluminum billet — AVAILABLE/INSPECTED. Raw material + APS availability." },
+  { id: "CustomerOrder", type: "model-class", domain: "production", blastRadius: "high", lineCount: 19, purpose: "ERP customer order → input to APS → generates WorkOrders." },
+  { id: "ProcessPlan", type: "model-class", domain: "production", blastRadius: "high", lineCount: 24, purpose: "APS plan linking CO/WorkOrder to machine/die/billet with time window." },
+  { id: "ProcessRun", type: "model-class", domain: "process", blastRadius: "high", lineCount: 24, purpose: "Line-run record for setpoints+actuals; read by KPI/OEE engine." },
+  { id: "IntegrationJob", type: "model-class", domain: "integration", blastRadius: "high", lineCount: 18, purpose: "Retryable async job wrapper around ERP/PLC calls. Pending→Running→Success|Failed→RetryQueued." },
+  { id: "ApsScheduleVersion", type: "model-class", domain: "aps", blastRadius: "high", lineCount: 26, purpose: "Versioned APS schedule; ties to ApsScheduleEntry rows." },
+  { id: "ApsScheduleEntry", type: "model-class", domain: "aps", blastRadius: "high", lineCount: 41, purpose: "30-min snapped scheduling entry with FEASIBLE/INFEASIBLE constraint annotation." },
+  { id: "RoutingMaster", type: "model-class", domain: "routing", blastRadius: "high", lineCount: 42, purpose: "V2 routing master — DRAFT/RELEASED/OBSOLETE lifecycle." },
+  { id: "RoutingStepV2", type: "model-class", domain: "routing", blastRadius: "high", lineCount: 44, purpose: "V2 routing step node in the visual builder DAG." },
+  { id: "DieInspection", type: "model-class", domain: "equipment", blastRadius: "medium", lineCount: 15, purpose: "Die inspection record; triggers ERP post via erp_adapter." },
+  { id: "InspectionPlan", type: "model-class", domain: "quality", blastRadius: "medium", lineCount: 19, purpose: "Quality inspection plan; target_type/target_code/operation_step." },
+  { id: "NCR", type: "model-class", domain: "quality", blastRadius: "medium", lineCount: 17, purpose: "Nonconformance report." },
+  { id: "Alert", type: "model-class", domain: "quality", blastRadius: "medium", lineCount: 21, purpose: "Threshold breach alert. Open→Acknowledged→Closed." },
+  { id: "KPIRecord", type: "model-class", domain: "quality", blastRadius: "medium", lineCount: 14, purpose: "Persisted KPI computation (OEE, throughput, shortage)." },
+  { id: "GenealogyEvent", type: "model-class", domain: "traceability", blastRadius: "medium", lineCount: 21, purpose: "Lot/die/billet traceability event." },
+  { id: "TraceabilityRecord", type: "model-class", domain: "traceability", blastRadius: "medium", lineCount: 15, purpose: "Traceability record linking inputs/outputs." },
+
+  // Services
+  { id: "app/services/aps_engine.py", type: "service", domain: "aps", blastRadius: "high", lineCount: 1300, purpose: "Finite-capacity deterministic scheduler. 30-min slots. Constraint FEASIBLE/INFEASIBLE. Lock-preserved replans." },
+  { id: "app/services/erp_adapter.py", type: "service", domain: "integration", blastRadius: "high", lineCount: 317, purpose: "Lighthouse V15 (Oracle) ERP mock adapter; wraps calls in IntegrationJob." },
+  { id: "app/services/plc_adapter.py", type: "service", domain: "integration", blastRadius: "medium", lineCount: 151, purpose: "OPC-UA/Modbus/MQTT PLC façade mock. Wraps setpoint-load/capture." },
+  { id: "app/services/scheduler.py", type: "service", domain: "aps", blastRadius: "high", lineCount: 239, purpose: "Legacy greedy CO→ProcessPlan scheduler. Coexists with aps_engine." },
+  { id: "app/services/kpi_engine.py", type: "service", domain: "quality", blastRadius: "medium", lineCount: 332, purpose: "OEE/die-life/shortage aggregator; writes KPIRecord." },
+  { id: "app/services/process_simulator.py", type: "service", domain: "process", blastRadius: "low", lineCount: 240, purpose: "Deterministic fake sensor values for offline demo." },
+
+  // Key routes
+  { id: "app/routes/aps.py", type: "route-blueprint", domain: "aps", blastRadius: "high", lineCount: 891, purpose: "APS page views + JSON API (two blueprints in one file: aps_page_bp + aps_resource_bp)." },
+  { id: "app/routes/planning.py", type: "route-blueprint", domain: "aps", blastRadius: "high", lineCount: 867, purpose: "Legacy planning surface: CO list, WO generation, machine availability." },
+  { id: "app/routes/integrations.py", type: "route-blueprint", domain: "integration", blastRadius: "high", lineCount: 801, purpose: "IntegrationJob list, retry, ERP/PLC audit, reprocess." },
+  { id: "app/routes/process_line.py", type: "route-blueprint", domain: "process", blastRadius: "high", lineCount: 670, purpose: "One route file per extrusion station (HLS/Press/Quench/Puller/Stretch/Cut/Oven)." },
+  { id: "app/routes/routing_builder.py", type: "route-blueprint", domain: "routing", blastRadius: "high", lineCount: 516, purpose: "V2 visual routing builder (CRUD for RoutingMaster/StepV2/Connection)." },
+  { id: "app/routes/tool_shop.py", type: "route-blueprint", domain: "equipment", blastRadius: "high", lineCount: 440, purpose: "Die lifecycle: inward → inspection → test → nitriding → available." },
+  { id: "app/routes/kpi_alerts.py", type: "route-blueprint", domain: "quality", blastRadius: "medium", lineCount: 451, purpose: "KPI trending, alert rules, alert lifecycle." },
+  { id: "app/routes/production.py", type: "route-blueprint", domain: "production", blastRadius: "medium", lineCount: 388, purpose: "Production floor, Gantt, shift reports, operator views." },
+  { id: "app/routes/operations.py", type: "route-blueprint", domain: "production", blastRadius: "high", lineCount: 318, purpose: "WO lifecycle state machine driver (DRAFT→RUNNING→COMPLETED)." },
+  { id: "app/routes/admin.py", type: "route-blueprint", domain: "admin", blastRadius: "low", lineCount: 285, purpose: "Plant/user/role master data admin." },
+  { id: "app/routes/dies.py", type: "route-blueprint", domain: "equipment", blastRadius: "medium", lineCount: 258, purpose: "Die list/detail (separate from tool_shop workflows)." },
+  { id: "app/routes/furnace.py", type: "route-blueprint", domain: "process", blastRadius: "medium", lineCount: 211, purpose: "Furnace + heat treatment program + furnace session." },
+  { id: "app/routes/logistics.py", type: "route-blueprint", domain: "production", blastRadius: "low", lineCount: 248, purpose: "Packaging orders + shipments." },
+  { id: "app/routes/traceability.py", type: "route-blueprint", domain: "traceability", blastRadius: "low", lineCount: 166, purpose: "Traceability records." },
+  { id: "app/routes/dashboard.py", type: "route-blueprint", domain: "admin", blastRadius: "medium", lineCount: 173, purpose: "Executive dashboard: WO summary, machine/die availability, alerts, KPI cards." },
+  { id: "app/routes/quality_ext.py", type: "route-blueprint", domain: "quality", blastRadius: "medium", lineCount: 167, purpose: "Quality extension (InspectionPlan, etc.)." },
+  { id: "app/routes/stations.py", type: "route-blueprint", domain: "equipment", blastRadius: "low", lineCount: 169, purpose: "Station status / WO-on-machine matrix." },
+  { id: "app/routes/finishing.py", type: "route-blueprint", domain: "process", blastRadius: "low", lineCount: 161, purpose: "Finishing orders." },
+  { id: "app/routes/genealogy.py", type: "route-blueprint", domain: "traceability", blastRadius: "low", lineCount: 152, purpose: "Genealogy events." },
+  { id: "app/routes/material_receipt.py", type: "route-blueprint", domain: "material", blastRadius: "low", lineCount: 148, purpose: "Material receipt / alloy stock." },
+  { id: "app/routes/inventory.py", type: "route-blueprint", domain: "material", blastRadius: "low", lineCount: 139, purpose: "Inventory items/locations." },
+  { id: "app/routes/coating_schedule.py", type: "route-blueprint", domain: "process", blastRadius: "low", lineCount: 137, purpose: "Coating color + schedule entries." },
+  { id: "app/routes/cost_price.py", type: "route-blueprint", domain: "production", blastRadius: "low", lineCount: 139, purpose: "Cost price config." },
+  { id: "app/routes/oee.py", type: "route-blueprint", domain: "production", blastRadius: "low", lineCount: 134, purpose: "OEE snapshots + trending." },
+  { id: "app/routes/machines.py", type: "route-blueprint", domain: "equipment", blastRadius: "medium", lineCount: 132, purpose: "Machine list/detail + resource mappings." },
+  { id: "app/routes/containers.py", type: "route-blueprint", domain: "material", blastRadius: "low", lineCount: 131, purpose: "Container + weigh/move events." },
+  { id: "app/routes/smt_materials.py", type: "route-blueprint", domain: "legacy-smt", blastRadius: "low", lineCount: 143, purpose: "Legacy SMT materials." },
+  { id: "app/routes/integrations.py", type: "route-blueprint", domain: "integration", blastRadius: "high", lineCount: 801, purpose: "IntegrationJob list, retry, ERP/PLC audit." },
+  { id: "app/routes/maintenance.py", type: "route-blueprint", domain: "equipment", blastRadius: "low", lineCount: 115, purpose: "PM schedule, maintenance logs, calibration, stencils." },
+  { id: "app/routes/work_orders.py", type: "route-blueprint", domain: "production", blastRadius: "low", lineCount: 114, purpose: "WO CRUD (lifecycle driven by operations.py)." },
+  { id: "app/routes/ncr.py", type: "route-blueprint", domain: "quality", blastRadius: "low", lineCount: 96, purpose: "Nonconformance reports." },
+  { id: "app/routes/kitting.py", type: "route-blueprint", domain: "production", blastRadius: "low", lineCount: 90, purpose: "Kit list." },
+  { id: "app/routes/users.py", type: "route-blueprint", domain: "admin", blastRadius: "low", lineCount: 95, purpose: "User admin." },
+  { id: "app/routes/scheduling.py", type: "route-blueprint", domain: "aps", blastRadius: "medium", lineCount: 63, purpose: "Legacy scheduling UI." },
+  { id: "app/routes/routing.py", type: "route-blueprint", domain: "routing", blastRadius: "low", lineCount: 58, purpose: "Legacy routing list." },
+  { id: "app/routes/docs.py", type: "route-blueprint", domain: "admin", blastRadius: "low", lineCount: 50, purpose: "Documentation viewer." },
+  { id: "app/routes/api.py", type: "route-blueprint", domain: "admin", blastRadius: "low", lineCount: 182, purpose: "Generic JSON API endpoints." },
+  { id: "app/routes/auth.py", type: "route-blueprint", domain: "admin", blastRadius: "low", lineCount: 13, purpose: "Auth (login/logout)." },
+  { id: "app/routes/bom.py", type: "route-blueprint", domain: "production", blastRadius: "low", lineCount: 58, purpose: "BOM editor." },
+  { id: "app/routes/pcb.py", type: "route-blueprint", domain: "legacy-smt", blastRadius: "low", lineCount: 71, purpose: "Legacy PCB/panel view." }
+];
+
+const edges = [
+  { from: "run.py", to: "app/__init__.py", kind: "imports" },
+  { from: "app/__init__.py", to: "app/models_aps.py", kind: "imports" },
+  { from: "app/__init__.py", to: "scripts/seed_data.py", kind: "imports" },
+  { from: "app/__init__.py", to: "app/routes/dashboard.py", kind: "registers-blueprint" },
+  { from: "app/__init__.py", to: "app/routes/auth.py", kind: "registers-blueprint" },
+  { from: "app/__init__.py", to: "app/routes/api.py", kind: "registers-blueprint" },
+  { from: "app/__init__.py", to: "app/routes/work_orders.py", kind: "registers-blueprint" },
+  { from: "app/__init__.py", to: "app/routes/operations.py", kind: "registers-blueprint" },
+  { from: "app/__init__.py", to: "app/routes/ncr.py", kind: "registers-blueprint" },
+  { from: "app/__init__.py", to: "app/routes/bom.py", kind: "registers-blueprint" },
+  { from: "app/__init__.py", to: "app/routes/routing.py", kind: "registers-blueprint" },
+  { from: "app/__init__.py", to: "app/routes/routing_builder.py", kind: "registers-blueprint" },
+  { from: "app/__init__.py", to: "app/routes/quality_ext.py", kind: "registers-blueprint" },
+  { from: "app/__init__.py", to: "app/routes/machines.py", kind: "registers-blueprint" },
+  { from: "app/__init__.py", to: "app/routes/inventory.py", kind: "registers-blueprint" },
+  { from: "app/__init__.py", to: "app/routes/production.py", kind: "registers-blueprint" },
+  { from: "app/__init__.py", to: "app/routes/traceability.py", kind: "registers-blueprint" },
+  { from: "app/__init__.py", to: "app/routes/admin.py", kind: "registers-blueprint" },
+  { from: "app/__init__.py", to: "app/routes/smt_materials.py", kind: "registers-blueprint" },
+  { from: "app/__init__.py", to: "app/routes/scheduling.py", kind: "registers-blueprint" },
+  { from: "app/__init__.py", to: "app/routes/kitting.py", kind: "registers-blueprint" },
+  { from: "app/__init__.py", to: "app/routes/oee.py", kind: "registers-blueprint" },
+  { from: "app/__init__.py", to: "app/routes/pcb.py", kind: "registers-blueprint" },
+  { from: "app/__init__.py", to: "app/routes/maintenance.py", kind: "registers-blueprint" },
+  { from: "app/__init__.py", to: "app/routes/genealogy.py", kind: "registers-blueprint" },
+  { from: "app/__init__.py", to: "app/routes/stations.py", kind: "registers-blueprint" },
+  { from: "app/__init__.py", to: "app/routes/integrations.py", kind: "registers-blueprint" },
+  { from: "app/__init__.py", to: "app/routes/planning.py", kind: "registers-blueprint" },
+  { from: "app/__init__.py", to: "app/routes/tool_shop.py", kind: "registers-blueprint" },
+  { from: "app/__init__.py", to: "app/routes/process_line.py", kind: "registers-blueprint" },
+  { from: "app/__init__.py", to: "app/routes/kpi_alerts.py", kind: "registers-blueprint" },
+  { from: "app/__init__.py", to: "app/routes/aps.py", kind: "registers-blueprint" },
+  { from: "app/__init__.py", to: "app/routes/cost_price.py", kind: "registers-blueprint" },
+  { from: "app/__init__.py", to: "app/routes/material_receipt.py", kind: "registers-blueprint" },
+  { from: "app/__init__.py", to: "app/routes/dies.py", kind: "registers-blueprint" },
+  { from: "app/__init__.py", to: "app/routes/coating_schedule.py", kind: "registers-blueprint" },
+  { from: "app/__init__.py", to: "app/routes/containers.py", kind: "registers-blueprint" },
+  { from: "app/__init__.py", to: "app/routes/furnace.py", kind: "registers-blueprint" },
+  { from: "app/__init__.py", to: "app/routes/finishing.py", kind: "registers-blueprint" },
+  { from: "app/__init__.py", to: "app/routes/logistics.py", kind: "registers-blueprint" },
+  { from: "app/__init__.py", to: "app/routes/docs.py", kind: "registers-blueprint" },
+  { from: "app/services/aps_engine.py", to: "ApsScheduleVersion", kind: "service-uses-model" },
+  { from: "app/services/aps_engine.py", to: "ApsScheduleEntry", kind: "service-uses-model" },
+  { from: "app/services/aps_engine.py", to: "CustomerOrder", kind: "service-uses-model" },
+  { from: "app/services/aps_engine.py", to: "WorkOrder", kind: "service-uses-model" },
+  { from: "app/services/aps_engine.py", to: "Machine", kind: "service-uses-model" },
+  { from: "app/services/aps_engine.py", to: "Die", kind: "service-uses-model" },
+  { from: "app/services/aps_engine.py", to: "Billet", kind: "service-uses-model" },
+  { from: "app/services/aps_engine.py", to: "RoutingStepV2", kind: "service-uses-model" },
+  { from: "app/services/erp_adapter.py", to: "IntegrationJob", kind: "service-uses-model" },
+  { from: "app/services/erp_adapter.py", to: "CustomerOrder", kind: "service-uses-model" },
+  { from: "app/services/plc_adapter.py", to: "IntegrationJob", kind: "service-uses-model" },
+  { from: "app/services/plc_adapter.py", to: "ProcessRun", kind: "service-uses-model" },
+  { from: "app/services/kpi_engine.py", to: "KPIRecord", kind: "service-uses-model" },
+  { from: "app/services/kpi_engine.py", to: "ProcessRun", kind: "service-uses-model" },
+  { from: "app/services/kpi_engine.py", to: "Die", kind: "service-uses-model" },
+  { from: "app/services/kpi_engine.py", to: "Alert", kind: "service-uses-model" },
+  { from: "app/services/scheduler.py", to: "CustomerOrder", kind: "service-uses-model" },
+  { from: "app/services/scheduler.py", to: "ProcessPlan", kind: "service-uses-model" },
+  { from: "app/services/scheduler.py", to: "Die", kind: "service-uses-model" },
+  { from: "app/services/scheduler.py", to: "Billet", kind: "service-uses-model" },
+  { from: "app/services/scheduler.py", to: "Machine", kind: "service-uses-model" },
+  { from: "app/routes/operations.py", to: "WorkOrder", kind: "references-model" },
+  { from: "app/routes/operations.py", to: "ProcessPlan", kind: "references-model" },
+  { from: "app/routes/planning.py", to: "CustomerOrder", kind: "references-model" },
+  { from: "app/routes/planning.py", to: "WorkOrder", kind: "references-model" },
+  { from: "app/routes/planning.py", to: "ProcessPlan", kind: "references-model" },
+  { from: "app/routes/planning.py", to: "Billet", kind: "references-model" },
+  { from: "app/routes/planning.py", to: "Die", kind: "references-model" },
+  { from: "app/routes/aps.py", to: "ApsScheduleVersion", kind: "references-model" },
+  { from: "app/routes/aps.py", to: "ApsScheduleEntry", kind: "references-model" },
+  { from: "app/routes/routing_builder.py", to: "RoutingMaster", kind: "references-model" },
+  { from: "app/routes/routing_builder.py", to: "RoutingStepV2", kind: "references-model" },
+  { from: "app/routes/tool_shop.py", to: "Die", kind: "references-model" },
+  { from: "app/routes/tool_shop.py", to: "DieInspection", kind: "references-model" },
+  { from: "app/routes/process_line.py", to: "ProcessRun", kind: "references-model" },
+  { from: "app/routes/process_line.py", to: "Machine", kind: "references-model" },
+  { from: "app/routes/process_line.py", to: "Billet", kind: "references-model" },
+  { from: "app/routes/integrations.py", to: "IntegrationJob", kind: "references-model" },
+  { from: "app/routes/dashboard.py", to: "WorkOrder", kind: "references-model" },
+  { from: "app/routes/dashboard.py", to: "Machine", kind: "references-model" },
+  { from: "app/routes/dashboard.py", to: "Die", kind: "references-model" },
+  { from: "app/routes/dashboard.py", to: "Alert", kind: "references-model" },
+  { from: "app/routes/quality_ext.py", to: "InspectionPlan", kind: "references-model" },
+  { from: "app/routes/kpi_alerts.py", to: "KPIRecord", kind: "references-model" },
+  { from: "app/routes/kpi_alerts.py", to: "Alert", kind: "references-model" },
+  { from: "app/routes/genealogy.py", to: "GenealogyEvent", kind: "references-model" },
+  { from: "app/routes/traceability.py", to: "TraceabilityRecord", kind: "references-model" },
+  { from: "app/routes/production.py", to: "WorkOrder", kind: "references-model" },
+  { from: "app/routes/furnace.py", to: "ProcessRun", kind: "references-model" },
+];
+
+const color = {
+  "model-class": "#ef4444",
+  "service":     "#3b82f6",
+  "route-blueprint": "#22c55e",
+  "file":        "#a78bfa",
+  "doc":         "#f59e0b",
+  "config":      "#f97316"
+};
+
+const sizeByBlast = { high: 12, medium: 8, low: 5 };
+
+const svg = d3.select("#viz");
+const width = () => svg.node().clientWidth;
+const height = () => svg.node().clientHeight;
+
+const container = svg.append("g");
+
+// zoom
+svg.call(d3.zoom().scaleExtent([0.2, 4]).on("zoom", e => container.attr("transform", e.transform)));
+
+const link = container.append("g").selectAll("line").data(edges).enter()
+  .append("line").attr("class", "link");
+
+const nodeG = container.append("g").selectAll("g").data(nodes).enter()
+  .append("g").attr("class", "node")
+  .call(d3.drag()
+    .on("start", (e,d) => { if (!e.active) sim.alphaTarget(0.3).restart(); d.fx = d.x; d.fy = d.y; })
+    .on("drag", (e,d) => { d.fx = e.x; d.fy = e.y; })
+    .on("end", (e,d) => { if (!e.active) sim.alphaTarget(0); d.fx = null; d.fy = null; })
+  );
+
+nodeG.append("circle")
+  .attr("r", d => sizeByBlast[d.blastRadius] || 6)
+  .attr("fill", d => color[d.type] || "#999");
+
+nodeG.append("text")
+  .attr("dx", 12).attr("dy", 3)
+  .text(d => d.id.split("/").pop());
+
+// tooltip / selection
+nodeG.on("click", (e, d) => {
+  e.stopPropagation();
+  d3.selectAll(".node").classed("selected", false);
+  d3.select(e.currentTarget).classed("selected", true);
+  showDetails(d);
+});
+svg.on("click", () => {
+  d3.selectAll(".node").classed("selected", false);
+  document.getElementById("sp-title").textContent = "Select a node";
+  document.getElementById("sp-content").innerHTML = '<p style="color:var(--muted)">Click any node in the graph to inspect it.</p>';
+});
+
+function showDetails(d) {
+  document.getElementById("sp-title").textContent = d.id;
+  const connectedEdges = edges.filter(e => e.from === d.id || e.to === d.id);
+  document.getElementById("sp-content").innerHTML = `
+    <div class="field"><div class="label">Purpose</div><div class="value">${d.purpose || "—"}</div></div>
+    <div class="field"><div class="label">Type</div><div class="value">${d.type}</div></div>
+    <div class="field"><div class="label">Domain</div><div class="value">${d.domain}</div></div>
+    <div class="field"><div class="label">Blast Radius</div><div class="value"><span class="badge badge-${d.blastRadius}">${d.blastRadius.toUpperCase()}</span></div></div>
+    <div class="field"><div class="label">Line Count</div><div class="value">${d.lineCount || "—"}</div></div>
+    <div class="field"><div class="label">Connected edges</div><div class="value">${connectedEdges.length}</div></div>
+    <div class="field"><div class="label">Outgoing</div><div class="value">${connectedEdges.filter(e => e.from === d.id).slice(0,10).map(e => `<div style="font-size:11px">${e.kind} → ${e.to}</div>`).join("")}</div></div>
+    <div class="field"><div class="label">Incoming</div><div class="value">${connectedEdges.filter(e => e.to === d.id).slice(0,10).map(e => `<div style="font-size:11px">${e.from} → ${e.kind}</div>`).join("")}</div></div>
+  `;
+}
+
+// Filters
+function applyFilters() {
+  const t = document.getElementById("filter-type").value;
+  const dom = document.getElementById("filter-domain").value;
+  const b = document.getElementById("filter-blast").value;
+  const txt = document.getElementById("filter-text").value.toLowerCase();
+  const ek = document.getElementById("filter-edge").value;
+
+  const visibleIds = new Set(nodes.filter(n =>
+    (!t || n.type === t) &&
+    (!dom || n.domain === dom) &&
+    (!b || n.blastRadius === b) &&
+    (!txt || n.id.toLowerCase().includes(txt))
+  ).map(n => n.id));
+
+  const visibleEdges = edges.filter(e => {
+    const kindOk = !ek || e.kind === ek;
+    return kindOk && visibleIds.has(e.from) && visibleIds.has(e.to);
+  });
+
+  nodeG.style("display", d => visibleIds.has(d.id) ? null : "none");
+  link.style("display", e => visibleEdges.includes(e) ? null : "none");
+}
+
+["filter-type","filter-domain","filter-blast","filter-text","filter-edge"].forEach(id =>
+  document.getElementById(id).addEventListener("input", applyFilters)
+);
+
+// Force simulation
+const sim = d3.forceSimulation(nodes)
+  .force("link", d3.forceLink(edges).id(d => d.id).distance(80))
+  .force("charge", d3.forceManyBody().strength(-180))
+  .force("center", d3.forceCenter(width()/2, height()/2))
+  .force("collide", d3.forceCollide().radius(d => (sizeByBlast[d.blastRadius]||6) + 4))
+  .on("tick", ticked);
+
+function ticked() {
+  link
+    .attr("x1", d => d.source.x).attr("y1", d => d.source.y)
+    .attr("x2", d => d.target.x).attr("y2", d => d.target.y);
+  nodeG.attr("transform", d => `translate(${d.x},${d.y})`);
+}
+
+// Re-center on resize
+window.addEventListener("resize", () => {
+  sim.force("center", d3.forceCenter(width()/2, height()/2));
+  sim.alpha(0.3).restart();
+});
+</script>
+</body>
+</html>

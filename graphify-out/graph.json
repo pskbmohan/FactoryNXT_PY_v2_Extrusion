@@ -1,0 +1,541 @@
+{
+  "repo": {
+    "name": "FactoryNXT_PY_v2_Extrusion",
+    "path": "/Users/pskbmohan/Documents/GitHub/FactoryNXT_PY_v2_Extrusion",
+    "stack": "Flask 3.0 + SQLAlchemy + PostgreSQL",
+    "maturity": "production-mes"
+  },
+  "metadata": {
+    "generated": "2026-07-09T00:00:00Z",
+    "totalPyFiles": 80,
+    "totalModels": 105,
+    "totalRouteBlueprints": 39,
+    "totalServices": 6,
+    "totalTemplates": 254
+  },
+  "nodes": [
+    { "id": "run.py", "type": "file", "lang": "py", "domain": "admin", "blastRadius": "high", "lineCount": 6 },
+    { "id": "app/__init__.py", "type": "file", "lang": "py", "domain": "admin", "blastRadius": "high", "lineCount": 190 },
+    { "id": "app/config.py", "type": "config", "lang": "py", "domain": "admin", "blastRadius": "medium", "lineCount": 0 },
+    { "id": "app/models.py", "type": "file", "lang": "py", "domain": "production", "blastRadius": "high", "lineCount": 1724 },
+    { "id": "app/models_aps.py", "type": "file", "lang": "py", "domain": "aps", "blastRadius": "high", "lineCount": 188 },
+    { "id": "app/models_routing.py", "type": "file", "lang": "py", "domain": "routing", "blastRadius": "high", "lineCount": 175 },
+
+    { "id": "Line", "type": "model-class", "lang": "py", "domain": "equipment", "blastRadius": "high", "lineCount": 7 },
+    { "id": "Machine", "type": "model-class", "lang": "py", "domain": "equipment", "blastRadius": "high", "lineCount": 13 },
+    { "id": "MachineResourceMapping", "type": "model-class", "lang": "py", "domain": "aps", "blastRadius": "medium", "lineCount": 33 },
+    { "id": "Alarm", "type": "model-class", "lang": "py", "domain": "equipment", "blastRadius": "low", "lineCount": 11 },
+    { "id": "Station", "type": "model-class", "lang": "py", "domain": "equipment", "blastRadius": "medium", "lineCount": 11 },
+    { "id": "WorkOrder", "type": "model-class", "lang": "py", "domain": "production", "blastRadius": "high", "lineCount": 22 },
+    { "id": "WorkOrderResource", "type": "model-class", "lang": "py", "domain": "aps", "blastRadius": "medium", "lineCount": 28 },
+    { "id": "BOMItem", "type": "model-class", "lang": "py", "domain": "production", "blastRadius": "low", "lineCount": 10 },
+    { "id": "RoutingStep_legacy", "type": "model-class", "lang": "py", "domain": "routing", "blastRadius": "medium", "lineCount": 14 },
+    { "id": "SerialNumber", "type": "model-class", "lang": "py", "domain": "production", "blastRadius": "medium", "lineCount": 13 },
+    { "id": "OperationTransaction", "type": "model-class", "lang": "py", "domain": "production", "blastRadius": "medium", "lineCount": 19 },
+    { "id": "NCR", "type": "model-class", "lang": "py", "domain": "quality", "blastRadius": "medium", "lineCount": 17 },
+    { "id": "InventoryLocation", "type": "model-class", "lang": "py", "domain": "material", "blastRadius": "low", "lineCount": 10 },
+    { "id": "InventoryItem", "type": "model-class", "lang": "py", "domain": "material", "blastRadius": "low", "lineCount": 23 },
+    { "id": "Kit", "type": "model-class", "lang": "py", "domain": "production", "blastRadius": "low", "lineCount": 14 },
+    { "id": "FeederReel", "type": "model-class", "lang": "py", "domain": "legacy-smt", "blastRadius": "low", "lineCount": 15 },
+    { "id": "SolderPasteLot", "type": "model-class", "lang": "py", "domain": "legacy-smt", "blastRadius": "low", "lineCount": 15 },
+    { "id": "SmtLine", "type": "model-class", "lang": "py", "domain": "legacy-smt", "blastRadius": "low", "lineCount": 10 },
+    { "id": "ProductionSchedule", "type": "model-class", "lang": "py", "domain": "production", "blastRadius": "medium", "lineCount": 19 },
+    { "id": "ShiftCalendar", "type": "model-class", "lang": "py", "domain": "production", "blastRadius": "medium", "lineCount": 11 },
+    { "id": "OeeSnapshot", "type": "model-class", "lang": "py", "domain": "production", "blastRadius": "low", "lineCount": 23 },
+    { "id": "DowntimeEvent", "type": "model-class", "lang": "py", "domain": "production", "blastRadius": "low", "lineCount": 13 },
+    { "id": "PcbPanel", "type": "model-class", "lang": "py", "domain": "legacy-smt", "blastRadius": "low", "lineCount": 12 },
+    { "id": "PcbBoard", "type": "model-class", "lang": "py", "domain": "legacy-smt", "blastRadius": "low", "lineCount": 14 },
+    { "id": "UnitHistory", "type": "model-class", "lang": "py", "domain": "traceability", "blastRadius": "low", "lineCount": 13 },
+    { "id": "GenealogyEvent", "type": "model-class", "lang": "py", "domain": "traceability", "blastRadius": "medium", "lineCount": 21 },
+    { "id": "RepairRecord", "type": "model-class", "lang": "py", "domain": "quality", "blastRadius": "low", "lineCount": 19 },
+    { "id": "DefectRecord", "type": "model-class", "lang": "py", "domain": "quality", "blastRadius": "low", "lineCount": 15 },
+    { "id": "Capa", "type": "model-class", "lang": "py", "domain": "quality", "blastRadius": "low", "lineCount": 17 },
+    { "id": "InspectionPlan", "type": "model-class", "lang": "py", "domain": "quality", "blastRadius": "medium", "lineCount": 19 },
+    { "id": "GoldenBoard", "type": "model-class", "lang": "py", "domain": "legacy-smt", "blastRadius": "low", "lineCount": 12 },
+    { "id": "PpapRecord", "type": "model-class", "lang": "py", "domain": "quality", "blastRadius": "low", "lineCount": 13 },
+    { "id": "PmSchedule", "type": "model-class", "lang": "py", "domain": "equipment", "blastRadius": "low", "lineCount": 13 },
+    { "id": "MaintenanceLog", "type": "model-class", "lang": "py", "domain": "equipment", "blastRadius": "low", "lineCount": 14 },
+    { "id": "CalibrationRecord", "type": "model-class", "lang": "py", "domain": "equipment", "blastRadius": "low", "lineCount": 13 },
+    { "id": "Stencil", "type": "model-class", "lang": "py", "domain": "legacy-smt", "blastRadius": "low", "lineCount": 15 },
+    { "id": "TestResult", "type": "model-class", "lang": "py", "domain": "quality", "blastRadius": "low", "lineCount": 13 },
+    { "id": "BurnInSession", "type": "model-class", "lang": "py", "domain": "legacy-smt", "blastRadius": "low", "lineCount": 12 },
+    { "id": "Plant", "type": "model-class", "lang": "py", "domain": "admin", "blastRadius": "medium", "lineCount": 9 },
+    { "id": "Role", "type": "model-class", "lang": "py", "domain": "admin", "blastRadius": "medium", "lineCount": 8 },
+    { "id": "UserProfile", "type": "model-class", "lang": "py", "domain": "admin", "blastRadius": "medium", "lineCount": 16 },
+    { "id": "AuditLog", "type": "model-class", "lang": "py", "domain": "admin", "blastRadius": "low", "lineCount": 17 },
+    { "id": "OperatorCertification", "type": "model-class", "lang": "py", "domain": "admin", "blastRadius": "low", "lineCount": 12 },
+    { "id": "ElectronicSignature", "type": "model-class", "lang": "py", "domain": "admin", "blastRadius": "low", "lineCount": 11 },
+    { "id": "Integration", "type": "model-class", "lang": "py", "domain": "integration", "blastRadius": "low", "lineCount": 10 },
+    { "id": "ErpSyncLog", "type": "model-class", "lang": "py", "domain": "integration", "blastRadius": "low", "lineCount": 11 },
+    { "id": "Webhook", "type": "model-class", "lang": "py", "domain": "integration", "blastRadius": "low", "lineCount": 12 },
+    { "id": "ApiKey", "type": "model-class", "lang": "py", "domain": "integration", "blastRadius": "low", "lineCount": 19 },
+    { "id": "CustomerOrder", "type": "model-class", "lang": "py", "domain": "production", "blastRadius": "high", "lineCount": 19 },
+    { "id": "ProcessPlan", "type": "model-class", "lang": "py", "domain": "production", "blastRadius": "high", "lineCount": 24 },
+    { "id": "Die", "type": "model-class", "lang": "py", "domain": "equipment", "blastRadius": "high", "lineCount": 38 },
+    { "id": "DieInspection", "type": "model-class", "lang": "py", "domain": "equipment", "blastRadius": "medium", "lineCount": 15 },
+    { "id": "DieTest", "type": "model-class", "lang": "py", "domain": "equipment", "blastRadius": "medium", "lineCount": 16 },
+    { "id": "NitridingRecord", "type": "model-class", "lang": "py", "domain": "equipment", "blastRadius": "medium", "lineCount": 17 },
+    { "id": "Billet", "type": "model-class", "lang": "py", "domain": "material", "blastRadius": "high", "lineCount": 17 },
+    { "id": "BilletInspection", "type": "model-class", "lang": "py", "domain": "material", "blastRadius": "medium", "lineCount": 13 },
+    { "id": "MaterialGrade", "type": "model-class", "lang": "py", "domain": "material", "blastRadius": "medium", "lineCount": 11 },
+    { "id": "SetpointProfile", "type": "model-class", "lang": "py", "domain": "process", "blastRadius": "medium", "lineCount": 13 },
+    { "id": "ProcessRun", "type": "model-class", "lang": "py", "domain": "process", "blastRadius": "high", "lineCount": 24 },
+    { "id": "QuenchRecord", "type": "model-class", "lang": "py", "domain": "process", "blastRadius": "low", "lineCount": 13 },
+    { "id": "CutRecord", "type": "model-class", "lang": "py", "domain": "process", "blastRadius": "low", "lineCount": 15 },
+    { "id": "StretchRecord", "type": "model-class", "lang": "py", "domain": "process", "blastRadius": "low", "lineCount": 13 },
+    { "id": "OvenRecord", "type": "model-class", "lang": "py", "domain": "process", "blastRadius": "low", "lineCount": 13 },
+    { "id": "AlertRule", "type": "model-class", "lang": "py", "domain": "quality", "blastRadius": "low", "lineCount": 13 },
+    { "id": "Alert", "type": "model-class", "lang": "py", "domain": "quality", "blastRadius": "medium", "lineCount": 21 },
+    { "id": "KPIRecord", "type": "model-class", "lang": "py", "domain": "quality", "blastRadius": "medium", "lineCount": 14 },
+    { "id": "IntegrationJob", "type": "model-class", "lang": "py", "domain": "integration", "blastRadius": "high", "lineCount": 18 },
+    { "id": "ERPTransactionLog", "type": "model-class", "lang": "py", "domain": "integration", "blastRadius": "medium", "lineCount": 15 },
+    { "id": "PLCSignalMapping", "type": "model-class", "lang": "py", "domain": "integration", "blastRadius": "medium", "lineCount": 15 },
+    { "id": "TraceabilityRecord", "type": "model-class", "lang": "py", "domain": "traceability", "blastRadius": "medium", "lineCount": 15 },
+    { "id": "CostPriceConfig", "type": "model-class", "lang": "py", "domain": "production", "blastRadius": "low", "lineCount": 23 },
+    { "id": "RawMaterialType", "type": "model-class", "lang": "py", "domain": "material", "blastRadius": "low", "lineCount": 9 },
+    { "id": "AlloyComposition", "type": "model-class", "lang": "py", "domain": "material", "blastRadius": "low", "lineCount": 10 },
+    { "id": "MaterialReceipt", "type": "model-class", "lang": "py", "domain": "material", "blastRadius": "medium", "lineCount": 25 },
+    { "id": "DieFurnaceLog", "type": "model-class", "lang": "py", "domain": "equipment", "blastRadius": "low", "lineCount": 14 },
+    { "id": "DieRepairRecord", "type": "model-class", "lang": "py", "domain": "equipment", "blastRadius": "low", "lineCount": 13 },
+    { "id": "CoatingColor", "type": "model-class", "lang": "py", "domain": "process", "blastRadius": "low", "lineCount": 10 },
+    { "id": "CoatingScheduleEntry", "type": "model-class", "lang": "py", "domain": "process", "blastRadius": "low", "lineCount": 21 },
+    { "id": "Container", "type": "model-class", "lang": "py", "domain": "material", "blastRadius": "medium", "lineCount": 17 },
+    { "id": "ContainerWeighEvent", "type": "model-class", "lang": "py", "domain": "material", "blastRadius": "low", "lineCount": 19 },
+    { "id": "ContainerMovement", "type": "model-class", "lang": "py", "domain": "material", "blastRadius": "low", "lineCount": 15 },
+    { "id": "Furnace", "type": "model-class", "lang": "py", "domain": "equipment", "blastRadius": "medium", "lineCount": 14 },
+    { "id": "HeatTreatmentProgram", "type": "model-class", "lang": "py", "domain": "process", "blastRadius": "medium", "lineCount": 12 },
+    { "id": "FurnaceSession", "type": "model-class", "lang": "py", "domain": "process", "blastRadius": "low", "lineCount": 25 },
+    { "id": "FinishingProcessType", "type": "model-class", "lang": "py", "domain": "process", "blastRadius": "low", "lineCount": 10 },
+    { "id": "FinishingOrder", "type": "model-class", "lang": "py", "domain": "process", "blastRadius": "medium", "lineCount": 24 },
+    { "id": "PackagingSpec", "type": "model-class", "lang": "py", "domain": "production", "blastRadius": "low", "lineCount": 12 },
+    { "id": "PackagingOrder", "type": "model-class", "lang": "py", "domain": "production", "blastRadius": "low", "lineCount": 21 },
+    { "id": "Shipment", "type": "model-class", "lang": "py", "domain": "production", "blastRadius": "medium", "lineCount": 18 },
+    { "id": "ShipmentLine", "type": "model-class", "lang": "py", "domain": "production", "blastRadius": "low", "lineCount": 32 },
+    { "id": "WattmonUpload", "type": "model-class", "lang": "py", "domain": "integration", "blastRadius": "medium", "lineCount": 321 },
+    { "id": "WattmonReading", "type": "model-class", "lang": "py", "domain": "integration", "blastRadius": "low", "lineCount": 35 },
+
+    { "id": "ApsScheduleVersion", "type": "model-class", "lang": "py", "domain": "aps", "blastRadius": "high", "lineCount": 26 },
+    { "id": "ApsScheduleEntry", "type": "model-class", "lang": "py", "domain": "aps", "blastRadius": "high", "lineCount": 41 },
+    { "id": "ApsConstraintLog", "type": "model-class", "lang": "py", "domain": "aps", "blastRadius": "medium", "lineCount": 22 },
+    { "id": "ApsScheduleEvent", "type": "model-class", "lang": "py", "domain": "aps", "blastRadius": "medium", "lineCount": 17 },
+
+    { "id": "RoutingMaster", "type": "model-class", "lang": "py", "domain": "routing", "blastRadius": "high", "lineCount": 42 },
+    { "id": "RoutingStepV2", "type": "model-class", "lang": "py", "domain": "routing", "blastRadius": "high", "lineCount": 44 },
+    { "id": "RoutingConnection", "type": "model-class", "lang": "py", "domain": "routing", "blastRadius": "medium", "lineCount": 18 },
+    { "id": "RoutingProductAssignment", "type": "model-class", "lang": "py", "domain": "routing", "blastRadius": "medium", "lineCount": 24 },
+    { "id": "WorkOrderRoutingSnapshot", "type": "model-class", "lang": "py", "domain": "routing", "blastRadius": "medium", "lineCount": 37 },
+
+    { "id": "app/services/aps_engine.py", "type": "service", "lang": "py", "domain": "aps", "blastRadius": "high", "lineCount": 1300 },
+    { "id": "app/services/erp_adapter.py", "type": "service", "lang": "py", "domain": "integration", "blastRadius": "high", "lineCount": 317 },
+    { "id": "app/services/plc_adapter.py", "type": "service", "lang": "py", "domain": "integration", "blastRadius": "medium", "lineCount": 151 },
+    { "id": "app/services/scheduler.py", "type": "service", "lang": "py", "domain": "aps", "blastRadius": "high", "lineCount": 239 },
+    { "id": "app/services/kpi_engine.py", "type": "service", "lang": "py", "domain": "quality", "blastRadius": "medium", "lineCount": 332 },
+    { "id": "app/services/process_simulator.py", "type": "service", "lang": "py", "domain": "process", "blastRadius": "low", "lineCount": 240 },
+
+    { "id": "app/routes/dashboard.py", "type": "route-blueprint", "lang": "py", "domain": "admin", "blastRadius": "medium", "lineCount": 173 },
+    { "id": "app/routes/auth.py", "type": "route-blueprint", "lang": "py", "domain": "admin", "blastRadius": "medium", "lineCount": 13 },
+    { "id": "app/routes/api.py", "type": "route-blueprint", "lang": "py", "domain": "admin", "blastRadius": "medium", "lineCount": 182 },
+    { "id": "app/routes/work_orders.py", "type": "route-blueprint", "lang": "py", "domain": "production", "blastRadius": "low", "lineCount": 114 },
+    { "id": "app/routes/operations.py", "type": "route-blueprint", "lang": "py", "domain": "production", "blastRadius": "high", "lineCount": 318 },
+    { "id": "app/routes/ncr.py", "type": "route-blueprint", "lang": "py", "domain": "quality", "blastRadius": "low", "lineCount": 96 },
+    { "id": "app/routes/bom.py", "type": "route-blueprint", "lang": "py", "domain": "production", "blastRadius": "low", "lineCount": 58 },
+    { "id": "app/routes/routing.py", "type": "route-blueprint", "lang": "py", "domain": "routing", "blastRadius": "low", "lineCount": 58 },
+    { "id": "app/routes/routing_builder.py", "type": "route-blueprint", "lang": "py", "domain": "routing", "blastRadius": "high", "lineCount": 516 },
+    { "id": "app/routes/quality_ext.py", "type": "route-blueprint", "lang": "py", "domain": "quality", "blastRadius": "medium", "lineCount": 167 },
+    { "id": "app/routes/machines.py", "type": "route-blueprint", "lang": "py", "domain": "equipment", "blastRadius": "medium", "lineCount": 132 },
+    { "id": "app/routes/inventory.py", "type": "route-blueprint", "lang": "py", "domain": "material", "blastRadius": "low", "lineCount": 139 },
+    { "id": "app/routes/production.py", "type": "route-blueprint", "lang": "py", "domain": "production", "blastRadius": "medium", "lineCount": 388 },
+    { "id": "app/routes/traceability.py", "type": "route-blueprint", "lang": "py", "domain": "traceability", "blastRadius": "low", "lineCount": 166 },
+    { "id": "app/routes/admin.py", "type": "route-blueprint", "lang": "py", "domain": "admin", "blastRadius": "low", "lineCount": 285 },
+    { "id": "app/routes/smt_materials.py", "type": "route-blueprint", "lang": "py", "domain": "legacy-smt", "blastRadius": "low", "lineCount": 143 },
+    { "id": "app/routes/scheduling.py", "type": "route-blueprint", "lang": "py", "domain": "aps", "blastRadius": "medium", "lineCount": 63 },
+    { "id": "app/routes/kitting.py", "type": "route-blueprint", "lang": "py", "domain": "production", "blastRadius": "low", "lineCount": 90 },
+    { "id": "app/routes/oee.py", "type": "route-blueprint", "lang": "py", "domain": "production", "blastRadius": "low", "lineCount": 134 },
+    { "id": "app/routes/pcb.py", "type": "route-blueprint", "lang": "py", "domain": "legacy-smt", "blastRadius": "low", "lineCount": 71 },
+    { "id": "app/routes/maintenance.py", "type": "route-blueprint", "lang": "py", "domain": "equipment", "blastRadius": "low", "lineCount": 115 },
+    { "id": "app/routes/genealogy.py", "type": "route-blueprint", "lang": "py", "domain": "traceability", "blastRadius": "low", "lineCount": 152 },
+    { "id": "app/routes/stations.py", "type": "route-blueprint", "lang": "py", "domain": "equipment", "blastRadius": "low", "lineCount": 169 },
+    { "id": "app/routes/integrations.py", "type": "route-blueprint", "lang": "py", "domain": "integration", "blastRadius": "high", "lineCount": 801 },
+    { "id": "app/routes/planning.py", "type": "route-blueprint", "lang": "py", "domain": "aps", "blastRadius": "high", "lineCount": 867 },
+    { "id": "app/routes/tool_shop.py", "type": "route-blueprint", "lang": "py", "domain": "equipment", "blastRadius": "high", "lineCount": 440 },
+    { "id": "app/routes/process_line.py", "type": "route-blueprint", "lang": "py", "domain": "process", "blastRadius": "high", "lineCount": 670 },
+    { "id": "app/routes/kpi_alerts.py", "type": "route-blueprint", "lang": "py", "domain": "quality", "blastRadius": "medium", "lineCount": 451 },
+    { "id": "app/routes/aps.py", "type": "route-blueprint", "lang": "py", "domain": "aps", "blastRadius": "high", "lineCount": 891 },
+    { "id": "app/routes/cost_price.py", "type": "route-blueprint", "lang": "py", "domain": "production", "blastRadius": "low", "lineCount": 139 },
+    { "id": "app/routes/material_receipt.py", "type": "route-blueprint", "lang": "py", "domain": "material", "blastRadius": "low", "lineCount": 148 },
+    { "id": "app/routes/dies.py", "type": "route-blueprint", "lang": "py", "domain": "equipment", "blastRadius": "medium", "lineCount": 258 },
+    { "id": "app/routes/coating_schedule.py", "type": "route-blueprint", "lang": "py", "domain": "process", "blastRadius": "low", "lineCount": 137 },
+    { "id": "app/routes/containers.py", "type": "route-blueprint", "lang": "py", "domain": "material", "blastRadius": "low", "lineCount": 131 },
+    { "id": "app/routes/furnace.py", "type": "route-blueprint", "lang": "py", "domain": "process", "blastRadius": "medium", "lineCount": 211 },
+    { "id": "app/routes/finishing.py", "type": "route-blueprint", "lang": "py", "domain": "process", "blastRadius": "low", "lineCount": 161 },
+    { "id": "app/routes/logistics.py", "type": "route-blueprint", "lang": "py", "domain": "production", "blastRadius": "low", "lineCount": 248 },
+    { "id": "app/routes/docs.py", "type": "route-blueprint", "lang": "py", "domain": "admin", "blastRadius": "low", "lineCount": 50 },
+    { "id": "app/routes/users.py", "type": "route-blueprint", "lang": "py", "domain": "admin", "blastRadius": "low", "lineCount": 95 },
+
+    { "id": "scripts/seed_data.py", "type": "file", "lang": "py", "domain": "admin", "blastRadius": "high", "lineCount": 2061 },
+    { "id": "seed_planning_aps.py", "type": "file", "lang": "py", "domain": "aps", "blastRadius": "medium", "lineCount": 650 },
+
+    { "id": "README.md", "type": "doc", "lang": "md", "domain": "admin", "blastRadius": "low", "lineCount": 600 },
+    { "id": "Dockerfile", "type": "config", "lang": "", "domain": "admin", "blastRadius": "low", "lineCount": 30 },
+    { "id": "docker-compose.yml", "type": "config", "lang": "yml", "domain": "admin", "blastRadius": "low", "lineCount": 25 },
+    { "id": "requirements.txt", "type": "config", "lang": "", "domain": "admin", "blastRadius": "low", "lineCount": 15 }
+  ],
+  "edges": [
+    { "from": "run.py", "to": "app/__init__.py", "kind": "imports" },
+    { "from": "app/__init__.py", "to": "app/routes/dashboard.py", "kind": "registers-blueprint" },
+    { "from": "app/__init__.py", "to": "app/routes/auth.py", "kind": "registers-blueprint" },
+    { "from": "app/__init__.py", "to": "app/routes/api.py", "kind": "registers-blueprint" },
+    { "from": "app/__init__.py", "to": "app/routes/work_orders.py", "kind": "registers-blueprint" },
+    { "from": "app/__init__.py", "to": "app/routes/operations.py", "kind": "registers-blueprint" },
+    { "from": "app/__init__.py", "to": "app/routes/ncr.py", "kind": "registers-blueprint" },
+    { "from": "app/__init__.py", "to": "app/routes/bom.py", "kind": "registers-blueprint" },
+    { "from": "app/__init__.py", "to": "app/routes/routing.py", "kind": "registers-blueprint" },
+    { "from": "app/__init__.py", "to": "app/routes/routing_builder.py", "kind": "registers-blueprint" },
+    { "from": "app/__init__.py", "to": "app/routes/quality_ext.py", "kind": "registers-blueprint" },
+    { "from": "app/__init__.py", "to": "app/routes/machines.py", "kind": "registers-blueprint" },
+    { "from": "app/__init__.py", "to": "app/routes/inventory.py", "kind": "registers-blueprint" },
+    { "from": "app/__init__.py", "to": "app/routes/production.py", "kind": "registers-blueprint" },
+    { "from": "app/__init__.py", "to": "app/routes/traceability.py", "kind": "registers-blueprint" },
+    { "from": "app/__init__.py", "to": "app/routes/admin.py", "kind": "registers-blueprint" },
+    { "from": "app/__init__.py", "to": "app/routes/smt_materials.py", "kind": "registers-blueprint" },
+    { "from": "app/__init__.py", "to": "app/routes/scheduling.py", "kind": "registers-blueprint" },
+    { "from": "app/__init__.py", "to": "app/routes/kitting.py", "kind": "registers-blueprint" },
+    { "from": "app/__init__.py", "to": "app/routes/oee.py", "kind": "registers-blueprint" },
+    { "from": "app/__init__.py", "to": "app/routes/pcb.py", "kind": "registers-blueprint" },
+    { "from": "app/__init__.py", "to": "app/routes/maintenance.py", "kind": "registers-blueprint" },
+    { "from": "app/__init__.py", "to": "app/routes/genealogy.py", "kind": "registers-blueprint" },
+    { "from": "app/__init__.py", "to": "app/routes/stations.py", "kind": "registers-blueprint" },
+    { "from": "app/__init__.py", "to": "app/routes/integrations.py", "kind": "registers-blueprint" },
+    { "from": "app/__init__.py", "to": "app/routes/planning.py", "kind": "registers-blueprint" },
+    { "from": "app/__init__.py", "to": "app/routes/tool_shop.py", "kind": "registers-blueprint" },
+    { "from": "app/__init__.py", "to": "app/routes/process_line.py", "kind": "registers-blueprint" },
+    { "from": "app/__init__.py", "to": "app/routes/kpi_alerts.py", "kind": "registers-blueprint" },
+    { "from": "app/__init__.py", "to": "app/routes/aps.py", "kind": "registers-blueprint" },
+    { "from": "app/__init__.py", "to": "app/routes/cost_price.py", "kind": "registers-blueprint" },
+    { "from": "app/__init__.py", "to": "app/routes/material_receipt.py", "kind": "registers-blueprint" },
+    { "from": "app/__init__.py", "to": "app/routes/dies.py", "kind": "registers-blueprint" },
+    { "from": "app/__init__.py", "to": "app/routes/coating_schedule.py", "kind": "registers-blueprint" },
+    { "from": "app/__init__.py", "to": "app/routes/containers.py", "kind": "registers-blueprint" },
+    { "from": "app/__init__.py", "to": "app/routes/furnace.py", "kind": "registers-blueprint" },
+    { "from": "app/__init__.py", "to": "app/routes/finishing.py", "kind": "registers-blueprint" },
+    { "from": "app/__init__.py", "to": "app/routes/logistics.py", "kind": "registers-blueprint" },
+    { "from": "app/__init__.py", "to": "app/routes/docs.py", "kind": "registers-blueprint" },
+    { "from": "app/__init__.py", "to": "app/models_aps.py", "kind": "imports" },
+    { "from": "app/__init__.py", "to": "scripts/seed_data.py", "kind": "imports" },
+
+    { "from": "app/routes/dashboard.py", "to": "WorkOrder", "kind": "references-model" },
+    { "from": "app/routes/dashboard.py", "to": "Machine", "kind": "references-model" },
+    { "from": "app/routes/dashboard.py", "to": "Die", "kind": "references-model" },
+    { "from": "app/routes/dashboard.py", "to": "Billet", "kind": "references-model" },
+    { "from": "app/routes/dashboard.py", "to": "Alert", "kind": "references-model" },
+    { "from": "app/routes/work_orders.py", "to": "WorkOrder", "kind": "references-model" },
+    { "from": "app/routes/work_orders.py", "to": "SerialNumber", "kind": "references-model" },
+    { "from": "app/routes/operations.py", "to": "WorkOrder", "kind": "references-model" },
+    { "from": "app/routes/operations.py", "to": "SerialNumber", "kind": "references-model" },
+    { "from": "app/routes/operations.py", "to": "OperationTransaction", "kind": "references-model" },
+    { "from": "app/routes/operations.py", "to": "RoutingStep_legacy", "kind": "references-model" },
+    { "from": "app/routes/planning.py", "to": "CustomerOrder", "kind": "references-model" },
+    { "from": "app/routes/planning.py", "to": "WorkOrder", "kind": "references-model" },
+    { "from": "app/routes/planning.py", "to": "ProcessPlan", "kind": "references-model" },
+    { "from": "app/routes/planning.py", "to": "Billet", "kind": "references-model" },
+    { "from": "app/routes/planning.py", "to": "Die", "kind": "references-model" },
+    { "from": "app/routes/aps.py", "to": "ApsScheduleVersion", "kind": "references-model" },
+    { "from": "app/routes/aps.py", "to": "ApsScheduleEntry", "kind": "references-model" },
+    { "from": "app/routes/aps.py", "to": "ApsConstraintLog", "kind": "references-model" },
+    { "from": "app/routes/aps.py", "to": "CustomerOrder", "kind": "references-model" },
+    { "from": "app/routes/routing_builder.py", "to": "RoutingMaster", "kind": "references-model" },
+    { "from": "app/routes/routing_builder.py", "to": "RoutingStepV2", "kind": "references-model" },
+    { "from": "app/routes/routing_builder.py", "to": "RoutingConnection", "kind": "references-model" },
+    { "from": "app/routes/routing_builder.py", "to": "RoutingProductAssignment", "kind": "references-model" },
+    { "from": "app/routes/tool_shop.py", "to": "Die", "kind": "references-model" },
+    { "from": "app/routes/tool_shop.py", "to": "DieInspection", "kind": "references-model" },
+    { "from": "app/routes/tool_shop.py", "to": "DieTest", "kind": "references-model" },
+    { "from": "app/routes/tool_shop.py", "to": "NitridingRecord", "kind": "references-model" },
+    { "from": "app/routes/process_line.py", "to": "SetpointProfile", "kind": "references-model" },
+    { "from": "app/routes/process_line.py", "to": "ProcessRun", "kind": "references-model" },
+    { "from": "app/routes/process_line.py", "to": "Billet", "kind": "references-model" },
+    { "from": "app/routes/process_line.py", "to": "Machine", "kind": "references-model" },
+    { "from": "app/routes/integrations.py", "to": "IntegrationJob", "kind": "references-model" },
+    { "from": "app/routes/integrations.py", "to": "ERPTransactionLog", "kind": "references-model" },
+    { "from": "app/routes/integrations.py", "to": "PLCSignalMapping", "kind": "references-model" },
+    { "from": "app/routes/traceability.py", "to": "TraceabilityRecord", "kind": "references-model" },
+    { "from": "app/routes/traceability.py", "to": "GenealogyEvent", "kind": "references-model" },
+    { "from": "app/routes/genealogy.py", "to": "GenealogyEvent", "kind": "references-model" },
+    { "from": "app/routes/kpi_alerts.py", "to": "KPIRecord", "kind": "references-model" },
+    { "from": "app/routes/kpi_alerts.py", "to": "Alert", "kind": "references-model" },
+    { "from": "app/routes/kpi_alerts.py", "to": "AlertRule", "kind": "references-model" },
+    { "from": "app/routes/dies.py", "to": "Die", "kind": "references-model" },
+    { "from": "app/routes/machines.py", "to": "Machine", "kind": "references-model" },
+    { "from": "app/routes/machines.py", "to": "MachineResourceMapping", "kind": "references-model" },
+    { "from": "app/routes/quality_ext.py", "to": "InspectionPlan", "kind": "references-model" },
+    { "from": "app/routes/quality_ext.py", "to": "NCR", "kind": "references-model" },
+    { "from": "app/routes/production.py", "to": "WorkOrder", "kind": "references-model" },
+    { "from": "app/routes/production.py", "to": "ShiftCalendar", "kind": "references-model" },
+    { "from": "app/routes/furnace.py", "to": "Furnace", "kind": "references-model" },
+    { "from": "app/routes/furnace.py", "to": "HeatTreatmentProgram", "kind": "references-model" },
+    { "from": "app/routes/furnace.py", "to": "FurnaceSession", "kind": "references-model" },
+    { "from": "app/routes/finishing.py", "to": "FinishingOrder", "kind": "references-model" },
+    { "from": "app/routes/containers.py", "to": "Container", "kind": "references-model" },
+    { "from": "app/routes/containers.py", "to": "ContainerWeighEvent", "kind": "references-model" },
+    { "from": "app/routes/containers.py", "to": "ContainerMovement", "kind": "references-model" },
+    { "from": "app/routes/coating_schedule.py", "to": "CoatingColor", "kind": "references-model" },
+    { "from": "app/routes/coating_schedule.py", "to": "CoatingScheduleEntry", "kind": "references-model" },
+    { "from": "app/routes/material_receipt.py", "to": "MaterialReceipt", "kind": "references-model" },
+    { "from": "app/routes/material_receipt.py", "to": "AlloyComposition", "kind": "references-model" },
+    { "from": "app/routes/logistics.py", "to": "Shipment", "kind": "references-model" },
+    { "from": "app/routes/logistics.py", "to": "PackagingOrder", "kind": "references-model" },
+
+    { "from": "app/services/aps_engine.py", "to": "CustomerOrder", "kind": "service-uses-model" },
+    { "from": "app/services/aps_engine.py", "to": "WorkOrder", "kind": "service-uses-model" },
+    { "from": "app/services/aps_engine.py", "to": "ProcessPlan", "kind": "service-uses-model" },
+    { "from": "app/services/aps_engine.py", "to": "Machine", "kind": "service-uses-model" },
+    { "from": "app/services/aps_engine.py", "to": "Line", "kind": "service-uses-model" },
+    { "from": "app/services/aps_engine.py", "to": "Die", "kind": "service-uses-model" },
+    { "from": "app/services/aps_engine.py", "to": "Billet", "kind": "service-uses-model" },
+    { "from": "app/services/aps_engine.py", "to": "ShiftCalendar", "kind": "service-uses-model" },
+    { "from": "app/services/aps_engine.py", "to": "PmSchedule", "kind": "service-uses-model" },
+    { "from": "app/services/aps_engine.py", "to": "RoutingStepV2", "kind": "service-uses-model" },
+    { "from": "app/services/aps_engine.py", "to": "ApsScheduleVersion", "kind": "service-uses-model" },
+    { "from": "app/services/aps_engine.py", "to": "ApsScheduleEntry", "kind": "service-uses-model" },
+    { "from": "app/services/aps_engine.py", "to": "ApsConstraintLog", "kind": "service-uses-model" },
+    { "from": "app/services/aps_engine.py", "to": "ApsScheduleEvent", "kind": "service-uses-model" },
+    { "from": "app/services/erp_adapter.py", "to": "CustomerOrder", "kind": "service-uses-model" },
+    { "from": "app/services/erp_adapter.py", "to": "IntegrationJob", "kind": "service-uses-model" },
+    { "from": "app/services/erp_adapter.py", "to": "ERPTransactionLog", "kind": "service-uses-model" },
+    { "from": "app/services/erp_adapter.py", "to": "DieInspection", "kind": "service-uses-model" },
+    { "from": "app/services/erp_adapter.py", "to": "DieTest", "kind": "service-uses-model" },
+    { "from": "app/services/plc_adapter.py", "to": "IntegrationJob", "kind": "service-uses-model" },
+    { "from": "app/services/plc_adapter.py", "to": "PLCSignalMapping", "kind": "service-uses-model" },
+    { "from": "app/services/plc_adapter.py", "to": "ProcessRun", "kind": "service-uses-model" },
+    { "from": "app/services/kpi_engine.py", "to": "KPIRecord", "kind": "service-uses-model" },
+    { "from": "app/services/kpi_engine.py", "to": "OeeSnapshot", "kind": "service-uses-model" },
+    { "from": "app/services/kpi_engine.py", "to": "ProcessRun", "kind": "service-uses-model" },
+    { "from": "app/services/kpi_engine.py", "to": "Die", "kind": "service-uses-model" },
+    { "from": "app/services/kpi_engine.py", "to": "Billet", "kind": "service-uses-model" },
+    { "from": "app/services/kpi_engine.py", "to": "Alert", "kind": "service-uses-model" },
+    { "from": "app/services/kpi_engine.py", "to": "AlertRule", "kind": "service-uses-model" },
+    { "from": "app/services/scheduler.py", "to": "CustomerOrder", "kind": "service-uses-model" },
+    { "from": "app/services/scheduler.py", "to": "Die", "kind": "service-uses-model" },
+    { "from": "app/services/scheduler.py", "to": "Billet", "kind": "service-uses-model" },
+    { "from": "app/services/scheduler.py", "to": "Machine", "kind": "service-uses-model" },
+    { "from": "app/services/scheduler.py", "to": "ProcessPlan", "kind": "service-uses-model" },
+    { "from": "app/services/process_simulator.py", "to": "SetpointProfile", "kind": "service-uses-model" },
+
+    { "from": "scripts/seed_data.py", "to": "app/models.py", "kind": "imports" },
+    { "from": "scripts/seed_data.py", "to": "app/models_aps.py", "kind": "imports" },
+    { "from": "scripts/seed_data.py", "to": "app/models_routing.py", "kind": "imports" }
+  ],
+  "clusters": [
+    {
+      "name": "Core Models",
+      "description": "Primary domain model file; imported by every route, service, seed, and test. Highest blast radius file in the repo.",
+      "nodeIds": ["app/models.py"]
+    },
+    {
+      "name": "APS subsystem",
+      "description": "Advanced Planning & Scheduling — deterministic finite-capacity scheduler with versioning, locking, constraint annotations.",
+      "nodeIds": ["app/models_aps.py", "ApsScheduleVersion", "ApsScheduleEntry", "ApsConstraintLog", "ApsScheduleEvent", "app/services/aps_engine.py", "app/services/scheduler.py", "app/routes/aps.py", "app/routes/planning.py", "app/routes/scheduling.py", "seed_planning_aps.py", "MachineResourceMapping", "WorkOrderResource"]
+    },
+    {
+      "name": "Routing (V2 visual builder)",
+      "description": "Drag-and-drop-like DAG of routing steps with connections; coexists with legacy RoutingStep.",
+      "nodeIds": ["app/models_routing.py", "RoutingMaster", "RoutingStepV2", "RoutingConnection", "RoutingProductAssignment", "WorkOrderRoutingSnapshot", "app/routes/routing_builder.py", "app/routes/routing.py"]
+    },
+    {
+      "name": "Equipment / Tool Shop",
+      "description": "Machines, lines, dies (22-status lifecycle), billets, stations, alarms, maintenance.",
+      "nodeIds": ["Line", "Machine", "Station", "Alarm", "Die", "DieInspection", "DieTest", "NitridingRecord", "DieFurnaceLog", "DieRepairRecord", "Billet", "BilletInspection", "Furnace", "HeatTreatmentProgram", "FurnaceSession", "PmSchedule", "MaintenanceLog", "app/routes/tool_shop.py", "app/routes/dies.py", "app/routes/machines.py", "app/routes/stations.py"]
+    },
+    {
+      "name": "Process Line",
+      "description": "Extrusion line workflow from billet→HLS→press→quench→puller→stretch→cut→oven; sensor data capture.",
+      "nodeIds": ["SetpointProfile", "ProcessRun", "QuenchRecord", "CutRecord", "StretchRecord", "OvenRecord", "CoatingColor", "CoatingScheduleEntry", "FinishingProcessType", "FinishingOrder", "app/routes/process_line.py", "app/routes/furnace.py", "app/routes/finishing.py", "app/routes/coating_schedule.py", "app/services/process_simulator.py"]
+    },
+    {
+      "name": "Quality & Traceability",
+      "description": "Inspection plans, NCR, CAPA, defects, PPAP, genealogy, unit history.",
+      "nodeIds": ["InspectionPlan", "NCR", "Capa", "DefectRecord", "RepairRecord", "GoldenBoard", "PpapRecord", "TestResult", "GenealogyEvent", "UnitHistory", "TraceabilityRecord", "app/routes/quality_ext.py", "app/routes/ncr.py", "app/routes/traceability.py", "app/routes/genealogy.py"]
+    },
+    {
+      "name": "Production / WIP",
+      "description": "Work orders, customer orders, process plans, shipments, packaging, serial numbers.",
+      "nodeIds": ["WorkOrder", "CustomerOrder", "ProcessPlan", "ProductionSchedule", "ShiftCalendar", "SerialNumber", "OperationTransaction", "BOMItem", "Kit", "PackagingSpec", "PackagingOrder", "Shipment", "ShipmentLine", "app/routes/operations.py", "app/routes/work_orders.py", "app/routes/production.py", "app/routes/bom.py", "app/routes/kitting.py", "app/routes/logistics.py"]
+    },
+    {
+      "name": "Material & Inventory",
+      "description": "Raw materials, alloy composition, containers, material receipts, inventory items/locations.",
+      "nodeIds": ["MaterialGrade", "RawMaterialType", "AlloyComposition", "MaterialReceipt", "Container", "ContainerWeighEvent", "ContainerMovement", "InventoryLocation", "InventoryItem", "app/routes/material_receipt.py", "app/routes/containers.py", "app/routes/inventory.py"]
+    },
+    {
+      "name": "Integration layer",
+      "description": "ERP (Lighthouse V15 Oracle mock) and PLC (OPC-UA/Modbus/MQTT mock) adapters wrapped in IntegrationJob; Wattmon energy meter.",
+      "nodeIds": ["IntegrationJob", "ERPTransactionLog", "PLCSignalMapping", "ErpSyncLog", "Integration", "Webhook", "ApiKey", "WattmonUpload", "WattmonReading", "app/services/erp_adapter.py", "app/services/plc_adapter.py", "app/routes/integrations.py"]
+    },
+    {
+      "name": "KPI & Alerts",
+      "description": "OEE, die-life, shortage risk aggregation; threshold-based alert rules; KPI persistence.",
+      "nodeIds": ["AlertRule", "Alert", "KPIRecord", "OeeSnapshot", "DowntimeEvent", "app/services/kpi_engine.py", "app/routes/kpi_alerts.py", "app/routes/oee.py"]
+    },
+    {
+      "name": "Admin / User / Audit",
+      "description": "Plants, roles, user profiles, operator certifications, e-signatures, audit log, cost config.",
+      "nodeIds": ["Plant", "Role", "UserProfile", "AuditLog", "OperatorCertification", "ElectronicSignature", "CostPriceConfig", "app/routes/admin.py", "app/routes/users.py", "app/routes/auth.py", "app/routes/dashboard.py", "app/routes/api.py", "app/routes/docs.py"]
+    },
+    {
+      "name": "Legacy SMT/PCB",
+      "description": "Coexists from earlier product lineage; surface-level SMT/PCB models (feeders, panels, boards, burn-in, stencils).",
+      "nodeIds": ["FeederReel", "SolderPasteLot", "SmtLine", "PcbPanel", "PcbBoard", "GoldenBoard", "Stencil", "BurnInSession", "app/routes/smt_materials.py", "app/routes/pcb.py"]
+    },
+    {
+      "name": "App Shell (factory + config)",
+      "description": "Flask app factory, blueprint registration, DB/migrate init, auto-seed block.",
+      "nodeIds": ["app/__init__.py", "app/config.py", "run.py"]
+    },
+    {
+      "name": "Seed & Migrations",
+      "description": "Demo data seeders; invoked at every startup. Alembic migrations for schema evolution.",
+      "nodeIds": ["scripts/seed_data.py", "seed_planning_aps.py"]
+    }
+  ],
+  "stateMachines": [
+    {
+      "entity": "WorkOrder",
+      "states": ["DRAFT", "RELEASED", "RUNNING", "COMPLETED", "CANCELLED"],
+      "transitions": [
+        { "from": "DRAFT", "to": "RELEASED", "trigger": "operations:release" },
+        { "from": "RELEASED", "to": "RUNNING", "trigger": "operations:first-step execution" },
+        { "from": "RUNNING", "to": "COMPLETED", "trigger": "operations:all serial numbers COMPLETED" },
+        { "from": "DRAFT", "to": "CANCELLED", "trigger": "operations:cancel" }
+      ]
+    },
+    {
+      "entity": "Die",
+      "states": ["New", "Inspected", "Testing", "Nitrided", "Available", "(17 other statuses — 22 total)"],
+      "transitions": [
+        { "from": "New", "to": "Inspected", "trigger": "tool_shop:inspection + ERP post" },
+        { "from": "Inspected", "to": "Testing", "trigger": "tool_shop:test + ERP post" },
+        { "from": "Testing", "to": "Nitrided", "trigger": "tool_shop:nitriding" },
+        { "from": "Nitrided", "to": "Available", "trigger": "tool_shop:release" },
+        { "from": "Available", "to": "New", "trigger": "aps_engine:DIE_READY_STATUSES subset" }
+      ]
+    },
+    {
+      "entity": "RoutingMaster",
+      "states": ["DRAFT", "RELEASED", "OBSOLETE"],
+      "transitions": [
+        { "from": "DRAFT", "to": "RELEASED", "trigger": "routing_builder:release (requires ≥1 step)" },
+        { "from": "RELEASED", "to": "OBSOLETE", "trigger": "routing_builder:obsolete" },
+        { "from": "DRAFT", "to": "OBSOLETE", "trigger": "routing_builder:obsolete" }
+      ]
+    },
+    {
+      "entity": "Alert",
+      "states": ["Open", "Acknowledged", "Closed"],
+      "transitions": [
+        { "from": "Open", "to": "Acknowledged", "trigger": "kpi_alerts:acknowledge" },
+        { "from": "Acknowledged", "to": "Closed", "trigger": "kpi_alerts:close" },
+        { "from": "Open", "to": "Closed", "trigger": "kpi_alerts:close" }
+      ]
+    },
+    {
+      "entity": "IntegrationJob",
+      "states": ["Pending", "Running", "Success", "Failed", "RetryQueued"],
+      "transitions": [
+        { "from": "Pending", "to": "Running", "trigger": "integrations:execute" },
+        { "from": "Running", "to": "Success", "trigger": "adapter:success" },
+        { "from": "Running", "to": "Failed", "trigger": "adapter:exception or ERP/PLC NAK" },
+        { "from": "Failed", "to": "RetryQueued", "trigger": "integrations:retry" },
+        { "from": "RetryQueued", "to": "Running", "trigger": "retry worker" }
+      ]
+    },
+    {
+      "entity": "ProcessRun",
+      "states": ["RUNNING", "COMPLETED", "FAILED"],
+      "transitions": [
+        { "from": "RUNNING", "to": "COMPLETED", "trigger": "process_line:finish" },
+        { "from": "RUNNING", "to": "FAILED", "trigger": "process_line:abort" }
+      ]
+    },
+    {
+      "entity": "Billet",
+      "states": ["AVAILABLE", "INSPECTED"],
+      "transitions": [
+        { "from": "AVAILABLE", "to": "INSPECTED", "trigger": "process_line:inspection" }
+      ]
+    },
+    {
+      "entity": "ApsScheduleEntry.constraint_status",
+      "states": ["FEASIBLE", "INFEASIBLE"],
+      "transitions": [
+        { "from": "FEASIBLE", "to": "INFEASIBLE", "trigger": "aps_engine replan when constraint breaks" },
+        { "from": "INFEASIBLE", "to": "FEASIBLE", "trigger": "aps_engine replan when constraint relaxes" }
+      ]
+    },
+    {
+      "entity": "WattmonUpload",
+      "states": ["PENDING", "SUCCESS", "FAILED"],
+      "transitions": [
+        { "from": "PENDING", "to": "SUCCESS", "trigger": "upload complete" },
+        { "from": "PENDING", "to": "FAILED", "trigger": "upload error" }
+      ]
+    }
+  ],
+  "workflows": [
+    {
+      "name": "APS scheduling",
+      "file": "app/services/aps_engine.py",
+      "description": "Finite-capacity deterministic scheduler. Reads customer orders, resolves machine/die/billet availability, generates work orders, runs greedy scheduler respecting shift calendar + maintenance + changeover constraints, annotates entries with FEASIBLE/INFEASIBLE, persists as versioned schedule. Replanner preserves manually-locked entries.",
+      "inputs": ["CustomerOrder", "Machine", "Line", "Die", "Billet", "ShiftCalendar", "PmSchedule", "RoutingStepV2", "current ApsScheduleVersion"],
+      "outputs": ["WorkOrder (generated from CO)", "ApsScheduleVersion (new revision)", "ApsScheduleEntry (30-min snapped)", "ApsConstraintLog (reason codes)", "ApsScheduleEvent (audit)"]
+    },
+    {
+      "name": "ERP adapter call (Lighthouse V15 Oracle mock)",
+      "file": "app/services/erp_adapter.py",
+      "description": "Wraps every ERP call (import orders, post die inspection/test/nitriding) in IntegrationJob; writes ERPTransactionLog for audit. Currently a mock; _call_erp must be replaced with real Oracle/JDBC bridge in production.",
+      "inputs": ["DieInspection / DieTest / NitridingRecord / CustomerOrder", "IntegrationJob"],
+      "outputs": ["IntegrationJob (status transition)", "ERPTransactionLog (audit row)", "CustomerOrder (imported rows)"]
+    },
+    {
+      "name": "PLC adapter call",
+      "file": "app/services/plc_adapter.py",
+      "description": "High-level façade for OPC-UA / Modbus / MQTT. Wraps setpoint-load and actual-capture commands in IntegrationJob. Mock returns deterministic fake values; production would select real driver by PLCSignalMapping.",
+      "inputs": ["ProcessRun", "PLCSignalMapping", "setpoint dict"],
+      "outputs": ["IntegrationJob (status transition)", "ProcessRun.actuals (on success)"]
+    },
+    {
+      "name": "KPI engine aggregation",
+      "file": "app/services/kpi_engine.py",
+      "description": "Computes OEE, die-life, shortage risk; reads ProcessRun and OeeSnapshot; persists to KPIRecord so the dashboard does not need to recompute on every load.",
+      "inputs": ["ProcessRun", "OeeSnapshot", "Die", "Billet", "DowntimeEvent"],
+      "outputs": ["KPIRecord (persisted)", "Alert (threshold breach)"]
+    },
+    {
+      "name": "Greedy schedule optimization (legacy)",
+      "file": "app/services/scheduler.py",
+      "description": "Stateless CO → ProcessPlan path used by legacy planning screen. Superseded by aps_engine for full APS but still serves the planning UI for simple cases.",
+      "inputs": ["CustomerOrder", "Die (available)", "Billet (available)", "Machine (available)", "horizon_days"],
+      "outputs": ["ProcessPlan", "shortages dict", "unassigned_orders list"]
+    },
+    {
+      "name": "Process-line simulation",
+      "file": "app/services/process_simulator.py",
+      "description": "Deterministic fake sensor values for HLS / Press / Quench / Puller / Stretch / Cut / Oven. Seeded by machine + process-type so reloads during a demo show stable yet realistic numbers. Drives station pages when no real PLC is connected.",
+      "inputs": ["process_type", "alloy"],
+      "outputs": ["setpoint dict (target values)", "actual dict (live-looking values)"]
+    },
+    {
+      "name": "Tool-shop die lifecycle",
+      "file": "app/routes/tool_shop.py",
+      "description": "Die inward → inspection → test → nitriding → available. Each stage writes its own record AND posts to ERP via erp_adapter. Die status transitions across 22 states.",
+      "inputs": ["Die (with status)", "DieInspection", "DieTest", "NitridingRecord"],
+      "outputs": ["Die status updates", "ERPTransactionLog rows", "IntegrationJob rows"]
+    },
+    {
+      "name": "Auto-seed at startup",
+      "file": "app/__init__.py (lines 119-188); scripts/seed_data.py",
+      "description": "Every app startup runs db.create_all() + schema validation + a sequence of seed functions wrapped in try/except (silent on error). Guarantees every screen has demo data.",
+      "inputs": ["empty or fresh database"],
+      "outputs": ["plant master data, material grades, customer orders, dies, billets, process runs, PLC signal mappings, integration jobs, alert rules, KPI records, work orders, APS data, extrusion module data"]
+    }
+  ]
+}
