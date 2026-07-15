@@ -417,7 +417,7 @@
   <div class="nav-group {% if request.blueprint == 'process_line' %}open{% endif %}">
     <div class="group-header" data-tip="Process Line">
       <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
-        <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25z" />
+        <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25z" />
       </svg>
       <span class="label-text">Process Line</span>
       <svg class="arrow" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -460,6 +460,32 @@
       <a href="{{ url_for('process_line.die_oven') }}"
          class="{% if request.endpoint == 'process_line.die_oven' %}active{% endif %}">
         Die Oven
+      </a>
+    </div>
+  </div>
+
+  <!-- Operations & Routing -->
+  <div class="nav-group {% if request.blueprint in ['operations', 'routing_builder'] %}open{% endif %}">
+    <div class="group-header" data-tip="Operations">
+      <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
+      </svg>
+      <span class="label-text">Operations & Routing</span>
+      <svg class="arrow" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+      </svg>
+    </div>
+    <div class="nav-children">
+      <a href="{{ url_for('operations.index') }}"
+         class="{% if request.endpoint == 'operations.index' %}active{% endif %}">
+        Operation Execution
+      </a>
+      <a href="{{ url_for('routing_builder.manage_routings') }}"
+         class="{% if request.blueprint == 'routing_builder' and request.endpoint == 'routing_builder.manage_routings' %}active{% endif %}">
+        Manage Routings
+      </a>
+      <a href="{{ url_for('work_orders.list_create_work_orders') }}">
+        Work Orders
       </a>
     </div>
   </div>
@@ -531,15 +557,15 @@
     </div>
   </div>
 
-  <div class="sidebar-label">Quality & Intelligence</div>
+  <div class="sidebar-label">Operations, Quality & Intelligence</div>
 
-  <!-- Quality & Traceability -->
-  <div class="nav-group {% if request.blueprint in ['quality_ext', 'traceability', 'genealogy'] %}open{% endif %}">
+  <!-- Quality, KPI & Traceability -->
+  <div class="nav-group {% if request.blueprint in ['quality_ext', 'traceability', 'genealogy', 'kpi_alerts'] %}open{% endif %}">
     <div class="group-header" data-tip="Quality">
       <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
         <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
       </svg>
-      <span class="label-text">Quality & Traceability</span>
+      <span class="label-text">Quality, KPI & Traceability</span>
       <svg class="arrow" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
         <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
       </svg>
@@ -572,13 +598,44 @@
     </div>
   </div>
 
-  <!-- KPI & Alerts -->
+  <!-- OEE, Alarms & Performance -->
+  <div class="nav-group {% if request.blueprint in ['oee', 'kpi_alerts'] %}open{% endif %}">
+    <div class="group-header" data-tip="OEE & Alerts">
+      <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" />
+      </svg>
+      <span class="label-text">OEE, Alarms & Performance</span>
+      <svg class="arrow" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+      </svg>
+    </div>
+    <div class="nav-children">
+      <a href="{{ url_for('oee.index') }}"
+         class="{% if request.endpoint == 'oee.index' %}active{% endif %}">
+        OEE Dashboard
+      </a>
+      <a href="{{ url_for('kpi_alerts.oee') }}"
+         class="{% if request.endpoint == 'kpi_alerts.oee' %}active{% endif %}">
+        OEE Analytics
+      </a>
+      <a href="{{ url_for('oee.alarms') }}"
+         class="{% if request.endpoint == 'oee.alarms' %}active{% endif %}">
+        Alarms & Alerts
+      </a>
+      <a href="{{ url_for('kpi_alerts.downtime') }}"
+         class="{% if request.endpoint == 'kpi_alerts.downtime' %}active{% endif %}">
+        Downtime Tracking
+      </a>
+    </div>
+  </div>
+
+  <!-- KPI, Rules & Analytics -->
   <div class="nav-group {% if request.blueprint == 'kpi_alerts' %}open{% endif %}">
     <div class="group-header" data-tip="KPI & Alerts">
       <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
         <path stroke-linecap="round" stroke-linejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" />
       </svg>
-      <span class="label-text">KPI & Alerts</span>
+      <span class="label-text">KPI, Rules & Analytics</span>
       <svg class="arrow" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
         <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
       </svg>
@@ -588,25 +645,17 @@
          class="{% if request.endpoint == 'kpi_alerts.index' %}active{% endif %}">
         Overview
       </a>
-      <a href="{{ url_for('kpi_alerts.oee') }}"
-         class="{% if request.endpoint == 'kpi_alerts.oee' %}active{% endif %}">
-        OEE
-      </a>
       <a href="{{ url_for('kpi_alerts.die_lifecycle') }}"
          class="{% if request.endpoint == 'kpi_alerts.die_lifecycle' %}active{% endif %}">
         Die Lifecycle
       </a>
-      <a href="{{ url_for('kpi_alerts.downtime') }}"
-         class="{% if request.endpoint == 'kpi_alerts.downtime' %}active{% endif %}">
-        Downtime
-      </a>
       <a href="{{ url_for('kpi_alerts.alerts_list') }}"
          class="{% if request.endpoint == 'kpi_alerts.alerts_list' %}active{% endif %}">
-        Alerts
+        Alerts Management
       </a>
       <a href="{{ url_for('kpi_alerts.rules') }}"
          class="{% if request.endpoint == 'kpi_alerts.rules' %}active{% endif %}">
-        Rules
+        Alert Rules
       </a>
     </div>
   </div>
