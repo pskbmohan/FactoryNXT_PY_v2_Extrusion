@@ -47,6 +47,10 @@ def create_app(config_class=Config):
     from .routes.aps import bp as aps_bp
     from .routes.aps import aps_page_bp
 
+    # Import BOM-driven order blueprints (S2 deliverable)
+    from app.routes.master_data_bom import bp as master_data_bom_bp
+    from app.routes.customer_orders_bom import bp as customer_orders_bom_bp
+
     # ── Extrusion add-on modules (cost price, dies, furnace, etc.) ──────
     from .routes.cost_price import bp as cost_price_bp
     from .routes.material_receipt import bp as material_receipt_bp
@@ -93,7 +97,11 @@ def create_app(config_class=Config):
     app.register_blueprint(aps_page_bp)   # page views  → 'aps.cockpit', 'aps.scheduler'
     app.register_blueprint(aps_bp)        # JSON API    → 'aps_resource.list_mappings' etc.
 
-    # ── Extrusion add-on modules ──────────────────────────────────────
+    # Register BOM-driven order blueprints (S2 deliverable)
+    app.register_blueprint(master_data_bom_bp, url_prefix="/api/master")
+    app.register_blueprint(customer_orders_bom_bp, url_prefix="/api/orders")
+
+    # ── Extrusion add-on modules ───────────────────────────────────────
     app.register_blueprint(cost_price_bp)
     app.register_blueprint(material_receipt_bp)
     app.register_blueprint(dies_mgmt_bp)
@@ -104,7 +112,7 @@ def create_app(config_class=Config):
     app.register_blueprint(logistics_bp)
     app.register_blueprint(docs_bp)
 
-    # ── Flask CLI: seed-planning ──────────────────────────────────────────
+    # ── Flask CLI: seed-planning ────────────────────────────────────────────
     @app.cli.command("seed-planning")
     def seed_planning_command():
         """Seed Machines, WOs, ProcessPlans, MachineResourceMappings and APS data."""

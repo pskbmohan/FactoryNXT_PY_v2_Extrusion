@@ -1,0 +1,264 @@
+{% extends "layout.html" %}
+
+{% block title %}Part Numbers - FactoryNXT{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto">
+  <div class="flex justify-between items-center mb-6">
+    <h1 class="text-2xl font-bold">Part Numbers</h1>
+    <button onclick="openModal()" class="bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-lg flex items-center gap-2">
+      <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+      </svg>
+      + New Part Number
+    </button>
+  </div>
+
+  <!-- Filter Bar -->
+  <div class="bg-white dark:bg-slate-800 rounded-lg shadow border border-slate-200 dark:border-slate-700 p-4 mb-6 flex items-center gap-4">
+    <span class="text-sm font-medium text-slate-700 dark:text-slate-300">Filter by Customer:</span>
+    <select id="customer-filter" onchange="applyFilter()" class="px-3 py-1.5 border rounded dark:bg-slate-700 dark:border-slate-600 text-sm">
+      <option value="">All Part Numbers</option>
+    </select>
+  </div>
+
+  <!-- Part Numbers Table -->
+  <div class="bg-white dark:bg-slate-800 rounded-lg shadow border border-slate-200 dark:border-slate-700 overflow-hidden">
+    <table class="w-full text-sm">
+      <thead class="bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700">
+        <tr>
+          <th class="px-4 py-3 text-left font-semibold text-slate-700 dark:text-slate-300">Part Code</th>
+          <th class="px-4 py-3 text-left font-semibold text-slate-700 dark:text-slate-300">Description</th>
+          <th class="px-4 py-3 text-left font-semibold text-slate-700 dark:text-slate-300">Profile Code</th>
+          <th class="px-4 py-3 text-left font-semibold text-slate-700 dark:text-slate-300">Alloy</th>
+          <th class="px-4 py-3 text-center font-semibold text-slate-700 dark:text-slate-300">Weight (kg)</th>
+          <th class="px-4 py-3 text-center font-semibold text-slate-700 dark:text-slate-300">BOM Status</th>
+          <th class="px-4 py-3 text-right font-semibold text-slate-700 dark:text-slate-300">Actions</th>
+        </tr>
+      </thead>
+      <tbody id="part-numbers-table-body" class="divide-y divide-slate-200 dark:divide-slate-700">
+        <!-- Rows loaded via fetch -->
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Loading State -->
+  <div id="loading" class="text-center py-8 text-slate-500">Loading part numbers...</div>
+
+  <!-- Modal for New Part Number -->
+  <div id="part-modal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
+    <div class="bg-white dark:bg-slate-800 rounded-lg shadow-xl w-full max-w-md mx-4">
+      <div class="flex justify-between items-center px-6 py-4 border-b border-slate-200 dark:border-slate-700">
+        <h2 id="modal-title" class="text-lg font-semibold">New Part Number</h2>
+        <button onclick="closeModal()" class="text-slate-500 hover:text-slate-700 dark:hover:text-slate-300">&times;</button>
+      </div>
+      <form id="part-form" onsubmit="savePartNumber(event)" class="p-6">
+        <input type="hidden" id="edit-part-id">
+        <div class="space-y-4">
+          <div>
+            <label class="block text-sm font-medium mb-1">Part Code *</label>
+            <input type="text" id="part_code" required class="w-full px-3 py-2 border rounded dark:bg-slate-700 dark:border-slate-600" placeholder="e.g., PN-6063-H-100">
+          </div>
+          <div>
+            <label class="block text-sm font-medium mb-1">Description</label>
+            <input type="text" id="description" class="w-full px-3 py-2 border rounded dark:bg-slate-700 dark:border-slate-600" placeholder="Part description">
+          </div>
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-medium mb-1">Profile Code</label>
+              <input type="text" id="profile_code" class="w-full px-3 py-2 border rounded dark:bg-slate-700 dark:border-slate-600" placeholder="e.g., HOLLOW">
+            </div>
+            <div>
+              <label class="block text-sm font-medium mb-1">Alloy</label>
+              <input type="text" id="alloy" class="w-full px-3 py-2 border rounded dark:bg-slate-700 dark:border-slate-600" placeholder="e.g., 6063">
+            </div>
+          </div>
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-medium mb-1">Unit Weight (kg)</label>
+              <input type="number" step="0.001" id="unit_weight_kg" class="w-full px-3 py-2 border rounded dark:bg-slate-700 dark:border-slate-600" placeholder="0.00">
+            </div>
+            <div>
+              <label class="block text-sm font-medium mb-1">UOM</label>
+              <input type="text" id="uom" value="KG" class="w-full px-3 py-2 border rounded dark:bg-slate-700 dark:border-slate-600">
+            </div>
+          </div>
+        </div>
+        <div class="flex justify-end gap-2 mt-6">
+          <button type="button" onclick="closeModal()" class="px-4 py-2 border rounded hover:bg-slate-50 dark:hover:bg-slate-700">Cancel</button>
+          <button type="submit" id="save-btn" class="bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded">Save Part Number</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Toast Notification -->
+  <div id="toast" class="hidden fixed top-25 right-5 z-50 px-6 py-3 rounded-lg shadow-lg transform transition-all duration-500">
+  </div>
+</div>
+
+<script>
+let parts = [];
+let customers = [];
+let editingId = null;
+
+// Load data on page load
+document.addEventListener("DOMContentLoaded", function() {
+    fetchCustomers();
+    fetchParts();
+});
+
+async function fetchCustomers() {
+    try {
+        const res = await fetch('/api/master/customers');
+        customers = await res.json();
+        populateCustomerFilter();
+    } catch (err) {
+        console.error('Error loading customers:', err);
+    }
+}
+
+async function fetchParts() {
+    document.getElementById('loading').classList.remove('hidden');
+    try {
+        const url = getPartNumbersUrl();
+        const res = await fetch(url);
+        parts = await res.json();
+        renderTable();
+    } catch (err) {
+        showToast('Error loading part numbers', 'error');
+    } finally {
+        document.getElementById('loading').classList.add('hidden');
+    }
+}
+
+function getPartNumbersUrl() {
+    const customerId = document.getElementById('customer-filter').value;
+    if (customerId) {
+        return `/api/master/part-numbers?customer_id=${customerId}`;
+    }
+    return '/api/master/part-numbers';
+}
+
+function populateCustomerFilter() {
+    const select = document.getElementById('customer-filter');
+    customers.forEach(c => {
+        const option = document.createElement('option');
+        option.value = c.id;
+        option.textContent = c.customer_name;
+        select.appendChild(option);
+    });
+}
+
+function applyFilter() {
+    fetchParts();
+}
+
+function renderTable() {
+    const tbody = document.getElementById('part-numbers-table-body');
+    if (parts.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" class="px-4 py-8 text-center text-slate-500">No part numbers found</td></tr>';
+        return;
+    }
+
+    tbody.innerHTML = parts.map(p => `
+      <tr class="hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
+        <td class="px-4 py-3 font-medium text-slate-900 dark:text-slate-100">${escapeHtml(p.part_code)}</td>
+        <td class="px-4 py-3 text-slate-700 dark:text-slate-300">${escapeHtml(p.description || '-')}</td>
+        <td class="px-4 py-3 text-slate-600 dark:text-slate-400">${escapeHtml(p.profile_code || '-')}</td>
+        <td class="px-4 py-3 font-medium text-slate-700 dark:text-slate-300">${escapeHtml(p.alloy || '-')}</td>
+        <td class="px-4 py-3 text-center text-slate-600 dark:text-slate-400">${p.unit_weight_kg ? p.unit_weight_kg.toFixed(3) : '-'}</td>
+        <td class="px-4 py-3 text-center">
+            ${p.bom_status === 'Active' 
+                ? '<span class="bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300 px-2 py-1 rounded-full text-xs font-medium">BOM Active</span>'
+                : '<span class="bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300 px-2 py-1 rounded-full text-xs font-medium">No BOM</span>'}
+        </td>
+        <td class="px-4 py-3 text-right">
+            <a href="/master/boms?part_number_id=${p.id}" class="text-primary-600 hover:text-primary-700 dark:text-primary-400 mr-3">View BOM</a>
+            <button onclick='editPart("${p.id}", "${escapeHtml(p.part_code)}", "${escapeHtml(p.description || '')}", "${escapeHtml(p.profile_code || '')}", "${escapeHtml(p.alloy || '')}", ${p.unit_weight_kg || ''}, "${escapeHtml(p.uom)}")' class="text-slate-600 hover:text-slate-700 dark:text-slate-400">Edit</button>
+        </td>
+      </tr>
+    `).join('');
+}
+
+function openModal() {
+    editingId = null;
+    document.getElementById('modal-title').textContent = 'New Part Number';
+    document.getElementById('part-form').reset();
+    document.getElementById('edit-part-id').value = '';
+    document.getElementById('save-btn').textContent = 'Save Part Number';
+    document.getElementById('part-modal').classList.remove('hidden');
+}
+
+function closeModal() {
+    document.getElementById('part-modal').classList.add('hidden');
+}
+
+async function savePartNumber(event) {
+    event.preventDefault();
+    const data = {
+        part_code: document.getElementById('part_code').value,
+        description: document.getElementById('description').value || null,
+        profile_code: document.getElementById('profile_code').value || null,
+        alloy: document.getElementById('alloy').value || null,
+        unit_weight_kg: parseFloat(document.getElementById('unit_weight_kg').value) || null,
+        uom: document.getElementById('uom').value || 'KG',
+    };
+
+    try {
+        const res = await fetch('/api/master/part-numbers', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+
+        if (!res.ok) {
+            const err = await res.json();
+            throw new Error(err.error || 'Failed to save part number');
+        }
+
+        showToast('Part number saved successfully', 'success');
+        closeModal();
+        fetchParts();
+    } catch (err) {
+        showToast(err.message, 'error');
+    }
+}
+
+function editPart(id, code, desc, profile, alloy, weight, uom) {
+    editingId = id;
+    document.getElementById('modal-title').textContent = 'Edit Part Number';
+    document.getElementById('edit-part-id').value = id;
+    document.getElementById('part_code').value = code;
+    document.getElementById('description').value = desc;
+    document.getElementById('profile_code').value = profile;
+    document.getElementById('alloy').value = alloy;
+    document.getElementById('unit_weight_kg').value = weight || '';
+    document.getElementById('uom').value = uom;
+    document.getElementById('save-btn').textContent = 'Update Part Number';
+    document.getElementById('part-modal').classList.remove('hidden');
+}
+
+function showToast(message, type = 'info') {
+    const toast = document.getElementById('toast');
+    toast.textContent = message;
+    toast.className = `px-6 py-3 rounded-lg shadow-lg transform transition-all duration-500 ${
+        type === 'success' ? 'bg-emerald-500 text-white' :
+        type === 'error' ? 'bg-red-500 text-white' :
+        'bg-blue-500 text-white'
+    }`;
+    toast.classList.remove('hidden');
+
+    setTimeout(() => {
+        toast.classList.add('opacity-0', 'translate-y-[-10px]');
+        setTimeout(() => toast.classList.add('hidden'), 300);
+    }, 3000);
+}
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+</script>
+{% endblock %}

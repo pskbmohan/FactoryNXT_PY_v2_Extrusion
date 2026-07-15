@@ -1,0 +1,429 @@
+{% extends "layout.html" %}
+{% block title %}Order #{{ order.order_number }} - BOM Details{% endblock %}
+
+{% block content %}
+<div class="mb-6 flex items-center justify-between">
+  <div class="flex items-center gap-4">
+    <a href="/orders/customer-ui" class="text-slate-500 hover:text-slate-700 dark:hover:text-slate-300">&larr; Back</a>
+    <div>
+      <h2 class="text-2xl font-bold text-slate-900 dark:text-white">Order #{{ order.order_number }}</h2>
+      <p class="text-sm text-slate-500 dark:text-slate-400">{{ order.customer_name }} &bull; Due: {{ order.due_date or 'No due date' }}</p>
+    </div>
+  </div>
+</div>
+
+<!-- Order Header Card -->
+<div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm p-6 mb-6">
+  <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+    <div>
+      <dt class="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Customer</dt>
+      <dd class="mt-1 text-lg font-semibold text-slate-900 dark:text-white">{{ order.customer_name }}</dd>
+    </div>
+    <div>
+      <dt class="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Order Status</dt>
+      <dd class="mt-1">
+        {% if order.status == 'COMPLETED' %}
+          <span class="inline-flex items-center px-2.5 py-1 rounded-full text-sm font-medium bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">COMPLETED</span>
+        {% elif order.status == 'IN_PROGRESS' %}
+          <span class="inline-flex items-center px-2.5 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">IN PROGRESS</span>
+        {% else %}
+          <span class="inline-flex items-center px-2.5 py-1 rounded-full text-sm font-medium bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400">PENDING</span>
+        {% endif %}
+      </dd>
+    </div>
+    <div>
+      <dt class="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Due Date</dt>
+      <dd class="mt-1 text-lg font-semibold {% if order.due_date and order.due_date <= now() %}text-red-600 dark:text-red-400{% else %}text-slate-900 dark:text-white{% endif %}">{{ order.due_date or '—' }}</dd>
+    </div>
+    <div>
+      <dt class="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Created</dt>
+      <dd class="mt-1 text-sm text-slate-600 dark:text-slate-300">{{ order.created_at or '—' }}</dd>
+    </div>
+  </div>
+</div>
+
+<!-- Order Lines Section -->
+<div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden mb-4">
+  <div class="px-6 py-4 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between">
+    <h3 class="text-lg font-semibold text-slate-900 dark:text-white">Order Lines ({{ lines|length }})</h3>
+    <button onclick="openAddLineModal()" class="inline-flex items-center px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg shadow-sm">
+      + Add Line
+    </button>
+  </div>
+
+  <table class="w-full text-left text-sm">
+    <thead class="bg-slate-50 dark:bg-slate-900 text-slate-600 dark:text-slate-300 uppercase tracking-wider text-xs font-semibold border-b border-slate-200 dark:border-slate-700">
+      <tr>
+        <th class="px-6 py-4">#</th>
+        <th class="px-6 py-4">Part Code</th>
+        <th class="px-6 py-4 text-right">Qty</th>
+        <th class="px-6 py-4">Required Date</th>
+        <th class="px-6 py-4">BOM Status</th>
+        <th class="px-6 py-4">WO Status</th>
+        <th class="px-6 py-4 text-right">Actions</th>
+      </tr>
+    </thead>
+    <tbody id="linesTableBody" class="divide-y divide-slate-200 dark:divide-slate-700">
+      <!-- Loading State -->
+      <tr class="animate-pulse">
+        <td colspan="7" class="px-6 py-12 text-center text-slate-500 dark:text-slate-400">Loading order details...</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- Add Line Modal -->
+<div id="addLineModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+  <div class="bg-white dark:bg-slate-800 rounded-xl shadow-lg max-w-md w-full overflow-hidden">
+    <div class="px-6 py-4 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between">
+      <h3 class="text-lg font-semibold text-slate-900 dark:text-white">Add Order Line</h3>
+      <button onclick="closeAddLineModal()" class="text-slate-500 hover:text-slate-700 dark:hover:text-slate-300">&times;</button>
+    </div>
+    <form id="addLineForm" onsubmit="handleAddLine(event)">
+      <input type="hidden" id="newPartNumberId">
+      <div class="px-6 py-4 space-y-4">
+        <div>
+          <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Part Number *</label>
+          <select id="newPartSelect" required class="w-full rounded-lg border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-sm text-slate-900 dark:text-white px-3 py-2 focus:ring-2 focus:ring-indigo-500">
+            <option value="">Select Part Number</option>
+          </select>
+        </div>
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Quantity *</label>
+            <input type="number" step="0.001" id="newQty" required class="w-full rounded-lg border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-sm text-slate-900 dark:text-white px-3 py-2 focus:ring-2 focus:ring-indigo-500" placeholder="e.g., 100">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">UOM</label>
+            <select id="newUom" class="w-full rounded-lg border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-sm text-slate-900 dark:text-white px-3 py-2 focus:ring-2 focus:ring-indigo-500">
+              <option value="KG" selected>KG</option>
+              <option value="METERS">METERS</option>
+              <option value="PIECES">PIECES</option>
+            </select>
+          </div>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Required Date</label>
+          <input type="date" id="newRequiredDate" class="w-full rounded-lg border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-sm text-slate-900 dark:text-white px-3 py-2 focus:ring-2 focus:ring-indigo-500">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Customer PO Reference</label>
+          <input type="text" id="newPoRef" class="w-full rounded-lg border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-sm text-slate-900 dark:text-white px-3 py-2 focus:ring-2 focus:ring-indigo-500" placeholder="Optional">
+        </div>
+      </div>
+      <div class="px-6 py-4 bg-slate-50 dark:bg-slate-700 flex justify-end gap-2">
+        <button type="button" onclick="closeAddLineModal()" class="px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-600 rounded-lg border border-slate-300 dark:border-slate-600">Cancel</button>
+        <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg shadow-sm">Add Line</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Create WO Modal (per line) -->
+<div id="createWOModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+  <div class="bg-white dark:bg-slate-800 rounded-xl shadow-lg max-w-2xl w-full overflow-hidden">
+    <div class="px-6 py-4 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between">
+      <h3 class="text-lg font-semibold text-slate-900 dark:text-white">Create Work Order</h3>
+      <button onclick="closeCreateWOModal()" class="text-slate-500 hover:text-slate-700 dark:hover:text-slate-300">&times;</button>
+    </div>
+
+    <!-- BOM Preview Card -->
+    <div id="bomPreview" class="px-6 py-4 bg-indigo-50 dark:bg-indigo-900/20 border-y border-indigo-100 dark:border-indigo-800">
+      <h4 class="text-sm font-semibold text-indigo-900 dark:text-indigo-300 mb-3 flex items-center gap-2">
+        <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        Auto-Resolved BOM Details
+      </h4>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <!-- Die Info -->
+        <div class="bg-white dark:bg-slate-700 rounded-lg p-3 border border-indigo-200 dark:border-indigo-800">
+          <h5 class="text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase mb-2">Die Type</h5>
+          <div id="bomDieInfo" class="space-y-1 text-sm">
+            <!-- Populated dynamically -->
+          </div>
+        </div>
+        <!-- Billet Info -->
+        <div class="bg-white dark:bg-slate-700 rounded-lg p-3 border border-indigo-200 dark:border-indigo-800">
+          <h5 class="text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase mb-2">Billet Type</h5>
+          <div id="bomBilletInfo" class="space-y-1 text-sm">
+            <!-- Populated dynamically -->
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <form id="createWOForm" onsubmit="handleCreateWO(event)">
+      <input type="hidden" id="newLineId">
+      <input type="hidden" id="newOrderId">
+      <div class="px-6 py-4 space-y-4">
+        <!-- WO Details -->
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Scheduled Start</label>
+            <input type="datetime-local" id="woStart" class="w-full rounded-lg border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-sm text-slate-900 dark:text-white px-3 py-2 focus:ring-2 focus:ring-indigo-500">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Priority</label>
+            <select id="woPriority" class="w-full rounded-lg border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-sm text-slate-900 dark:text-white px-3 py-2 focus:ring-2 focus:ring-indigo-500">
+              <option value="LOW" selected>Low</option>
+              <option value="MEDIUM">Medium</option>
+              <option value="HIGH">High</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- BOM Warning -->
+        <div id="bomWarning" class="hidden bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3">
+          <p class="text-sm text-red-700 dark:text-red-400 flex items-center gap-2">
+            <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+            No BOM configured for this part number. Configure in Master Data first before creating Work Order.
+          </p>
+        </div>
+      </div>
+
+      <div class="px-6 py-4 bg-slate-50 dark:bg-slate-700 flex justify-end gap-2">
+        <button type="button" onclick="closeCreateWOModal()" class="px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-600 rounded-lg border border-slate-300 dark:border-slate-600">Cancel</button>
+        <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg shadow-sm">Create Work Order</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Toast Notifications -->
+<div id="toastContainer" class="fixed bottom-4 right-4 z-50 space-y-2"></div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const order_id = '{{ order_id }}';
+
+// Global state for line data and parts list
+let linesData = [];
+let allParts = [];
+
+document.addEventListener('DOMContentLoaded', () => {
+  loadOrderDetail();
+  loadAvailableParts();
+});
+
+async function loadOrderDetail() {
+  try {
+    const res = await fetch(`/api/orders/customer/${order_id}`);
+    if (!res.ok) throw new Error('Failed to load order');
+
+    const data = await res.json();
+    renderLinesTable(data.lines || []);
+  } catch (err) {
+    showToast(err.message, 'error');
+  }
+}
+
+async function loadAvailableParts() {
+  try {
+    const res = await fetch(`/api/master/part-numbers`);
+    if (!res.ok) throw new Error('Failed to load parts');
+
+    allParts = await res.json();
+  } catch (err) {
+    console.error(err);
+  }
+}
+
+function renderLinesTable(lines) {
+  const tbody = document.getElementById('linesTableBody');
+
+  if (lines.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="7" class="px-6 py-12 text-center text-slate-500 dark:text-slate-400">No order lines yet. Click "+ Add Line" to add one.</td></tr>';
+    return;
+  }
+
+  let html = '';
+  lines.forEach(line => {
+    const bomStatusClass = line.bom_status === 'BOM Ready' ?
+      '<span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">✓ BOM Ready</span>' :
+      '<span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400" title="Configure BOM in Master Data first">✗ No BOM</span>';
+
+    const woStatus = line.work_order_id ?
+      `<a href="/work_orders/detail/${line.work_order_id}" class="text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 font-medium">#${line.work_order_number}</a>` :
+      '<span class="text-slate-500">—</span>';
+
+    let woButton = '';
+    if (line.status === 'OPEN') {
+      if (line.bom_status === 'BOM Ready' || line.bom_ready) {
+        woButton = `<button onclick='openCreateWOModal("${line.id}")' class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-medium rounded-lg">Create WO</button>`;
+      } else {
+        woButton = `<button disabled class="px-3 py-1.5 bg-slate-200 dark:bg-slate-600 text-slate-400 text-xs font-medium rounded-lg cursor-not-allowed" title="No BOM configured">Create WO</button>`;
+      }
+    } else {
+      woButton = `<span class="text-slate-500 text-sm">${line.status}</span>`;
+    }
+
+    html += `
+      <tr class="hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">
+        <td class="px-6 py-4 font-medium text-slate-600 dark:text-slate-400">${line.line_number}</td>
+        <td class="px-6 py-4">
+          <div class="font-medium text-slate-900 dark:text-white">${line.part_code || '—'}</div>
+          <div class="text-xs text-slate-500">${line.description || ''}</div>
+        </td>
+        <td class="px-6 py-4 text-right font-medium text-slate-900 dark:text-white">${line.ordered_qty} ${line.uom}</td>
+        <td class="px-6 py-4 text-slate-600 dark:text-slate-300">${line.required_date || '—'}</td>
+        <td class="px-6 py-4">
+          ${bomStatusClass}
+        </td>
+        <td class="px-6 py-4 font-medium text-indigo-600 dark:text-indigo-400">${woStatus}</td>
+        <td class="px-6 py-4 text-right space-x-2">
+          ${line.status === 'OPEN' ? woButton : ''}
+        </td>
+      </tr>
+    `;
+  });
+
+  tbody.innerHTML = html;
+}
+
+// Modal functions for Add Line
+function openAddLineModal() {
+  const select = document.getElementById('newPartSelect');
+  // Filter parts mapped to this customer (all active parts for simplicity)
+  select.innerHTML = '<option value="">Select Part Number</option>';
+  allParts.forEach(part => {
+    if (part.is_active) {
+      const bomStatus = part.bom_status === 'BOM Ready' ? '' : ' <span class="text-xs text-red-600">(No BOM)</span>';
+      select.innerHTML += `<option value="${part.id}">${part.part_code}${bomStatus}</option>`;
+    }
+  });
+
+  document.getElementById('addLineForm').reset();
+  document.getElementById('addLineModal').classList.remove('hidden');
+}
+
+function closeAddLineModal() {
+  document.getElementById('addLineModal').classList.add('hidden');
+}
+
+async function handleAddLine(e) {
+  e.preventDefault();
+
+  const data = {
+    part_number_id: document.getElementById('newPartSelect').value,
+    ordered_qty: parseFloat(document.getElementById('newQty').value),
+    uom: document.getElementById('newUom').value,
+    required_date: document.getElementById('newRequiredDate').value || null,
+    customer_po_reference: document.getElementById('newPoRef').value || null,
+  };
+
+  try {
+    const res = await fetch(`/api/orders/customer/${order_id}/lines`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+
+    if (res.ok) {
+      closeAddLineModal();
+      showToast('Line added successfully!', 'success');
+      loadOrderDetail();
+    } else {
+      const err = await res.json();
+      showToast(err.error || 'Failed to add line', 'error');
+    }
+  } catch (err) {
+    showToast('Network error: ' + err.message, 'error');
+  }
+}
+
+// Modal functions for Create WO
+let currentLineId = null;
+let currentOrderId = null;
+
+function openCreateWOModal(lineId) {
+  currentLineId = lineId;
+  document.getElementById('newLineId').value = lineId;
+  document.getElementById('newOrderId').value = order_id;
+  document.getElementById('createWOForm').reset();
+
+  // Hide warning initially (will be shown if no BOM)
+  document.getElementById('bomWarning').classList.add('hidden');
+
+  // Show modal with loading state for BOM preview
+  document.getElementById('bomDieInfo').innerHTML = '<span class="text-slate-500">Loading...</span>';
+  document.getElementById('bomBilletInfo').innerHTML = '<span class="text-slate-500">Loading...</span>';
+
+  // Fetch line details to show BOM preview (we need the order detail again)
+  fetch(`/api/orders/customer/${order_id}`)
+    .then(r => r.json())
+    .then(data => {
+      const line = data.lines.find(l => l.id === lineId);
+      if (!line || !line.part_number_id) {
+        document.getElementById('bomDieInfo').innerHTML = '<span class="text-red-600">No part selected</span>';
+        return;
+      }
+
+      // Check BOM status for this part
+      const hasBom = line.bom_status === 'BOM Ready' || line.bom_ready;
+      if (!hasBom) {
+        document.getElementById('bomDieInfo').innerHTML = '<span class="text-red-600">No BOM configured</span>';
+        document.getElementById('bomBilletInfo').innerHTML = '<span class="text-red-600">No BOM configured</span>';
+        document.getElementById('bomWarning').classList.remove('hidden');
+      } else {
+        // Show that BOM is ready (we'll resolve it on submit)
+        document.getElementById('bomDieInfo').innerHTML = '<div class="text-emerald-600 dark:text-emerald-400">✓ BOM resolved at creation</div>';
+        document.getElementById('bomBilletInfo').innerHTML = '<div class="text-emerald-600 dark:text-emerald-400">✓ BOM resolved at creation</div>';
+      }
+
+      document.getElementById('createWOModal').classList.remove('hidden');
+    });
+}
+
+function closeCreateWOModal() {
+  document.getElementById('createWOModal').classList.add('hidden');
+  currentLineId = null;
+  currentOrderId = null;
+}
+
+async function handleCreateWO(e) {
+  e.preventDefault();
+
+  const data = {
+    scheduled_start: document.getElementById('woStart').value || null,
+    priority: document.getElementById('woPriority').value,
+  };
+
+  try {
+    const res = await fetch(`/api/orders/customer/${order_id}/lines/${currentLineId}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+
+    if (res.ok) {
+      closeCreateWOModal();
+      showToast('Work Order created successfully!', 'success');
+      loadOrderDetail();
+    } else {
+      const err = await res.json();
+      if (err.error === 'bom_not_found') {
+        document.getElementById('bomDieInfo').innerHTML = '<span class="text-red-600">No BOM configured</span>';
+        document.getElementById('bomBilletInfo').innerHTML = '<span class="text-red-600">No BOM configured</span>';
+        document.getElementById('bomWarning').classList.remove('hidden');
+      } else {
+        showToast(err.message || 'Failed to create Work Order', 'error');
+      }
+    }
+  } catch (err) {
+    showToast('Network error: ' + err.message, 'error');
+  }
+}
+
+function showToast(message, type = 'info') {
+  const container = document.getElementById('toastContainer');
+  const colors = type === 'success' ? 'bg-emerald-600' : type === 'error' ? 'bg-red-600' : 'bg-slate-800';
+
+  const toast = document.createElement('div');
+  toast.className = `${colors} text-white px-4 py-3 rounded-lg shadow-lg ${type === 'warning' ? 'bg-amber-600' : ''}`;
+  toast.textContent = message;
+  container.appendChild(toast);
+
+  setTimeout(() => toast.remove(), 5000);
+}
+</script>
+{% endblock %}

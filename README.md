@@ -158,6 +158,56 @@ FactoryNXT/
 
 ## Database Schema
 
+### BOM-Driven Work Order Creation
+
+New feature enabling customer-part number mappings with automatic die/billet resolution for work orders.
+
+**Key Features:**
+- **Customer Master Data**: Manage customers with contact information and approved part numbers
+- **Part Number Master**: Define profiles, alloys, weights as production requirements
+- **Customer-Part Mapping**: Enforce which parts each customer can order (prevents invalid orders)
+- **BOM Management**: Link parts to specific dies and billets with version control
+- **Auto-Resolution**: When creating work orders from customer lines, die/billet automatically populated from active BOM
+- **APS Integration**: Scheduling respects BOM-assigned dies; checks billet availability before scheduling
+
+**Data Flow:**
+```
+Customer → CustomerPartNumber (mapping) → PartNumber → PartNumberBOM → die_type_id + billet_type_id
+           ↓
+    CustomerOrder → CustomerOrderLine → [create-wo] → WorkOrder (auto-resolved BOM fields populated)
+                                                   ↓
+                                            ProcessPlan (uses BOM die/billet for scheduling)
+```
+
+**API Endpoints:**
+| Endpoint | Description |
+|----------|-------------|
+| `GET/POST /api/master/customers` | Customer master data management |
+| `GET/POST /api/master/part-numbers` | Part number master data |
+| `POST /api/master/customer-part-numbers` | Map customer to approved parts (validates uniqueness) |
+| `POST /PUT /api/master/boms` | Manage BOM versions with die/billet assignments |
+| `GET/POST /api/orders/customer` | Customer orders with line management |
+| `POST /api/orders/customer/<id>/lines/<line_id>` | Create WO from order line (auto-resolves BOM) |
+
+**UI Pages:**
+- `/master/customers` — Customers master list
+- `/master/part-numbers` — Part numbers with BOM status badges
+- `/master/boms` — BOM management with version control
+- `/master/customer-part-map` — Customer ↔ Part mapping interface
+- `/orders/customer-ui` — BOM-driven customer orders (enhanced planning view)
+
+**Total tables:** 73 (51 legacy SMT/PCB + 22 new foundry domain + 5 new BOM models)
+
+### New Models for BOM Feature:
+
+| Model | Table | Description |
+|-------|-------|-------------|
+| `Customer` | `customers` | Customer master data with contact info and active status |
+| `PartNumber` | `part_numbers` | Part number master with alloy, weight, profile code |
+| `CustomerPartNumber` | `customer_part_numbers` | Junction table mapping customers to approved parts (enforces valid orders) |
+| `PartNumberBOM` | `part_number_boms` | BOM linking part numbers to dies and billets with version tracking |
+| `CustomerOrderLine` | `customer_order_lines` | Line items within customer orders, linked to part numbers |
+
 **Total tables:** 73 (51 legacy SMT/PCB + 22 new foundry domain)
 
 ### New Foundry Domain Models (22 tables)

@@ -51,6 +51,71 @@
     </div>
     {% endif %}
   </div>
+
+  <!-- BOM Information Card (BOM-driven Work Order fields) -->
+  <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
+    <h3 class="text-md font-semibold text-slate-900 mb-4 pb-2 border-b border-slate-200">BOM Information</h3>
+    {% if work_order.die_type_id and work_order.billet_type_id %}
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <!-- Die Type -->
+      <div>
+        <dt class="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">Die Type</dt>
+        {% if work_order.die_type_ref %}
+        <dl class="space-y-1">
+          <div><dd class="font-medium text-slate-900">{{ work_order.die_type_ref.die_code }}</dd></div>
+          <div><dd class="text-sm text-slate-600 dark:text-slate-300">{{ work_order.die_type_ref.die_type }}</dd></div>
+          <div><dd class="text-xs text-slate-500">Profile: {{ work_order.die_type_ref.profile_code or '—' }}</dd></div>
+        </dl>
+        {% else %}
+        <p class="text-sm text-slate-500">Die info not loaded</p>
+        {% endif %}
+      </div>
+
+      <!-- Billet Type -->
+      <div>
+        <dt class="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">Billet Type</dt>
+        {% if work_order.billet_type_ref %}
+        <dl class="space-y-1">
+          <div><dd class="font-medium text-slate-900">{{ work_order.billet_type_ref.billet_code }}</dd></div>
+          <div><dd class="text-sm text-slate-600 dark:text-slate-300">{{ work_order.billet_type_ref.alloy or '—' }}</dd></div>
+          <div><dd class="text-xs text-slate-500">Diameter: {{ work_order.billet_type_ref.diameter_mm or '—' }}mm</dd></div>
+        </dl>
+        {% else %}
+        <p class="text-sm text-slate-500">Billet info not loaded</p>
+        {% endif %}
+      </div>
+
+      <!-- BOM Version -->
+      <div>
+        <dt class="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">BOM Version</dt>
+        {% if work_order.bom_ref %}
+        <dl class="space-y-1">
+          <div><dd class="font-medium text-slate-900">v{{ work_order.bom_ref.version or 'N/A' }}</dd></div>
+          <div><dd class="text-sm text-slate-600 dark:text-slate-300">{{ work_order.bom_ref.created_at.strftime('%Y-%m-%d') if work_order.bom_ref.created_at else '—' }}</dd></div>
+          {% if work_order.billet_type_ref and work_order.billet_type_ref.quantity_kg %}
+          <div><dd class="text-xs text-slate-50">Billet Weight: {{ work_order.billet_type_ref.quantity_kg }} kg</dd></div>
+          {% endif %}
+        </dl>
+        {% else %}
+        <p class="text-sm text-slate-500">No BOM version linked</p>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Source Order Link -->
+    {% if work_order.customer_order_line and work_order.customer_order_line.order %}
+    <div class="mt-4 pt-4 border-t border-slate-200">
+      <dt class="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">Source Order</dt>
+      <a href="/orders/customer-ui/{{ work_order.customer_order_line.order.id }}" class="text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 text-sm font-medium">
+        #{{ work_order.customer_order_line.order.order_number }}
+      </a>
+    </div>
+    {% endif %}
+
+    {% else %}
+    <p class="text-sm text-slate-500 italic">This Work Order is not BOM-driven (die_type_id and billet_type_id not set).</p>
+    {% endif %}
+  </div>
 </div>
 
 <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6">

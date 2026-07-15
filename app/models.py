@@ -64,6 +64,17 @@ class WorkOrder(db.Model):
     released_at = db.Column(db.DateTime, nullable=True)
     started_at = db.Column(db.DateTime, nullable=True)
     completed_at = db.Column(db.DateTime, nullable=True)
+    # ── BOM-driven Work Order fields (Session 1 addition) ───────────────────
+    customer_order_line_id = db.Column(db.String(36), db.ForeignKey("customer_order_lines.id"), nullable=True)
+    part_number_id = db.Column(db.String(36), db.ForeignKey("part_numbers.id"), nullable=True)
+    die_type_id = db.Column(db.String(36), db.ForeignKey("dies.id"), nullable=True)
+    billet_type_id = db.Column(db.String(36), db.ForeignKey("billets.id"), nullable=True)
+    bom_version_id = db.Column(db.String(36), db.ForeignKey("part_number_boms.id"), nullable=True)
+    customer_order_line = db.relationship("CustomerOrderLine", backref="work_orders", foreign_keys=[customer_order_line_id])
+    part_number_ref = db.relationship("PartNumber", backref="work_orders", foreign_keys=[part_number_id])
+    die_type_ref = db.relationship("Die", backref="work_orders", foreign_keys=[die_type_id])
+    billet_type_ref = db.relationship("Billet", backref="work_orders", foreign_keys=[billet_type_id])
+    bom_ref = db.relationship("PartNumberBOM", backref="work_orders", foreign_keys=[bom_version_id])
 
 
 class BOMItem(db.Model):
@@ -1720,5 +1731,89 @@ class WattmonReading(db.Model):
     value = db.Column(db.Text, nullable=True)
     row_index = db.Column(db.Integer, nullable=False, index=True)
     epoch_ts = db.Column(db.Integer, nullable=True, index=True)
+
+
+# ─── EXTRUSION MASTER DATA: CUSTOMER / PART NUMBER / BOM ──────────────────────
+
+class Customer(db.Model):
+    """Customer master data for BOM-driven order management."""
+    __tablename__ = "customers"
+    id = db.Column(db.String(36), primary_key=True, default=lambda: str(_uuid.uuid4()))
+    customer_code = db.Column(db.String(64), unique=True, nullable=False)
+    customer_name = db.Column(db.String(128), nullable=False)
+    contact_email = db.Column(db.String(128), nullable=True)
+    contact_phone = db.Column(db.String(32), nullable=True)
+    address = db.Column(db.Text, nullable=True)
+    is_active = db.Column(db.Boolean, default=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    # Backref for CustomerPartNumber relationship (created automatically via backref in CustomerPartNumber)
+
+
+class PartNumber(db.Model):
+    """Part number master data for BOM-driven order management."""
+    __tablename__ = "part_numbers"
+    id = db.Column(db.String(36), primary_key=True, default=lambda: str(_uuid.uuid4()))
+    part_code = db.Column(db.String(64), unique=True, nullable=False)
+    description = db.Column(db.Text, nullable=True)
+    profile_code = db.Column(db.String(64), nullable=True)
+    alloy = db.Column(db.String(64), nullable=True)
+    unit_weight_kg = db.Column(db.Float, nullable=True)
+    uom = db.Column(db.String(16), default="KG")
+    is_active = db.Column(db.Boolean, default=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+
+class CustomerPartNumber(db.Model):
+    """Mapping between customers and their approved part numbers."""
+    __tablename__ = "customer_part_numbers"
+    id = db.Column(db.String(36), primary_key=True, default=lambda: str(_uuid.uuid4()))
+    customer_id = db.Column(db.String(36), db.ForeignKey("customers.id"), nullable=False)
+    part_number_id = db.Column(db.String(36), db.ForeignKey("part_numbers.id"), nullable=False)
+    customer_part_ref = db.Column(db.String(64), nullable=True)  # Customer's internal part reference
+    is_active = db.Column(db.Boolean, default=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    customer = db.relationship("Customer", backref="customer_part_numbers")
+    part_number = db.relationship("PartNumber", backref="customer_part_numbers")
+    __table_args__ = (
+        db.UniqueConstraint("customer_id", "part_number_id", name="uq_customer_part"),
+    )
+
+
+class PartNumberBOM(db.Model):
+    """Bill of Materials linking a part number to its die and billet types."""
+    __tablename__ = "part_number_boms"
+    id = db.Column(db.String(36), primary_key=True, default=lambda: str(_uuid.uuid4()))
+    part_number_id = db.Column(db.String(36), db.ForeignKey("part_numbers.id"), nullable=False)
+    version = db.Column(db.Integer, nullable=False, default=1)
+    die_type_id = db.Column(db.String(36), db.ForeignKey("dies.id"), nullable=False)
+    billet_type_id = db.Column(db.String(36), db.ForeignKey("billets.id"), nullable=False)
+    billet_weight_kg = db.Column(db.Float, nullable=True)
+    extrusion_ratio = db.Column(db.Float, nullable=True)
+    notes = db.Column(db.Text, nullable=True)
+    is_active = db.Column(db.Boolean, default=True)
+    created_by = db.Column(db.String(128), nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    part_number = db.relationship("PartNumber", backref="boms")
+    die_type = db.relationship("Die", backref="bom_entries")
+    billet_type = db.relationship("Billet", backref="bom_entries")
+
+
+class CustomerOrderLine(db.Model):
+    """Individual line items within a customer order, linked to part numbers."""
+    __tablename__ = "customer_order_lines"
+    id = db.Column(db.String(36), primary_key=True, default=lambda: str(_uuid.uuid4()))
+    order_id = db.Column(db.String(36), db.ForeignKey("customer_orders.id"), nullable=False)
+    part_number_id = db.Column(db.String(36), db.ForeignKey("part_numbers.id"), nullable=False)
+    line_number = db.Column(db.Integer, nullable=False, default=1)
+    ordered_qty = db.Column(db.Float, nullable=False)
+    uom = db.Column(db.String(16), default="KG")
+    required_date = db.Column(db.Date, nullable=True)
+    customer_po_reference = db.Column(db.String(64), nullable=True)
+    status = db.Column(db.String(32), nullable=False, default="OPEN")
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    order = db.relationship("CustomerOrder", backref="order_lines")
+    part_number = db.relationship("PartNumber", backref="order_lines")
 
 

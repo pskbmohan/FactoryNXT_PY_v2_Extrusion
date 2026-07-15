@@ -43,6 +43,10 @@ from ..models import (
     PmSchedule,
     MaintenanceLog,
 )
+from ..services.bom_service import (
+    get_eligible_machines_for_die,
+    check_billet_availability,
+)
 from ..models_routing import RoutingMaster, RoutingStepV2
 from ..models_aps import (
     ApsScheduleVersion,
@@ -714,37 +718,73 @@ class ApsEngine:
                 unassigned.append({"work_order": wo.order_number, "reasons": reason_codes})
                 continue
 
-            # Die assignment: look for a die matching alloy (best-effort)
-            die_to_assign = cls._pick_die_for(alloy, profile, best_start, assigned_dies, all_dies)
+            # Die assignment: check if WO has BOM-resolved die (BOM-driven WOs)
+            die_to_assign = None
             billet_to_assign = None
+
+            # First, try to use BOM-resolved values from WorkOrder
+            if wo.die_type_id and wo.billet_type_id:
+                bom_die = Die.query.get(wo.die_type_id)
+                bom_billet = Billet.query.get(wo.billet_type_id)
+
+                if bom_die and bom_die.status in DIE_READY_STATUSES:
+                    die_to_assign = bom_die
+                    # Check billet availability using BOM's required weight
+                    wo_quantity = max(1, int(wo.quantity or 1))
+                    bom_billet_weight = getattr(bom_billet, 'quantity_kg', None)
+                    if bom_billet and bom_billet.status in BILLET_READY_STATUSES:
+                        billet_check = check_billet_availability(wo.billet_type_id, wo_quantity * (bom_die.profile_code or 1))
+                        if billet_check['available']:
+                            billet_to_assign = bom_billet
+
+                # Check for eligible machines compatible with this die
+                eligible_machines = get_eligible_machines_for_die(wo.die_type_id)
+                if not eligible_machines:
+                    reason_codes.append("NO_COMPATIBLE_MACHINE")
+                    cls._log_constraint(
+                        version.id, wo.id, None,
+                        reason_code="NO_COMPATIBLE_MACHINE",
+                        message=(
+                            f"WO {wo.order_number}: no compatible press available for die "
+                            f"{bom_die.die_code if bom_die else 'unknown'}."
+                        ),
+                        severity="WARNING",
+                        constraint_status="INFEASIBLE",
+                        logs=constraint_logs,
+                    )
+
+            # Fallback: compute die/billet based on alloy/profile if not BOM-driven
             if die_to_assign is None:
-                reason_codes.append("DIE_NOT_AVAILABLE")
-                cls._log_constraint(
-                    version.id, wo.id, None,
-                    reason_code="DIE_NOT_AVAILABLE",
-                    message=(
-                        f"WO {wo.order_number}: no matching die available for "
-                        f"alloy={alloy or 'any'} profile={profile or 'any'}."
-                    ),
-                    severity="WARNING",
-                    constraint_status="INFEASIBLE",
-                    logs=constraint_logs,
-                )
+                die_to_assign = cls._pick_die_for(alloy, profile, best_start, assigned_dies, all_dies)
+                if die_to_assign is None:
+                    reason_codes.append("DIE_NOT_AVAILABLE")
+                    cls._log_constraint(
+                        version.id, wo.id, None,
+                        reason_code="DIE_NOT_AVAILABLE",
+                        message=(
+                            f"WO {wo.order_number}: no matching die available for "
+                            f"alloy={alloy or 'any'} profile={profile or 'any'}."
+                        ),
+                        severity="WARNING",
+                        constraint_status="INFEASIBLE",
+                        logs=constraint_logs,
+                    )
 
             # Billet assignment (informational)
-            billet_to_assign = cls._pick_billet_for(alloy, assigned_billets, all_billets)
             if billet_to_assign is None:
-                reason_codes.append("BILLET_SHORTAGE")
-                cls._log_constraint(
-                    version.id, wo.id, None,
-                    reason_code="BILLET_SHORTAGE",
-                    message=(
-                        f"WO {wo.order_number}: no billet with alloy={alloy or 'any'} in stock."
-                    ),
-                    severity="WARNING",
-                    constraint_status="INFEASIBLE",
-                    logs=constraint_logs,
-                )
+                billet_to_assign = cls._pick_billet_for(alloy, assigned_billets, all_billets)
+                if billet_to_assign is None:
+                    reason_codes.append("BILLET_SHORTAGE")
+                    cls._log_constraint(
+                        version.id, wo.id, None,
+                        reason_code="BILLET_SHORTAGE",
+                        message=(
+                            f"WO {wo.order_number}: no billet with alloy={alloy or 'any'} in stock."
+                        ),
+                        severity="WARNING",
+                        constraint_status="INFEASIBLE",
+                        logs=constraint_logs,
+                    )
 
             constraint_status = "FEASIBLE" if not reason_codes else (
                 "INFEASIBLE" if any(r in reason_codes for r in (

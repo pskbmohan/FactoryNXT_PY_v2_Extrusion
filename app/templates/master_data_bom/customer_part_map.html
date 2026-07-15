@@ -1,0 +1,422 @@
+{% extends "layout.html" %}
+
+{% block title %}Customer-Part Mapping - FactoryNXT{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto">
+  <h1 class="text-2xl font-bold mb-6">Customer ↔ Part Number Mapping</h1>
+
+  <!-- Two-panel layout -->
+  <div class="grid md:grid-cols-3 gap-6">
+    
+    <!-- Left Panel: Customer List -->
+    <div class="md:col-span-1">
+      <div class="bg-white dark:bg-slate-800 rounded-lg shadow border border-slate-200 dark:border-slate-700 overflow-hidden h-full">
+        <div class="bg-primary-50 dark:bg-primary-900/30 px-4 py-3 border-b border-primary-100 dark:border-primary-800">
+          <h2 class="font-semibold text-sm">Customers</h2>
+        </div>
+        
+        <!-- Customer Search -->
+        <div class="p-3 border-b border-slate-200 dark:border-slate-700">
+          <input type="text" id="customer-search" placeholder="Search customers..." onkeyup="filterCustomers()" 
+                 class="w-full px-3 py-2 text-sm border rounded dark:bg-slate-700 dark:border-slate-600">
+        </div>
+
+        <!-- Customer Cards -->
+        <div id="customers-list" class="divide-y divide-slate-200 dark:divide-slate-700 max-h-[calc(100vh-350px)] overflow-y-auto">
+          <!-- Loaded via fetch -->
+        </div>
+
+        <!-- Loading State -->
+        <div id="customers-loading" class="text-center py-8 text-slate-500">Loading customers...</div>
+      </div>
+    </div>
+
+    <!-- Right Panel: Part Numbers for Selected Customer -->
+    <div class="md:col-span-2">
+      <div id="part-panel" class="bg-white dark:bg-slate-800 rounded-lg shadow border border-slate-200 dark:border-slate-700 overflow-hidden h-full">
+        <!-- Empty State -->
+        <div id="panel-empty-state" class="flex flex-col items-center justify-center py-16 px-4 text-center">
+          <svg class="w-16 h-16 text-slate-300 dark:text-slate-600 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
+          </svg>
+          <p class="text-slate-500 dark:text-slate-400 mb-2">Select a customer from the left panel to view and manage their mapped part numbers</p>
+        </div>
+
+        <!-- Part Numbers Panel Content (hidden by default) -->
+        <div id="panel-content" class="hidden h-full flex flex-col">
+          <div class="bg-primary-50 dark:bg-primary-900/30 px-4 py-3 border-b border-primary-100 dark:border-primary-800 flex justify-between items-center sticky top-0 z-10">
+            <h2 id="selected-customer-name" class="font-semibold text-sm"></h2>
+            <button onclick="closePanel()" class="text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 px-2">&times;</button>
+          </div>
+
+          <!-- Add Part Number Button -->
+          <div class="p-4 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50">
+            <button onclick="openAddPartModal()" class="w-full bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-lg flex items-center justify-center gap-2">
+              <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+              </svg>
+              Add Part Number
+            </button>
+          </div>
+
+          <!-- Mapped Parts List -->
+          <div id="mapped-parts-list" class="divide-y divide-slate-200 dark:divide-slate-700 overflow-y-auto flex-1 max-h-[calc(100vh-450px)]">
+            <!-- Loaded via fetch -->
+          </div>
+
+          <!-- Loading State for Parts -->
+          <div id="parts-loading" class="text-center py-8 text-slate-500 hidden">Loading parts...</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Modal: Add Part Number to Customer -->
+  <div id="add-part-modal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
+    <div class="bg-white dark:bg-slate-800 rounded-lg shadow-xl w-full max-w-md mx-4">
+      <div class="flex justify-between items-center px-6 py-4 border-b border-slate-200 dark:border-slate-700">
+        <h2 id="add-part-modal-title" class="text-lg font-semibold">Add Part Number</h2>
+        <button onclick="closeAddPartModal()" class="text-slate-500 hover:text-slate-700 dark:hover:text-slate-300">&times;</button>
+      </div>
+      
+      <form id="add-part-form" onsubmit="savePartMapping(event)" class="p-6">
+        <input type="hidden" id="selected-customer-id">
+        
+        <div class="space-y-4">
+          <!-- Customer Display -->
+          <div class="bg-slate-50 dark:bg-slate-900 rounded p-3 border border-slate-200 dark:border-slate-700">
+            <p class="text-xs text-slate-500 dark:text-slate-400 mb-1">Customer</p>
+            <p id="modal-customer-name" class="font-medium"></p>
+          </div>
+
+          <!-- Part Number Dropdown -->
+          <div>
+            <label class="block text-sm font-medium mb-1">Part Number *</label>
+            <select id="part-number-select" required class="w-full px-3 py-2 border rounded dark:bg-slate-700 dark:border-slate-600">
+              <option value="">-- Select a part number --</option>
+            </select>
+            <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Only shows unmapped active parts for this customer</p>
+          </div>
+
+          <!-- Customer Part Reference (optional) -->
+          <div>
+            <label class="block text-sm font-medium mb-1">Customer's Part Reference</label>
+            <input type="text" id="customer_part_ref" class="w-full px-3 py-2 border rounded dark:bg-slate-700 dark:border-slate-600" 
+                   placeholder="e.g., Customer SKU #12345">
+          </div>
+
+          <!-- Part Preview -->
+          <div id="part-preview" class="hidden bg-emerald-50 dark:bg-emerald-900/30 rounded p-3 border border-emerald-200 dark:border-emerald-800">
+            <p class="text-sm font-medium text-emerald-700 dark:text-emerald-300" id="part-preview-text"></p>
+          </div>
+
+          <!-- BOM Status Warning -->
+          <div id="bom-warning" class="hidden bg-yellow-50 dark:bg-yellow-900/30 rounded p-3 border border-yellow-200 dark:border-yellow-800">
+            <p class="text-sm text-yellow-700 dark:text-yellow-200">⚠️ This part number does not have an active BOM configured. The customer can still be mapped, but work orders cannot be created until a BOM is set up.</p>
+          </div>
+        </div>
+
+        <div class="flex justify-end gap-2 mt-6 pt-4 border-t border-slate-200 dark:border-slate-700">
+          <button type="button" onclick="closeAddPartModal()" class="px-4 py-2 border rounded hover:bg-slate-50 dark:hover:bg-slate-700">Cancel</button>
+          <button type="submit" id="save-mapping-btn" class="bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded">Add Mapping</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Toast Notification -->
+  <div id="toast" class="hidden fixed top-25 right-5 z-50 px-6 py-3 rounded-lg shadow-lg transform transition-all duration-500">
+  </div>
+</div>
+
+<script>
+let customers = [];
+let allParts = []; // All part numbers
+let mappedPartIds = new Set(); // Part IDs already mapped to current customer
+let selectedCustomerId = null;
+let selectedCustomerName = null;
+
+// Load data on page load
+document.addEventListener("DOMContentLoaded", function() {
+    fetchCustomers();
+    fetchAllParts();
+});
+
+async function fetchCustomers() {
+    try {
+        const res = await fetch('/api/master/customers');
+        customers = await res.json();
+        renderCustomerList(customers);
+    } catch (err) {
+        showToast('Error loading customers', 'error');
+    } finally {
+        document.getElementById('customers-loading').classList.add('hidden');
+    }
+}
+
+async function fetchAllParts() {
+    try {
+        const res = await fetch('/api/master/part-numbers');
+        allParts = await res.json();
+    } catch (err) {
+        console.error('Error loading parts:', err);
+    }
+}
+
+function renderCustomerList(customerList) {
+    const list = document.getElementById('customers-list');
+    
+    if (customerList.length === 0) {
+        list.innerHTML = '<div class="p-4 text-center text-slate-500">No customers found</div>';
+        return;
+    }
+
+    list.innerHTML = customerList.map(c => `
+      <button onclick='selectCustomer("${c.id}", "${escapeHtml(c.customer_name)}", ${c.part_count})' 
+              class="w-full text-left px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors ${selectedCustomerId === c.id ? 'bg-primary-50 dark:bg-primary-900/30 border-l-4 border-primary-600' : ''}">
+        <div class="flex justify-between items-start mb-1">
+          <span class="font-medium text-slate-900 dark:text-slate-100">${escapeHtml(c.customer_name)}</span>
+          ${c.is_active ? '<span class="bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300 px-2 py-0.5 rounded-full text-xs">Active</span>' : ''}
+        </div>
+        <div class="text-xs text-slate-500 dark:text-slate-400">
+            ${c.customer_code}<br>
+            <span class="${c.part_count > 0 ? 'text-primary-600 dark:text-primary-400' : ''}">${c.part_count} part(s) mapped</span>
+        </div>
+      </button>
+    `).join('');
+}
+
+function filterCustomers() {
+    const query = document.getElementById('customer-search').value.toLowerCase();
+    const filtered = customers.filter(c => 
+        c.customer_name.toLowerCase().includes(query) || 
+        c.customer_code.toLowerCase().includes(query)
+    );
+    renderCustomerList(filtered);
+}
+
+async function selectCustomer(customerId, customerName, partCount) {
+    selectedCustomerId = customerId;
+    selectedCustomerName = customerName;
+    
+    // Update UI to show selection
+    document.querySelectorAll('#customers-list button').forEach(btn => {
+        btn.classList.remove('bg-primary-50', 'dark:bg-primary-900/30', 'border-l-4', 'border-primary-600');
+    });
+    event.currentTarget.classList.add('bg-primary-50', 'dark:bg-primary-900/30', 'border-l-4', 'border-primary-600');
+
+    // Show panel content, hide empty state
+    document.getElementById('panel-empty-state').classList.add('hidden');
+    document.getElementById('panel-content').classList.remove('hidden');
+    
+    // Update customer name display
+    document.getElementById('selected-customer-name').textContent = `${customerName} (${partCount} parts)`;
+
+    // Fetch and render mapped parts for this customer
+    await fetchMappedParts(customerId);
+}
+
+function closePanel() {
+    selectedCustomerId = null;
+    selectedCustomerName = null;
+    
+    document.getElementById('panel-empty-state').classList.remove('hidden');
+    document.getElementById('panel-content').classList.add('hidden');
+    
+    // Reset customer selection styling
+    document.querySelectorAll('#customers-list button').forEach(btn => {
+        btn.classList.remove('bg-primary-50', 'dark:bg-primary-900/30', 'border-l-4', 'border-primary-600');
+    });
+}
+
+async function fetchMappedParts(customerId) {
+    document.getElementById('parts-loading').classList.remove('hidden');
+    document.getElementById('mapped-parts-list').innerHTML = '';
+    
+    try {
+        const res = await fetch(`/api/master/customer-part-numbers?customer_id=${customerId}`);
+        const mappings = await res.json();
+        
+        mappedPartIds = new Set(mappings.map(m => m.part_number_id));
+        renderMappedParts(mappings);
+    } catch (err) {
+        showToast('Error loading mapped parts', 'error');
+    } finally {
+        document.getElementById('parts-loading').classList.add('hidden');
+    }
+}
+
+function renderMappedParts(mappings) {
+    const list = document.getElementById('mapped-parts-list');
+    
+    if (mappings.length === 0) {
+        list.innerHTML = '<div class="p-8 text-center text-slate-500">No part numbers mapped to this customer yet</div>';
+        return;
+    }
+
+    list.innerHTML = mappings.map(m => `
+      <div class="px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors flex justify-between items-center">
+        <div>
+            <p class="font-medium text-slate-900 dark:text-slate-100">${escapeHtml(m.part_code)}</p>
+            ${m.customer_part_ref ? `<p class="text-xs text-slate-500 dark:text-slate-400">Customer Ref: ${escapeHtml(m.customer_part_ref)}</p>` : ''}
+        </div>
+        <button onclick='removeMapping("${m.id}")' class="text-red-600 hover:text-red-700 dark:text-red-400 text-sm">Remove</button>
+      </div>
+    `).join('');
+}
+
+function openAddPartModal() {
+    if (!selectedCustomerId) return;
+
+    // Get unmapped parts for this customer
+    const unmappedParts = allParts.filter(p => !mappedPartIds.has(p.id));
+    
+    const select = document.getElementById('part-number-select');
+    select.innerHTML = '<option value="">-- Select a part number --</option>';
+    
+    if (unmappedParts.length === 0) {
+        select.disabled = true;
+        select.innerHTML += '<option disabled>No unmapped parts available</option>';
+        showToast('All active parts are already mapped to this customer', 'info');
+        return;
+    }
+
+    unmappedParts.forEach(p => {
+        const option = document.createElement('option');
+        option.value = p.id;
+        option.textContent = `${p.part_code} - ${p.description || 'No description'}`;
+        if (p.bom_status === 'Active') {
+            option.textContent += ' ✓';
+        }
+        select.appendChild(option);
+    });
+
+    document.getElementById('selected-customer-id').value = selectedCustomerId;
+    document.getElementById('modal-customer-name').textContent = selectedCustomerName;
+    document.getElementById('part-number-select').disabled = false;
+    
+    // Reset form fields
+    document.getElementById('customer_part_ref').value = '';
+    document.getElementById('bom-warning').classList.add('hidden');
+    document.getElementById('part-preview').classList.add('hidden');
+
+    // Setup change listener for part selection
+    const selectEl = document.getElementById('part-number-select');
+    selectEl.onchange = function() {
+        onPartSelected(this.value);
+    };
+
+    document.getElementById('add-part-modal').classList.remove('hidden');
+}
+
+function closeAddPartModal() {
+    document.getElementById('add-part-modal').classList.add('hidden');
+    const selectEl = document.getElementById('part-number-select');
+    selectEl.onchange = null;
+}
+
+async function onPartSelected(partId) {
+    if (!partId) {
+        document.getElementById('bom-warning').classList.add('hidden');
+        document.getElementById('part-preview').classList.add('hidden');
+        return;
+    }
+
+    const part = allParts.find(p => p.id === partId);
+    if (!part) return;
+
+    // Show BOM status warning if no active BOM
+    if (part.bom_status !== 'Active') {
+        document.getElementById('bom-warning').classList.remove('hidden');
+    } else {
+        document.getElementById('bom-warning').classList.add('hidden');
+    }
+
+    // Show part preview
+    document.getElementById('part-preview-text').textContent = 
+        `${part.part_code} - ${part.description || 'No description'} (${part.alloy || ''})`;
+    document.getElementById('part-preview').classList.remove('hidden');
+}
+
+async function savePartMapping(event) {
+    event.preventDefault();
+
+    const partId = document.getElementById('part-number-select').value;
+    if (!partId) {
+        showToast('Please select a part number', 'error');
+        return;
+    }
+
+    const data = {
+        customer_id: selectedCustomerId,
+        part_number_id: partId,
+        customer_part_ref: document.getElementById('customer_part_ref').value || null,
+    };
+
+    try {
+        const res = await fetch('/api/master/customer-part-numbers', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+
+        if (!res.ok) {
+            const err = await res.json();
+            throw new Error(err.error || 'Failed to create mapping');
+        }
+
+        showToast('Part number added successfully', 'success');
+        
+        // Refresh the mapped parts list
+        closeAddPartModal();
+        await fetchMappedParts(selectedCustomerId);
+        
+    } catch (err) {
+        showToast(err.message, 'error');
+    }
+}
+
+async function removeMapping(mappingId) {
+    if (!confirm('Remove this part number from the customer mapping?')) return;
+
+    try {
+        const res = await fetch(`/api/master/customer-part-numbers/${mappingId}`, { method: 'DELETE' });
+        
+        if (!res.ok) {
+            const err = await res.json();
+            throw new Error(err.error || 'Failed to remove mapping');
+        }
+
+        showToast('Mapping removed successfully', 'success');
+        await fetchMappedParts(selectedCustomerId);
+    } catch (err) {
+        showToast(err.message, 'error');
+    }
+}
+
+function showToast(message, type = 'info') {
+    const toast = document.getElementById('toast');
+    toast.textContent = message;
+    toast.className = `px-6 py-3 rounded-lg shadow-lg transform transition-all duration-500 ${
+        type === 'success' ? 'bg-emerald-500 text-white' :
+        type === 'error' ? 'bg-red-500 text-white' :
+        'bg-blue-500 text-white'
+    }`;
+    toast.classList.remove('hidden');
+
+    setTimeout(() => {
+        toast.classList.add('opacity-0', 'translate-y-[-10px]');
+        setTimeout(() => toast.classList.add('hidden'), 300);
+    }, 3000);
+}
+
+function escapeHtml(text) {
+    if (!text) return '';
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+</script>
+{% endblock %}

@@ -1,0 +1,311 @@
+{% extends "layout.html" %}
+{% block title %}Customer Orders (BOM-Driven){% endblock %}
+
+{% block content %}
+<div class="mb-6 flex items-center justify-between">
+  <div>
+    <h2 class="text-2xl font-bold text-slate-900 dark:text-white">Customer Orders</h2>
+    <p class="text-sm text-slate-500 dark:text-slate-400">BOM-driven Work Order management with auto die/billet resolution.</p>
+  </div>
+  <button onclick="openCreateOrderModal()" class="inline-flex items-center px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg shadow-sm">
+    + New Order
+  </button>
+</div>
+
+<!-- Filter Bar -->
+<div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm p-4 mb-6">
+  <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+    <!-- Customer Filter -->
+    <div>
+      <label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Customer</label>
+      <select id="customerFilter" class="w-full rounded-lg border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-sm text-slate-900 dark:text-white px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
+        <option value="">All Customers</option>
+      </select>
+    </div>
+    <!-- Status Filter -->
+    <div>
+      <label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Status</label>
+      <select id="statusFilter" class="w-full rounded-lg border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-sm text-slate-900 dark:text-white px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
+        <option value="">All Statuses</option>
+        <option value="PENDING">PENDING</option>
+        <option value="IN_PROGRESS">IN PROGRESS</option>
+        <option value="COMPLETED">COMPLETED</option>
+      </select>
+    </div>
+    <!-- Date Range From -->
+    <div>
+      <label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Due Date From</label>
+      <input type="date" id="dateFromFilter" class="w-full rounded-lg border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-sm text-slate-900 dark:text-white px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
+    </div>
+    <!-- Date Range To -->
+    <div>
+      <label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Due Date To</label>
+      <input type="date" id="dateToFilter" class="w-full rounded-lg border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-sm text-slate-900 dark:text-white px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
+    </div>
+  </div>
+  <div class="mt-4 flex gap-2">
+    <button onclick="applyFilters()" class="px-4 py-2 bg-slate-800 dark:bg-slate-600 text-white text-sm rounded-lg hover:bg-slate-700 dark:hover:bg-slate-500">Apply Filters</button>
+    <button onclick="clearFilters()" class="px-4 py-2 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 text-sm rounded-lg hover:bg-slate-50 dark:hover:bg-slate-600">Clear</button>
+  </div>
+</div>
+
+<!-- Orders Table -->
+<div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden mb-4">
+  <table class="w-full text-left text-sm">
+    <thead class="bg-slate-50 dark:bg-slate-900 text-slate-600 dark:text-slate-300 uppercase tracking-wider text-xs font-semibold border-b border-slate-200 dark:border-slate-700">
+      <tr>
+        <th class="px-6 py-4">Order #</th>
+        <th class="px-6 py-4">Customer</th>
+        <th class="px-6 py-4">Created</th>
+        <th class="px-6 py-4">Due Date</th>
+        <th class="px-6 py-4">Lines</th>
+        <th class="px-6 py-4">Status</th>
+        <th class="px-6 py-4 text-right">Actions</th>
+      </tr>
+    </thead>
+    <tbody id="ordersTableBody" class="divide-y divide-slate-200 dark:divide-slate-700">
+      <!-- Loading State -->
+      <tr class="animate-pulse">
+        <td colspan="7" class="px-6 py-12 text-center text-slate-500 dark:text-slate-400">Loading orders...</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- Create Order Modal -->
+<div id="createOrderModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+  <div class="bg-white dark:bg-slate-800 rounded-xl shadow-lg max-w-md w-full overflow-hidden">
+    <div class="px-6 py-4 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between">
+      <h3 class="text-lg font-semibold text-slate-900 dark:text-white">Create New Order</h3>
+      <button onclick="closeCreateOrderModal()" class="text-slate-500 hover:text-slate-700 dark:hover:text-slate-300">&times;</button>
+    </div>
+    <form id="createOrderForm" onsubmit="handleCreateOrder(event)">
+      <input type="hidden" id="newCustomerId">
+      <div class="px-6 py-4 space-y-4">
+        <div>
+          <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Customer *</label>
+          <select id="newCustomerSelect" required class="w-full rounded-lg border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-sm text-slate-900 dark:text-white px-3 py-2 focus:ring-2 focus:ring-indigo-500">
+            <option value="">Select Customer</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Order Number *</label>
+          <input type="text" id="newOrderNumber" required class="w-full rounded-lg border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-sm text-slate-900 dark:text-white px-3 py-2 focus:ring-2 focus:ring-indigo-500" placeholder="e.g., PO-2024-001">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Due Date</label>
+          <input type="date" id="newDueDate" class="w-full rounded-lg border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-sm text-slate-900 dark:text-white px-3 py-2 focus:ring-2 focus:ring-indigo-500">
+        </div>
+      </div>
+      <div class="px-6 py-4 bg-slate-50 dark:bg-slate-700 flex justify-end gap-2">
+        <button type="button" onclick="closeCreateOrderModal()" class="px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-600 rounded-lg border border-slate-300 dark:border-slate-600">Cancel</button>
+        <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg shadow-sm">Create Order</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Toast Notifications -->
+<div id="toastContainer" class="fixed bottom-4 right-4 z-50 space-y-2"></div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let customers = [];
+
+// Load data on page load
+document.addEventListener('DOMContentLoaded', () => {
+  loadCustomers();
+  loadOrders();
+});
+
+function loadCustomers() {
+  fetch('/api/master/customers')
+    .then(r => r.json())
+    .then(data => {
+      customers = data;
+      populateCustomerFilters();
+    });
+}
+
+function populateCustomerFilters() {
+  // Populate main customer filter dropdown
+  const filterSelect = document.getElementById('customerFilter');
+  filterSelect.innerHTML = '<option value="">All Customers</option>';
+  customers.forEach(c => {
+    if (c.is_active) {
+      filterSelect.innerHTML += `<option value="${c.id}">${c.customer_name}</option>`;
+    }
+  });
+
+  // Populate create modal customer dropdown
+  const modalSelect = document.getElementById('newCustomerSelect');
+  modalSelect.innerHTML = '<option value="">Select Customer</option>';
+  customers.forEach(c => {
+    if (c.is_active) {
+      modalSelect.innerHTML += `<option value="${c.id}">${c.customer_name}</option>`;
+    }
+  });
+
+  // Set selected customer from filter
+  const selectedCustomer = document.getElementById('newCustomerId').value;
+  if (selectedCustomer) {
+    modalSelect.value = selectedCustomer;
+  }
+}
+
+function loadOrders() {
+  fetch('/api/orders/customer')
+    .then(r => r.json())
+    .then(data => {
+      renderOrdersTable(data);
+    });
+}
+
+function renderOrdersTable(orders) {
+  const tbody = document.getElementById('ordersTableBody');
+  if (orders.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="7" class="px-6 py-12 text-center text-slate-500 dark:text-slate-400">No orders found.</td></tr>';
+    return;
+  }
+
+  let html = '';
+  orders.forEach(order => {
+    const statusClass = order.status === 'COMPLETED' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' :
+                        order.status === 'IN_PROGRESS' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' :
+                        'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400';
+
+    html += `
+      <tr class="hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">
+        <td class="px-6 py-4 font-medium text-indigo-600 dark:text-indigo-400 cursor-pointer hover:underline" onclick="window.location.href='/orders/customer-ui/${order.id}'">#${order.order_number}</td>
+        <td class="px-6 py-4 text-slate-700 dark:text-slate-300">${order.customer_name || '—'}</td>
+        <td class="px-6 py-4 text-slate-500 dark:text-slate-400">${new Date(order.created_at).toLocaleDateString()}</td>
+        <td class="px-6 py-4">
+          ${order.due_date ? `<span class="${getDueDateClass(order.due_date)}">${new Date(order.due_date).toLocaleDateString()}</span>` : '—'}
+        </td>
+        <td class="px-6 py-4 text-slate-700 dark:text-slate-300">${order.line_count} line(s)</td>
+        <td class="px-6 py-4">
+          <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${statusClass}">${order.status}</span>
+        </td>
+        <td class="px-6 py-4 text-right space-x-2">
+          <a href="/orders/customer-ui/${order.id}" class="text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 dark:hover:text-indigo-300 font-medium">View</a>
+          ${order.status !== 'COMPLETED' ? `<button onclick="createAllWO('${order.id}', '${order.order_number}')" class="text-emerald-600 hover:text-emerald-800 dark:text-emerald-400 dark:hover:text-emerald-300 font-medium">Create All WOs</button>` : ''}
+        </td>
+      </tr>
+    `;
+  });
+  tbody.innerHTML = html;
+}
+
+function getDueDateClass(dueDate) {
+  const today = new Date();
+  const due = new Date(dueDate);
+  if (due < today && !document.getElementById('statusFilter').value || document.getElementById('statusFilter').value === 'PENDING') {
+    return 'text-red-600 dark:text-red-400 font-medium';
+  }
+  return 'text-slate-700 dark:text-slate-300';
+}
+
+function applyFilters() {
+  const params = new URLSearchParams();
+  const customerFilter = document.getElementById('customerFilter').value;
+  const statusFilter = document.getElementById('statusFilter').value;
+  const dateFrom = document.getElementById('dateFromFilter').value;
+  const dateTo = document.getElementById('dateToFilter').value;
+
+  if (customerFilter) params.append('customer_id', customerFilter);
+  if (statusFilter) params.append('status', statusFilter);
+  if (dateFrom) params.set('date_from', dateFrom);
+  if (dateTo) params.set('date_to', dateTo);
+
+  fetch(`/api/orders/customer?${params.toString()}`)
+    .then(r => r.json())
+    .then(data => renderOrdersTable(data));
+}
+
+function clearFilters() {
+  document.getElementById('customerFilter').value = '';
+  document.getElementById('statusFilter').value = '';
+  document.getElementById('dateFromFilter').value = '';
+  document.getElementById('dateToFilter').value = '';
+  loadOrders();
+}
+
+// Modal functions
+function openCreateOrderModal() {
+  // Set customer from filter if available
+  const customerId = document.getElementById('customerFilter').value;
+  if (customerId) {
+    document.getElementById('newCustomerId').value = customerId;
+  }
+  document.getElementById('createOrderForm').reset();
+  document.getElementById('createOrderModal').classList.remove('hidden');
+}
+
+function closeCreateOrderModal() {
+  document.getElementById('createOrderModal').classList.add('hidden');
+}
+
+async function handleCreateOrder(e) {
+  e.preventDefault();
+  const data = {
+    customer_id: document.getElementById('newCustomerSelect').value,
+    order_number: document.getElementById('newOrderNumber').value.trim(),
+    due_date: document.getElementById('newDueDate').value || null,
+  };
+
+  try {
+    const res = await fetch('/api/orders/customer', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+
+    if (res.ok) {
+      closeCreateOrderModal();
+      showToast('Order created successfully!', 'success');
+      loadOrders();
+    } else {
+      const err = await res.json();
+      showToast(err.error || 'Failed to create order', 'error');
+    }
+  } catch (err) {
+    showToast('Network error: ' + err.message, 'error');
+  }
+}
+
+async function createAllWO(orderId, orderNumber) {
+  if (!confirm(`Create Work Orders for all OPEN lines in Order #${orderNumber}?`)) return;
+
+  try {
+    const res = await fetch(`/api/orders/customer/${orderId}/create-all-wo`, { method: 'POST' });
+    const result = await res.json();
+
+    let msg = '';
+    if (result.created.length > 0) {
+      msg += `${result.created.length} WO(s) created successfully! `;
+    }
+    if (result.failed.length > 0) {
+      msg += `${result.failed.length} failed: ${result.failed.map(f => f.message || 'Unknown error').join(', ')}`;
+    }
+
+    showToast(msg, result.failed.length === 0 ? 'success' : 'warning');
+    loadOrders();
+  } catch (err) {
+    showToast('Error creating WOs: ' + err.message, 'error');
+  }
+}
+
+function showToast(message, type = 'info') {
+  const container = document.getElementById('toastContainer');
+  const colors = type === 'success' ? 'bg-emerald-600' : type === 'error' ? 'bg-red-600' : 'bg-slate-800';
+
+  const toast = document.createElement('div');
+  toast.className = `${colors} text-white px-4 py-3 rounded-lg shadow-lg ${type === 'warning' ? 'bg-amber-600' : ''}`;
+  toast.textContent = message;
+  container.appendChild(toast);
+
+  setTimeout(() => toast.remove(), 5000);
+}
+</script>
+{% endblock %}

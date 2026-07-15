@@ -1,0 +1,493 @@
+{% extends "layout.html" %}
+
+{% block title %}Part Number BOM - FactoryNXT{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto">
+  <div class="flex justify-between items-center mb-6">
+    <h1 class="text-2xl font-bold">Part Number BOM Management</h1>
+    <button onclick="openNewBomModal()" class="bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-lg flex items-center gap-2">
+      <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+      </svg>
+      + New BOM Version
+    </button>
+  </div>
+
+  <!-- Filter Bar -->
+  <div class="bg-white dark:bg-slate-800 rounded-lg shadow border border-slate-200 dark:border-slate-700 p-4 mb-6 flex items-center gap-4">
+    <span class="text-sm font-medium text-slate-700 dark:text-slate-300">Select Part Number:</span>
+    <select id="part-number-filter" onchange="loadBomsForPart()" class="px-3 py-1.5 border rounded dark:bg-slate-700 dark:border-slate-600 text-sm">
+      <option value="">-- Select a part --</option>
+    </select>
+  </div>
+
+  <!-- BOM Detail Card (shown when part is selected) -->
+  <div id="bom-detail-card" class="hidden mb-6 bg-white dark:bg-slate-800 rounded-lg shadow border border-slate-200 dark:border-slate-700 overflow-hidden">
+    <div class="bg-primary-50 dark:bg-primary-900/30 px-6 py-4 border-b border-primary-100 dark:border-primary-800 flex justify-between items-center">
+      <h2 id="bom-part-code" class="text-lg font-semibold text-primary-700 dark:text-primary-300"></h2>
+      <span id="bom-active-badge" class="bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300 px-3 py-1 rounded-full text-xs font-medium">Active</span>
+    </div>
+    
+    <div class="p-6 grid md:grid-cols-2 gap-6">
+      <!-- Die Information -->
+      <div>
+        <h3 class="text-sm font-semibold text-slate-500 dark:text-slate-400 mb-2 uppercase tracking-wide">Die Type</h3>
+        <div id="die-info" class="bg-slate-50 dark:bg-slate-900 rounded p-4 border border-slate-200 dark:border-slate-700">
+          <!-- Populated via JS -->
+        </div>
+      </div>
+
+      <!-- Billet Information -->
+      <div>
+        <h3 class="text-sm font-semibold text-slate-500 dark:text-slate-400 mb-2 uppercase tracking-wide">Billet Type</h3>
+        <div id="billet-info" class="bg-slate-50 dark:bg-slate-900 rounded p-4 border border-slate-200 dark:border-slate-700">
+          <!-- Populated via JS -->
+        </div>
+      </div>
+
+      <!-- BOM Details -->
+      <div class="md:col-span-2 grid md:grid-cols-3 gap-4">
+        <div>
+          <h3 class="text-sm font-semibold text-slate-500 dark:text-slate-400 mb-1 uppercase tracking-wide">Version</h3>
+          <p id="bom-version" class="text-lg font-bold text-slate-900 dark:text-slate-100"></p>
+        </div>
+        <div>
+          <h3 class="text-sm font-semibold text-slate-500 dark:text-slate-400 mb-1 uppercase tracking-wide">Billet Weight</h3>
+          <p id="bom-weight" class="text-lg font-bold text-slate-900 dark:text-slate-100"></p>
+        </div>
+        <div>
+          <h3 class="text-sm font-semibold text-slate-500 dark:text-slate-400 mb-1 uppercase tracking-wide">Extrusion Ratio</h3>
+          <p id="bom-ratio" class="text-lg font-bold text-slate-900 dark:text-slate-100"></p>
+        </div>
+      </div>
+
+      <!-- Notes -->
+      <div class="md:col-span-2">
+        <h3 class="text-sm font-semibold text-slate-500 dark:text-slate-400 mb-1 uppercase tracking-wide">Notes</h3>
+        <p id="bom-notes" class="text-slate-700 dark:text-slate-300"></p>
+      </div>
+
+      <!-- Metadata -->
+      <div class="md:col-span-2 grid md:grid-cols-2 gap-4 text-sm">
+        <div>
+          <h3 class="text-slate-500 dark:text-slate-400 mb-1">Created</h3>
+          <p id="bom-created-at" class="font-medium"></p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- BOM History Table -->
+  <div id="boms-section" class="hidden">
+    <h2 class="text-lg font-semibold mb-4">BOM Versions</h2>
+    
+    <div class="bg-white dark:bg-slate-800 rounded-lg shadow border border-slate-200 dark:border-slate-700 overflow-hidden">
+      <table class="w-full text-sm">
+        <thead class="bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700">
+          <tr>
+            <th class="px-4 py-3 text-left font-semibold text-slate-700 dark:text-slate-300">Version</th>
+            <th class="px-4 py-3 text-left font-semibold text-slate-700 dark:text-slate-300">Die Code</th>
+            <th class="px-4 py-3 text-left font-semibold text-slate-700 dark:text-slate-300">Billet Code</th>
+            <th class="px-4 py-3 text-center font-semibold text-slate-700 dark:text-slate-300">Weight (kg)</th>
+            <th class="px-4 py-3 text-center font-semibold text-slate-700 dark:text-slate-300">Created At</th>
+            <th class="px-4 py-3 text-center font-semibold text-slate-700 dark:text-slate-300">Status</th>
+            <th class="px-4 py-3 text-right font-semibold text-slate-700 dark:text-slate-300">Actions</th>
+          </tr>
+        </thead>
+        <tbody id="boms-table-body" class="divide-y divide-slate-200 dark:divide-slate-700">
+          <!-- Rows loaded via fetch -->
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Loading State -->
+  <div id="loading" class="text-center py-8 text-slate-500">Select a part number to view BOMs...</div>
+
+  <!-- Modal for New BOM Version -->
+  <div id="bom-modal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
+    <div class="bg-white dark:bg-slate-800 rounded-lg shadow-xl w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto">
+      <div class="flex justify-between items-center px-6 py-4 border-b border-slate-200 dark:border-slate-700 sticky top-0 bg-white dark:bg-slate-800 z-10">
+        <h2 id="bom-modal-title" class="text-lg font-semibold">New BOM Version</h2>
+        <button onclick="closeBomModal()" class="text-slate-500 hover:text-slate-700 dark:hover:text-slate-300">&times;</button>
+      </div>
+      
+      <!-- Warning Banner -->
+      <div id="bom-warning" class="bg-yellow-50 dark:bg-yellow-900/30 border-l-4 border-yellow-400 px-6 py-3">
+        <p class="text-sm text-yellow-800 dark:text-yellow-200">⚠️ Creating a new BOM version will automatically deactivate the current active BOM for this part number.</p>
+      </div>
+
+      <form id="bom-form" onsubmit="saveBom(event)" class="p-6 space-y-4">
+        <input type="hidden" id="edit-bom-id">
+        <input type="hidden" id="new-part-number-id">
+
+        <div class="grid md:grid-cols-2 gap-4">
+          <!-- Die Type Selection -->
+          <div>
+            <label class="block text-sm font-medium mb-1">Die Type *</label>
+            <select id="die_type_id" required class="w-full px-3 py-2 border rounded dark:bg-slate-700 dark:border-slate-600">
+              <option value="">-- Select Die --</option>
+            </select>
+          </div>
+
+          <!-- Billet Type Selection -->
+          <div>
+            <label class="block text-sm font-medium mb-1">Billet Type *</label>
+            <select id="billet_type_id" required class="w-full px-3 py-2 border rounded dark:bg-slate-700 dark:border-slate-600">
+              <option value="">-- Select Billet --</option>
+            </select>
+          </div>
+
+          <!-- Billet Weight -->
+          <div>
+            <label class="block text-sm font-medium mb-1">Billet Weight (kg)</label>
+            <input type="number" step="0.001" id="billet_weight_kg" class="w-full px-3 py-2 border rounded dark:bg-slate-700 dark:border-slate-600" placeholder="0.00">
+          </div>
+
+          <!-- Extrusion Ratio -->
+          <div>
+            <label class="block text-sm font-medium mb-1">Extrusion Ratio</label>
+            <input type="number" step="0.01" id="extrusion_ratio" class="w-full px-3 py-2 border rounded dark:bg-slate-700 dark:border-slate-600" placeholder="e.g., 50">
+          </div>
+        </div>
+
+        <!-- Notes -->
+        <div>
+          <label class="block text-sm font-medium mb-1">Notes</label>
+          <textarea id="bom_notes" rows="3" class="w-full px-3 py-2 border rounded dark:bg-slate-700 dark:border-slate-600" placeholder="Additional notes..."></textarea>
+        </div>
+
+        <!-- Existing BOM Preview (for edit mode) -->
+        <div id="existing-bom-preview" class="hidden bg-slate-50 dark:bg-slate-900 rounded p-4 border border-slate-200 dark:border-slate-700">
+          <h3 class="text-sm font-semibold mb-2 text-slate-700 dark:text-slate-300">Current BOM (will be deactivated):</h3>
+          <div id="existing-bom-details"></div>
+        </div>
+
+        <div class="flex justify-end gap-2 mt-6 pt-4 border-t border-slate-200 dark:border-slate-700">
+          <button type="button" onclick="closeBomModal()" class="px-4 py-2 border rounded hover:bg-slate-50 dark:hover:bg-slate-700">Cancel</button>
+          <button type="submit" id="save-bom-btn" class="bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded">Create BOM Version</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Toast Notification -->
+  <div id="toast" class="hidden fixed top-25 right-5 z-50 px-6 py-3 rounded-lg shadow-lg transform transition-all duration-500">
+  </div>
+</div>
+
+<script>
+let parts = [];
+let dies = [];
+let billeted = [];
+let currentBoms = [];
+let selectedPartId = null;
+let editingBomId = null;
+
+// Load data on page load
+document.addEventListener("DOMContentLoaded", function() {
+    fetchParts();
+    fetchDies();
+    fetchBillets();
+    
+    // Check URL for part_number_id filter
+    const urlParams = new URLSearchParams(window.location.search);
+    const partId = urlParams.get('part_number_id');
+    if (partId) {
+        document.getElementById('part-number-filter').value = partId;
+        loadBomsForPart();
+    }
+});
+
+async function fetchParts() {
+    try {
+        const res = await fetch('/api/master/part-numbers');
+        parts = await res.json();
+        populatePartFilter();
+    } catch (err) {
+        console.error('Error loading parts:', err);
+    }
+}
+
+async function fetchDies() {
+    try {
+        // Assuming there's an endpoint for dies - adjust as needed
+        const res = await fetch('/api/dies');
+        dies = Array.isArray(res) ? res : await res.json();
+        populateDieSelect(dies);
+    } catch (err) {
+        console.error('Error loading dies:', err);
+        // Fallback: empty die list
+    }
+}
+
+async function fetchBillets() {
+    try {
+        // Assuming there's an endpoint for billets - adjust as needed
+        const res = await fetch('/api/billets');
+        billeted = Array.isArray(res) ? res : await res.json();
+        populateBilletSelect(billeted);
+    } catch (err) {
+        console.error('Error loading billets:', err);
+        // Fallback: empty billet list
+    }
+}
+
+function populatePartFilter() {
+    const select = document.getElementById('part-number-filter');
+    parts.forEach(p => {
+        const option = document.createElement('option');
+        option.value = p.id;
+        option.textContent = `${p.part_code} - ${p.description || 'No description'}`;
+        select.appendChild(option);
+    });
+}
+
+function populateDieSelect(dieList) {
+    const select = document.getElementById('die_type_id');
+    dieList.forEach(d => {
+        if (!d) return;
+        const option = document.createElement('option');
+        option.value = d.id || d.die_id || d.DIE_ID;
+        option.textContent = `${d.die_code || 'Unknown'} - ${d.die_type || (typeof d === 'string' ? d : 'Die')}`;
+        select.appendChild(option);
+    });
+}
+
+function populateBilletSelect(billetList) {
+    const select = document.getElementById('billet_type_id');
+    billetList.forEach(b => {
+        if (!b) return;
+        const option = document.createElement('option');
+        option.value = b.id || b.billet_id || b.BILLET_ID;
+        option.textContent = `${b.billet_code || 'Unknown'} - ${typeof b === 'string' ? b : (b.alloy || 'Billet')}`;
+        select.appendChild(option);
+    });
+}
+
+async function loadBomsForPart() {
+    selectedPartId = document.getElementById('part-number-filter').value;
+    
+    if (!selectedPartId) {
+        document.getElementById('bom-detail-card').classList.add('hidden');
+        document.getElementById('boms-section').classList.add('hidden');
+        document.getElementById('loading').classList.remove('hidden');
+        return;
+    }
+
+    document.getElementById('loading').classList.remove('hidden');
+    
+    try {
+        const res = await fetch(`/api/master/part-numbers/${selectedPartId}`);
+        const partData = await res.json();
+        
+        currentBoms = partData.bom_history || [];
+        renderBomsTable(currentBoms);
+        
+        // Show sections
+        document.getElementById('loading').classList.add('hidden');
+        document.getElementById('bom-detail-card').classList.remove('hidden');
+        document.getElementById('boms-section').classList.remove('hidden');
+        
+        // Update detail card with active BOM if exists
+        const activeBom = currentBoms.find(b => b.is_active);
+        if (activeBom) {
+            updateDetailCard(partData, activeBom);
+        } else {
+            document.getElementById('bom-active-badge').textContent = 'No Active BOM';
+            document.getElementById('bom-active-badge').className = 'bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300 px-3 py-1 rounded-full text-xs font-medium';
+        }
+        
+    } catch (err) {
+        console.error('Error loading BOMs:', err);
+        showToast('Error loading BOM data', 'error');
+        document.getElementById('loading').classList.add('hidden');
+    }
+}
+
+function updateDetailCard(partData, activeBom) {
+    document.getElementById('bom-part-code').textContent = `${partData.part_code} - ${partData.description || ''}`;
+    document.getElementById('bom-active-badge').textContent = 'Active BOM';
+    document.getElementById('bom-active-badge').className = 'bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300 px-3 py-1 rounded-full text-xs font-medium';
+    
+    // Die info (using the correct property names from API response)
+    const dieCode = activeBom.die_code || 'N/A';
+    document.getElementById('die-info').innerHTML = `
+        <p class="font-semibold">${escapeHtml(dieCode)}</p>
+        <p class="text-sm text-slate-500 dark:text-slate-400">Die Type: ${activeBom.die_type || 'N/A'}</p>
+    `;
+    
+    // Billet info (using the correct property names from API response)
+    const billetCode = activeBom.billet_code || 'N/A';
+    document.getElementById('billet-info').innerHTML = `
+        <p class="font-semibold">${escapeHtml(billetCode)}</p>
+        <p class="text-sm text-slate-500 dark:text-slate-400">Alloy: ${activeBom.billet_alloy || 'N/A'}</p>
+    `;
+    
+    document.getElementById('bom-version').textContent = `Version ${activeBom.version}`;
+    document.getElementById('bom-weight').textContent = activeBom.billet_weight_kg ? `${parseFloat(activeBom.billet_weight_kg).toFixed(3)} kg` : '-';
+    document.getElementById('bom-ratio').textContent = activeBom.extrusion_ratio ? activeBom.extrusion_ratio : '-';
+    document.getElementById('bom-notes').textContent = activeBom.notes || 'No notes';
+    document.getElementById('bom-created-at').textContent = formatDate(activeBom.created_at);
+}
+
+function renderBomsTable(boms) {
+    const tbody = document.getElementById('boms-table-body');
+    
+    if (boms.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" class="px-4 py-8 text-center text-slate-500">No BOM versions found for this part</td></tr>';
+        return;
+    }
+
+    tbody.innerHTML = boms.map(bom => `
+      <tr class="hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors ${bom.is_active ? 'bg-emerald-50 dark:bg-emerald-900/20' : ''}">
+        <td class="px-4 py-3 font-medium text-slate-900 dark:text-slate-100">Version ${bom.version}</td>
+        <td class="px-4 py-3 text-slate-700 dark:text-slate-300">${escapeHtml(bom.die_code || 'N/A')}</td>
+        <td class="px-4 py-3 text-slate-600 dark:text-slate-400">${escapeHtml(bom.billet_code || 'N/A')}</td>
+        <td class="px-4 py-3 text-center">${bom.billet_weight_kg ? parseFloat(bom.billet_weight_kg).toFixed(3) : '-'}</td>
+        <td class="px-4 py-3 text-center text-slate-600 dark:text-slate-400">${formatDate(bom.created_at)}</td>
+        <td class="px-4 py-3 text-center">
+            ${bom.is_active 
+                ? '<span class="bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300 px-2 py-1 rounded-full text-xs font-medium">Active</span>'
+                : '<span class="bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-400 px-2 py-1 rounded-full text-xs">Inactive</span>'}
+        </td>
+        <td class="px-4 py-3 text-right space-x-2">
+            ${!bom.is_active ? `<button onclick='activateBom("${bom.id}")' class="text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 mr-3">Activate</button>` : ''}
+            <button onclick='editBom("${bom.id}", "${escapeHtml(bom.die_code || '')}", "${escapeHtml(bom.billet_code || '')}")' class="text-primary-600 hover:text-primary-700 dark:text-primary-400">Edit</button>
+        </td>
+      </tr>
+    `).join('');
+}
+
+function openNewBomModal() {
+    if (!selectedPartId) {
+        showToast('Please select a part number first', 'error');
+        return;
+    }
+    
+    editingBomId = null;
+    document.getElementById('bom-modal-title').textContent = 'New BOM Version';
+    document.getElementById('new-part-number-id').value = selectedPartId;
+    document.getElementById('bom-form').reset();
+    document.getElementById('existing-bom-preview').classList.add('hidden');
+    document.getElementById('save-bom-btn').textContent = 'Create BOM Version';
+    document.getElementById('bom-modal').classList.remove('hidden');
+}
+
+function closeBomModal() {
+    document.getElementById('bom-modal').classList.add('hidden');
+}
+
+async function saveBom(event) {
+    event.preventDefault();
+    
+    const data = {
+        part_number_id: document.getElementById('new-part-number-id').value,
+        die_type_id: document.getElementById('die_type_id').value,
+        billet_type_id: document.getElementById('billet_type_id').value,
+        billet_weight_kg: parseFloat(document.getElementById('billet_weight_kg').value) || null,
+        extrusion_ratio: parseFloat(document.getElementById('extrusion_ratio').value) || null,
+        notes: document.getElementById('bom_notes').value || null,
+    };
+
+    if (!data.die_type_id || !data.billet_type_id) {
+        showToast('Please select both die and billet types', 'error');
+        return;
+    }
+
+    try {
+        const res = await fetch('/api/master/boms', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+
+        if (!res.ok) {
+            const err = await res.json();
+            throw new Error(err.error || 'Failed to create BOM');
+        }
+
+        const result = await res.json();
+        showToast(result.message || 'BOM version created successfully', 'success');
+        closeBomModal();
+        loadBomsForPart(); // Reload to show updated list
+        
+    } catch (err) {
+        showToast(err.message, 'error');
+    }
+}
+
+async function activateBom(bomId) {
+    if (!confirm('Activate this BOM version? This will deactivate the current active BOM.')) return;
+    
+    try {
+        const res = await fetch(`/api/master/boms/${bomId}/activate`, { method: 'POST' });
+        
+        if (!res.ok) {
+            const err = await res.json();
+            throw new Error(err.error || 'Failed to activate BOM');
+        }
+
+        showToast('BOM activated successfully', 'success');
+        loadBomsForPart();
+    } catch (err) {
+        showToast(err.message, 'error');
+    }
+}
+
+function editBom(bomId, dieCode, billetCode) {
+    editingBomId = bomId;
+    document.getElementById('bom-modal-title').textContent = 'Edit BOM Version';
+    document.getElementById('new-part-number-id').value = selectedPartId;
+    
+    // Find existing BOM and populate form (would need to fetch full details in real implementation)
+    const existingBom = currentBoms.find(b => b.id === bomId);
+    if (existingBom) {
+        document.getElementById('die_type_id').value = dieCode; // Simplified - would use ID in real impl
+        document.getElementById('billet_type_id').value = billetCode; // Simplified
+        
+        document.getElementById('existing-bom-preview').classList.remove('hidden');
+        document.getElementById('save-bom-btn').textContent = 'Update BOM Version';
+    } else {
+        document.getElementById('existing-bom-preview').classList.add('hidden');
+        document.getElementById('save-bom-btn').textContent = 'Create BOM Version';
+    }
+    
+    document.getElementById('bom-modal').classList.remove('hidden');
+}
+
+function showToast(message, type = 'info') {
+    const toast = document.getElementById('toast');
+    toast.textContent = message;
+    toast.className = `px-6 py-3 rounded-lg shadow-lg transform transition-all duration-500 ${
+        type === 'success' ? 'bg-emerald-500 text-white' :
+        type === 'error' ? 'bg-red-500 text-white' :
+        'bg-blue-500 text-white'
+    }`;
+    toast.classList.remove('hidden');
+
+    setTimeout(() => {
+        toast.classList.add('opacity-0', 'translate-y-[-10px]');
+        setTimeout(() => toast.classList.add('hidden'), 300);
+    }, 3000);
+}
+
+function escapeHtml(text) {
+    if (!text) return '';
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+function formatDate(dateStr) {
+    if (!dateStr) return '-';
+    try {
+        const date = new Date(dateStr);
+        return date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
+    } catch (e) {
+        return dateStr.substring(0, 19).replace('T', ' ');
+    }
+}
+</script>
+{% endblock %}

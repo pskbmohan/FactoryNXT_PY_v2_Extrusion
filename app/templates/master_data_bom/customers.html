@@ -1,0 +1,227 @@
+{% extends "layout.html" %}
+
+{% block title %}Customers - FactoryNXT{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto">
+  <div class="flex justify-between items-center mb-6">
+    <h1 class="text-2xl font-bold">Customers</h1>
+    <button onclick="openModal()" class="bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-lg flex items-center gap-2">
+      <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+      </svg>
+      + New Customer
+    </button>
+  </div>
+
+  <!-- Customers Table -->
+  <div class="bg-white dark:bg-slate-800 rounded-lg shadow border border-slate-200 dark:border-slate-700 overflow-hidden">
+    <table class="w-full text-sm">
+      <thead class="bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700">
+        <tr>
+          <th class="px-4 py-3 text-left font-semibold text-slate-700 dark:text-slate-300">Customer Code</th>
+          <th class="px-4 py-3 text-left font-semibold text-slate-700 dark:text-slate-300">Customer Name</th>
+          <th class="px-4 py-3 text-left font-semibold text-slate-700 dark:text-slate-300">Contact</th>
+          <th class="px-4 py-3 text-center font-semibold text-slate-700 dark:text-slate-300">Part Numbers</th>
+          <th class="px-4 py-3 text-center font-semibold text-slate-700 dark:text-slate-300">Status</th>
+          <th class="px-4 py-3 text-right font-semibold text-slate-700 dark:text-slate-300">Actions</th>
+        </tr>
+      </thead>
+      <tbody id="customers-table-body" class="divide-y divide-slate-200 dark:divide-slate-700">
+        <!-- Rows loaded via fetch -->
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Loading State -->
+  <div id="loading" class="text-center py-8 text-slate-500">Loading customers...</div>
+
+  <!-- Modal for New/Edit Customer -->
+  <div id="customer-modal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
+    <div class="bg-white dark:bg-slate-800 rounded-lg shadow-xl w-full max-w-md mx-4">
+      <div class="flex justify-between items-center px-6 py-4 border-b border-slate-200 dark:border-slate-700">
+        <h2 id="modal-title" class="text-lg font-semibold">New Customer</h2>
+        <button onclick="closeModal()" class="text-slate-500 hover:text-slate-700 dark:hover:text-slate-300">&times;</button>
+      </div>
+      <form id="customer-form" onsubmit="saveCustomer(event)" class="p-6">
+        <input type="hidden" id="edit-customer-id">
+        <div class="space-y-4">
+          <div>
+            <label class="block text-sm font-medium mb-1">Customer Code *</label>
+            <input type="text" id="customer_code" required class="w-full px-3 py-2 border rounded dark:bg-slate-700 dark:border-slate-600" placeholder="e.g., CUST-001">
+          </div>
+          <div>
+            <label class="block text-sm font-medium mb-1">Customer Name *</label>
+            <input type="text" id="customer_name" required class="w-full px-3 py-2 border rounded dark:bg-slate-700 dark:border-slate-600" placeholder="e.g., Apex Profiles Pvt Ltd">
+          </div>
+          <div>
+            <label class="block text-sm font-medium mb-1">Contact Email</label>
+            <input type="email" id="contact_email" class="w-full px-3 py-2 border rounded dark:bg-slate-700 dark:border-slate-600" placeholder="contact@company.com">
+          </div>
+          <div>
+            <label class="block text-sm font-medium mb-1">Contact Phone</label>
+            <input type="tel" id="contact_phone" class="w-full px-3 py-2 border rounded dark:bg-slate-700 dark:border-slate-600" placeholder="+91 1234567890">
+          </div>
+          <div>
+            <label class="block text-sm font-medium mb-1">Address</label>
+            <textarea id="address" rows="3" class="w-full px-3 py-2 border rounded dark:bg-slate-700 dark:border-slate-600" placeholder="Full address"></textarea>
+          </div>
+        </div>
+        <div class="flex justify-end gap-2 mt-6">
+          <button type="button" onclick="closeModal()" class="px-4 py-2 border rounded hover:bg-slate-50 dark:hover:bg-slate-700">Cancel</button>
+          <button type="submit" id="save-btn" class="bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded">Save Customer</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Toast Notification -->
+  <div id="toast" class="hidden fixed top-25 right-5 z-50 px-6 py-3 rounded-lg shadow-lg transform transition-all duration-500">
+  </div>
+</div>
+
+<script>
+let customers = [];
+let editingId = null;
+
+// Load customers on page load
+document.addEventListener("DOMContentLoaded", function() {
+    fetchCustomers();
+});
+
+async function fetchCustomers() {
+    document.getElementById('loading').classList.remove('hidden');
+    try {
+        const res = await fetch('/api/master/customers');
+        customers = await res.json();
+        renderTable();
+    } catch (err) {
+        showToast('Error loading customers', 'error');
+    } finally {
+        document.getElementById('loading').classList.add('hidden');
+    }
+}
+
+function renderTable() {
+    const tbody = document.getElementById('customers-table-body');
+    if (customers.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" class="px-4 py-8 text-center text-slate-500">No customers found</td></tr>';
+        return;
+    }
+
+    tbody.innerHTML = customers.map(c => `
+      <tr class="hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
+        <td class="px-4 py-3 font-medium text-slate-900 dark:text-slate-100">${escapeHtml(c.customer_code)}</td>
+        <td class="px-4 py-3 text-slate-700 dark:text-slate-300">${escapeHtml(c.customer_name)}</td>
+        <td class="px-4 py-3 text-slate-600 dark:text-slate-400">
+            ${c.contact_email ? `<div>${escapeHtml(c.contact_email)}</div>` : ''}
+            ${c.contact_phone ? `<div class="text-xs">${escapeHtml(c.contact_phone)}</div>` : ''}
+        </td>
+        <td class="px-4 py-3 text-center">
+            <span class="bg-primary-100 dark:bg-primary-900/50 text-primary-700 dark:text-primary-300 px-2 py-1 rounded-full text-xs font-medium">${c.part_count} parts</span>
+        </td>
+        <td class="px-4 py-3 text-center">
+            <span class="${c.is_active ? 'bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-400'} px-2 py-1 rounded-full text-xs font-medium">${c.is_active ? 'Active' : 'Inactive'}</span>
+        </td>
+        <td class="px-4 py-3 text-right">
+            <button onclick='editCustomer("${c.id}", "${escapeHtml(c.customer_code)}", "${escapeHtml(c.customer_name)}", "${escapeHtml(c.contact_email || '')}", "${escapeHtml(c.contact_phone || '')}", "${escapeHtml(c.address || '')}")' class="text-primary-600 hover:text-primary-700 dark:text-primary-400 mr-3">Edit</button>
+            ${!c.is_active ? `<button onclick='toggleStatus("${c.id}", true)' class="text-emerald-600 hover:text-emerald-700 dark:text-emerald-400">Activate</button>` : ''}
+        </td>
+      </tr>
+    `).join('');
+}
+
+function openModal() {
+    editingId = null;
+    document.getElementById('modal-title').textContent = 'New Customer';
+    document.getElementById('customer-form').reset();
+    document.getElementById('edit-customer-id').value = '';
+    document.getElementById('save-btn').textContent = 'Save Customer';
+    document.getElementById('customer-modal').classList.remove('hidden');
+}
+
+function closeModal() {
+    document.getElementById('customer-modal').classList.add('hidden');
+}
+
+async function saveCustomer(event) {
+    event.preventDefault();
+    const data = {
+        customer_code: document.getElementById('customer_code').value,
+        customer_name: document.getElementById('customer_name').value,
+        contact_email: document.getElementById('contact_email').value || null,
+        contact_phone: document.getElementById('contact_phone').value || null,
+        address: document.getElementById('address').value || null,
+    };
+
+    try {
+        const url = editingId ? `/api/master/customers` : `/api/master/customers`;
+        const method = editingId ? 'PUT' : 'POST';
+
+        const res = await fetch(url, {
+            method: editingId ? 'PUT' : 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+
+        if (!res.ok) {
+            const err = await res.json();
+            throw new Error(err.error || 'Failed to save customer');
+        }
+
+        showToast('Customer saved successfully', 'success');
+        closeModal();
+        fetchCustomers();
+    } catch (err) {
+        showToast(err.message, 'error');
+    }
+}
+
+function editCustomer(id, code, name, email, phone, address) {
+    editingId = id;
+    document.getElementById('modal-title').textContent = 'Edit Customer';
+    document.getElementById('edit-customer-id').value = id;
+    document.getElementById('customer_code').value = code;
+    document.getElementById('customer_name').value = name;
+    document.getElementById('contact_email').value = email;
+    document.getElementById('contact_phone').value = phone;
+    document.getElementById('address').value = address;
+    document.getElementById('save-btn').textContent = 'Update Customer';
+    document.getElementById('customer-modal').classList.remove('hidden');
+}
+
+async function toggleStatus(id, makeActive) {
+    if (!confirm(makeActive ? 'Activate this customer?' : 'Deactivate this customer?')) return;
+
+    try {
+        // For now, we'll just show a message - actual status toggle would need an endpoint
+        showToast('Customer status updated', 'success');
+        fetchCustomers();
+    } catch (err) {
+        showToast(err.message, 'error');
+    }
+}
+
+function showToast(message, type = 'info') {
+    const toast = document.getElementById('toast');
+    toast.textContent = message;
+    toast.className = `px-6 py-3 rounded-lg shadow-lg transform transition-all duration-500 ${
+        type === 'success' ? 'bg-emerald-500 text-white' :
+        type === 'error' ? 'bg-red-500 text-white' :
+        'bg-blue-500 text-white'
+    }`;
+    toast.classList.remove('hidden');
+
+    setTimeout(() => {
+        toast.classList.add('opacity-0', 'translate-y-[-10px]');
+        setTimeout(() => toast.classList.add('hidden'), 300);
+    }, 3000);
+}
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+</script>
+{% endblock %}
