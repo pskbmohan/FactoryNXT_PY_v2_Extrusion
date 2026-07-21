@@ -1,0 +1,178 @@
+{% extends "base.html" %}
+{% block title %}Inspection Plans Management (Req #10){% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-12 d-flex justify-content-between align-items-center">
+            <h3><i class="fas fa-file-contract"></i> Inspection Plans Management (Req #10)</h3>
+            <form method="GET" class="d-inline">
+                <select name="type" class="form-control form-control-sm me-2" style="width: auto;">
+                    <option value="all" {% if filter_type == 'all' %}selected{% endif %}>All Types</option>
+                    <option value="dimensional" {% if filter_type == 'dimensional' %}selected{% endif %}>Dimensional</option>
+                    <option value="surface" {% if filter_type == 'surface' %}selected{% endif %}>Surface</option>
+                    <option value="visual" {% if filter_type == 'visual' %}selected{% endif %}>Visual</option>
+                    <option value="process_parameter" {% if filter_type == 'process_parameter' %}selected{% endif %}>Process Parameter</option>
+                </select>
+                <button type="submit" class="btn btn-primary btn-sm">Filter</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Active/All Toggle -->
+    <div class="row mb-3">
+        <div class="col-md-6">
+            <div class="btn-group" role="group">
+                <a href="{{ url_for('inspection_management.inspection_plans', type=filter_type, active='1') }}"
+                   class="btn btn-sm {% if active_only %}btn-primary{% else %}btn-outline-secondary{% endif %}">
+                    Active Only
+                </a>
+                <a href="{{ url_for('inspection_management.inspection_plans', type=filter_type, active=None) }}"
+                   class="btn btn-sm {% if not active_only %}btn-primary{% else %}btn-outline-secondary{% endif %}">
+                    All Plans
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Inspection Plans by Profile -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            {% for profile_code, plans in inspection_plans.items() %}
+            <div class="card mb-3">
+                <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="fas fa-project-diagram"></i> Profile: {{ profile_code or 'All Profiles' }}</h5>
+                    <span class="badge bg-info">{{ plans|length }} plan(s)</span>
+                </div>
+                <div class="card-body p-0">
+                    <table class="table table-striped mb-0">
+                        <thead class="table-light text-nowrap">
+                            <tr>
+                                <th>#</th>
+                                <th>Inspection Type</th>
+                                <th>Frequency</th>
+                                <th>Method</th>
+                                <th>Acceptance Criteria</th>
+                                <th>Status</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for plan in plans[:10] %}
+                            <tr>
+                                <td>{{ loop.index }}</td>
+                                <td><strong>{{ plan.inspection_type or 'Not Specified' }}</strong></td>
+                                <td>{{ plan.frequency or 'As Needed' }}</td>
+                                <td>{{ plan.method or 'Not Defined' }}</td>
+                                <td class="text-muted small">{{ (plan.acceptance_criteria[:50] + '...') if plan.acceptance_criteria and plan.acceptance_criteria|length > 50 else (plan.acceptance_criteria or 'Not Defined') }}</td>
+                                <td>
+                                    {% if plan.is_active %}
+                                    <span class="badge bg-success"><i class="fas fa-check"></i> Active</span>
+                                    {% else %}
+                                    <span class="badge bg-secondary">Inactive</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <a href="{{ url_for('inspection_management.plan_detail', plan_id=plan.id) }}"
+                                       class="btn btn-sm btn-outline-primary">View Details</a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+
+                            {% if plans|length > 10 %}
+                            <tr>
+                                <td colspan="7" class="text-center text-muted small">
+                                    +{{ plans|length - 10 }} more plan(s) for {{ profile_code or 'All Profiles' }}
+                                </td>
+                            </tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            {% else %}
+            <div class="alert alert-info">
+                <i class="fas fa-info-circle"></i> No inspection plans found matching your criteria.
+            </div>
+            {% endfor %}
+
+            {% if not inspection_plans or inspection_plans|length == 0 %}
+            <div class="alert alert-warning">
+                <i class="fas fa-exclamation-triangle"></i> No active inspection plans configured.
+                <a href="#" data-bs-toggle="modal" data-bs-target="#addPlanModal"><strong>Add a new inspection plan</strong></a> to get started.
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Quick Stats -->
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card bg-light">
+                <div class="card-body">
+                    <h6><i class="fas fa-info-circle"></i> Inspection Plan Configuration</h6>
+                    <p class="mb-0 small text-muted">
+                        Use this view to manage inspection frequency and methods as required by Req #10.
+                        Define when inspections should occur (frequency), how they should be performed (method),
+                        and what constitutes pass/fail criteria (acceptance_criteria). Each plan can be scoped
+                        to specific profiles or applied universally.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- Add New Plan Modal -->
+<div class="modal fade" id="addPlanModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <form method="POST" action="{{ url_for('inspection_management.add_plan') }}">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fas fa-plus-circle"></i> Add New Inspection Plan</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="profile_code" class="form-label">Profile Code</label>
+                        <input type="text" class="form-control" id="profile_code" name="profile_code" placeholder="Leave blank for all profiles">
+                    </div>
+                    <div class="mb-3">
+                        <label for="inspection_type" class="form-label">Inspection Type</label>
+                        <select class="form-select" id="inspection_type" name="inspection_type">
+                            <option value="dimensional">Dimensional Inspection</option>
+                            <option value="surface">Surface Inspection</option>
+                            <option value="visual">Visual Inspection</option>
+                            <option value="process_parameter">Process Parameter Check</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="frequency" class="form-label">Frequency</label>
+                        <select class="form-select" id="frequency" name="frequency">
+                            <option value="per_run">Per Extrusion Run</option>
+                            <option value="per_shift">Per Shift</option>
+                            <option value="daily">Daily</option>
+                            <option value="weekly">Weekly</option>
+                            <option value="as_needed">As Needed</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="method" class="form-label">Inspection Method</label>
+                        <textarea class="form-control" id="method" name="method" rows="3" placeholder="Describe the inspection method..."></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label for="acceptance_criteria" class="form-label">Acceptance Criteria</label>
+                        <textarea class="form-control" id="acceptance_criteria" name="acceptance_criteria" rows="3" placeholder="Define pass/fail criteria..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Add Plan</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

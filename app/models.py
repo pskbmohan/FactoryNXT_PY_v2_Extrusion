@@ -1,5 +1,6 @@
 from . import db
 from datetime import datetime
+from sqlalchemy.dialects.postgresql import ENUM
 
 
 class Line(db.Model):
@@ -733,6 +734,11 @@ class Die(db.Model):
     # Extended statuses: in_furnace, in_press, repair, retired
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    # ── Quality Reporting & Control System extensions (Phase 1) ───────────
+    die_life_cycles_remaining = db.Column(db.Integer, nullable=True)  # Calculated: press_count_limit - press_count
+    last_failure_reason = db.Column(db.Text, nullable=True)  # Last recorded failure/reason code
+    total_setup_time_minutes = db.Column(db.Float, default=0.0)  # Cumulative setup time across all uses
+    average_setup_time_minutes = db.Column(db.Float, nullable=True)  # Computed from total / usage count
 
     inspections = db.relationship("DieInspection", backref="die", lazy="dynamic")
     tests = db.relationship("DieTest", backref="die", lazy="dynamic")
@@ -960,6 +966,9 @@ class KPIRecord(db.Model):
     id = db.Column(db.String(36), primary_key=True, default=lambda: str(_uuid.uuid4()))
     # kpi_type: OEE / THROUGHPUT / REJECTION_RATE / DIE_LIFETIME
     #           / MACHINE_DOWNTIME / SHORTAGE
+    # Quality Reporting & Control System - New KPI types (Phase 1)
+    # FPY = First Pass Yield, PPM = Parts Per Million defect rate
+    # COPQ = Cost of Poor Quality, ENERGY_CONSUMPTION
     kpi_type = db.Column(db.String(32), nullable=False)
     machine_id = db.Column(db.String(36), nullable=True)
     shift_date = db.Column(db.Date, nullable=True)
@@ -967,6 +976,7 @@ class KPIRecord(db.Model):
     unit = db.Column(db.String(32), nullable=True)
     details = db.Column(db.JSON, default=dict)
     calculated_at = db.Column(db.DateTime, default=datetime.utcnow)
+
 
 
 class IntegrationJob(db.Model):
@@ -1815,5 +1825,427 @@ class CustomerOrderLine(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     order = db.relationship("CustomerOrder", backref="order_lines")
     part_number = db.relationship("PartNumber", backref="order_lines")
+
+# ──────────────────────────────────────────────────────────────────────────────
+# QUALITY REPORTING & CONTROL SYSTEM - NEW MODELS (Phase 1)
+# Tables created by migration: 20260720_add_quality_schema.py
+# ──────────────────────────────────────────────────────────────────────────────
+
+# Enum types for quality tables (defined here for model relationships)
+defect_categories_enum = ENUM('surface', 'dimensional', 'functional', 'aesthetic', name='defect_categories')
+defect_severity_enum = ENUM('minor', 'moderate', 'major', 'critical', name='defect_severity')
+inspection_types_enum = ENUM('dimensional', 'visual', 'process_parameter', 'first_piece', name='inspection_types')
+inspection_stages_enum = ENUM('pre_production', 'in_process', 'post_extrusion', name='inspection_stages')
+inspection_pass_fail_enum = ENUM('PASS', 'FAIL', 'PENDING', name='inspection_pass_fail')
+test_types_enum = ENUM('webster', 'barcol', 'vickers', 'uts', 'ut', name='test_types')
+alarm_categories_enum = ENUM('mechanical', 'electrical', 'hydraulic', 'thermal', 'safety', name='alarm_categories')
+alarm_severity_levels_enum = ENUM('info', 'warning', 'critical', name='alarm_severity_levels')
+violation_types_enum = ENUM('low_limit', 'high_limit', name='violation_types')
+alert_severity_enum = ENUM('warning', 'critical', name='alert_severity')
+alert_status_enum = ENUM('active', 'acknowledged', 'resolved', name='alert_status')
+trend_directions_enum = ENUM('up', 'down', 'stable', name='trend_directions')
+traceability_status_enum = ENUM('in_production', 'completed', 'shipped', 'returned', name='traceability_status')
+
+
+class DefectCode(db.Model):
+    """Master list of defect types with categories and severity levels.
+
+    Used for standardized defect tracking across all quality inspections.
+    Categories: surface, dimensional, functional, aesthetic
+    Severity: minor, moderate, major, critical
+    """
+    __tablename__ = "defect_codes"
+
+    id = db.Column(db.String(36), primary_key=True, default=lambda: str(_uuid.uuid4()))
+    code = db.Column(db.String(32), nullable=False, unique=True)
+    name = db.Column(db.String(128), nullable=False)
+    category = db.Column(defect_categories_enum, nullable=False)
+    severity = db.Column(defect_severity_enum, default='moderate')
+    is_active = db.Column(db.Boolean, default=True)
+    description = db.Column(db.Text, nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Relationships
+    quality_inspections = db.relationship("QualityInspection", backref="defect_code_ref")
+
+
+class QualityParameter(db.Model):
+    """Process parameter limits per profile/alloy.
+
+    Stores acceptable ranges for all extrusion process parameters:
+    - Billet, container, die, exit temperatures
+    - Ram speed, main cylinder pressure
+    - Extrusion force, cycle time
+    """
+    __tablename__ = "quality_parameters"
+
+    id = db.Column(db.String(36), primary_key=True, default=lambda: str(_uuid.uuid4()))
+    profile_code = db.Column(db.String(128), nullable=False)
+    alloy = db.Column(db.String(64), nullable=False)
+
+    # Process parameter limits - billet heating
+    billet_temp_min = db.Column(db.Float, nullable=True)
+    billet_temp_max = db.Column(db.Float, nullable=True)
+
+    # Container temperature limits
+    container_temp_min = db.Column(db.Float, nullable=True)
+    container_temp_max = db.Column(db.Float, nullable=True)
+
+    # Die temperature limits
+    die_temp_min = db.Column(db.Float, nullable=True)
+    die_temp_max = db.Column(db.Float, nullable=True)
+
+    # Exit temperature limits
+    exit_temp_min = db.Column(db.Float, nullable=True)
+    exit_temp_max = db.Column(db.Float, nullable=True)
+
+    # Ram speed limits (mm/s)
+    ram_speed_min = db.Column(db.Float, nullable=True)
+    ram_speed_max = db.Column(db.Float, nullable=True)
+
+    # Main cylinder pressure limits (bar)
+    pressure_min = db.Column(db.Float, nullable=True)
+    pressure_max = db.Column(db.Float, nullable=True)
+
+    # Extrusion force limits (kN)
+    force_min = db.Column(db.Float, nullable=True)
+    force_max = db.Column(db.Float, nullable=True)
+
+    # Cycle time limits (seconds)
+    cycle_time_min = db.Column(db.Float, nullable=True)
+    cycle_time_max = db.Column(db.Float, nullable=True)
+
+    # Metadata
+    setpoint_profile_id = db.Column(db.String(36), db.ForeignKey("setpoint_profiles.id"), nullable=True)
+    version = db.Column(db.Integer, default=1)
+    is_active = db.Column(db.Boolean, default=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Relationships
+    parameter_readings = db.relationship("ParameterReading", backref="quality_parameter_ref")
+
+
+class ParameterReading(db.Model):
+    """Real-time PLC parameter capture during extrusion runs.
+
+    Stores time-series sensor data from the press PLC for each process run:
+    - Temperature readings (billet, container, die, exit)
+    - Ram speed, main cylinder pressure, extrusion force
+    - Cycle time, stem position, puller speed
+    - Cooling parameters as JSONB
+    """
+    __tablename__ = "parameter_readings"
+
+    id = db.Column(db.String(36), primary_key=True, default=lambda: str(_uuid.uuid4()))
+    run_id = db.Column(db.String(36), db.ForeignKey("process_runs.id"), nullable=False)
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
+    # Process parameter readings from PLC
+    billet_temp = db.Column(db.Float, nullable=True)
+    container_temp = db.Column(db.Float, nullable=True)
+    die_temp = db.Column(db.Float, nullable=True)
+    exit_temp = db.Column(db.Float, nullable=True)
+    ram_speed = db.Column(db.Float, nullable=True)
+    main_cylinder_pressure = db.Column(db.Float, nullable=True)
+    extrusion_force = db.Column(db.Float, nullable=True)
+    cycle_time = db.Column(db.Float, nullable=True)
+
+    # Additional sensor readings
+    stem_position = db.Column(db.Float, nullable=True)
+    puller_speed = db.Column(db.Float, nullable=True)
+    cooling_params = db.Column(db.JSON(), default=dict)
+
+    # Validation flags
+    all_within_limits = db.Column(db.Boolean, nullable=True)
+    violation_count = db.Column(db.Integer, default=0)
+
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    # Relationships
+    process_run = db.relationship("ProcessRun", backref="parameter_readings")
+    alerts = db.relationship("ProcessParameterAlert", backref="parameter_reading_ref", lazy="dynamic")
+
+
+class QualityInspection(db.Model):
+    """Unified inspection records across all quality stages.
+
+    Replaces and extends DieInspection/BilletInspection patterns with:
+    - Flexible inspection types (dimensional, visual, process_parameter, first_piece)
+    - Stage tracking (pre_production, in_process, post_extrusion)
+    - JSONB results for flexible schema per inspection type
+    - Link to any production entity (WO, billet, die, run)
+    """
+    __tablename__ = "quality_inspections"
+
+    id = db.Column(db.String(36), primary_key=True, default=lambda: str(_uuid.uuid4()))
+    inspection_type = db.Column(inspection_types_enum, nullable=False)
+    stage = db.Column(inspection_stages_enum, nullable=False)
+
+    # Link to production entities (nullable for flexibility)
+    wo_id = db.Column(db.String(36), db.ForeignKey("work_orders.id"), nullable=True)
+    billet_id = db.Column(db.String(36), db.ForeignKey("billets.id"), nullable=True)
+    die_id = db.Column(db.String(36), db.ForeignKey("dies.id"), nullable=True)
+    run_id = db.Column(db.String(36), db.ForeignKey("process_runs.id"), nullable=True)
+
+    # Operator info
+    operator_id = db.Column(db.String(64), nullable=True)
+    inspector_name = db.Column(db.String(128), nullable=True)
+
+    # Inspection results
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    results = db.Column(db.JSON(), default=dict)
+    pass_fail = db.Column(inspection_pass_fail_enum, default='PENDING')
+    measured_values = db.Column(db.JSON(), default=dict)
+
+    # Notes and ERP integration
+    notes = db.Column(db.Text, nullable=True)
+    erp_posted = db.Column(db.Boolean, default=False)
+    erp_posted_at = db.Column(db.DateTime, nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+
+class TestEvent(db.Model):
+    """Mechanical and NDT test results.
+
+    Stores test data from various testing methods:
+    - Webster bend test (alloy hardness verification)
+    - Barcol hardness test
+    - Vickers microhardness test
+    - Ultimate Tensile Strength (UTS) tests
+    - Ultrasonic Testing (UT) for solid sections
+    """
+    __tablename__ = "test_events"
+
+    id = db.Column(db.String(36), primary_key=True, default=lambda: str(_uuid.uuid4()))
+    test_type = db.Column(test_types_enum, nullable=False)
+
+    # Link to production/order entities
+    wo_id = db.Column(db.String(36), db.ForeignKey("work_orders.id"), nullable=True)
+    specimen_id = db.Column(db.String(128), nullable=True)  # Specimen identifier from test machine
+
+    # Test results
+    result_value = db.Column(db.Float, nullable=True)
+    acceptance_limit = db.Column(db.Float, nullable=True)
+    passed = db.Column(db.Boolean, nullable=True)
+    test_data = db.Column(db.JSON(), default=dict)  # Full test data dump
+
+    # Tester info and timing
+    tested_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    tester_id = db.Column(db.String(64), nullable=True)
+    tester_name = db.Column(db.String(128), nullable=True)
+    equipment_id = db.Column(db.String(64), nullable=True)  # Test machine ID
+    notes = db.Column(db.Text, nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+
+class AlarmBreakdownLog(db.Model):
+    """Machine alarm and downtime tracking.
+
+    Records all machine alarms with duration tracking:
+    - Alarm code and name from HMI/PLC
+    - Duration in minutes (filled when resolved)
+    - Category classification (mechanical, electrical, hydraulic, thermal, safety)
+    - Severity levels (info, warning, critical)
+    - Resolution info (who resolved, notes)
+    """
+    __tablename__ = "alarm_breakdown_log"
+
+    id = db.Column(db.String(36), primary_key=True, default=lambda: str(_uuid.uuid4()))
+    machine_id = db.Column(db.String(36), nullable=False)
+    alarm_code = db.Column(db.String(32), nullable=False)
+    alarm_name = db.Column(db.String(128), nullable=False)
+
+    # Duration tracking (minutes)
+    duration_min = db.Column(db.Float, nullable=True)
+
+    # Timing
+    started_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    ended_at = db.Column(db.DateTime, nullable=True)
+
+    # Alarm classification
+    is_recurring = db.Column(db.Boolean, default=False)
+    category = db.Column(alarm_categories_enum, nullable=True)
+    severity = db.Column(alarm_severity_levels_enum, default='warning')
+
+    # Resolution info (filled when alarm cleared)
+    resolved_by = db.Column(db.String(64), nullable=True)
+    resolution_notes = db.Column(db.Text, nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    __table_args__ = (
+        db.UniqueConstraint('machine_id', 'alarm_code', 'started_at', name='uq_machine_alarm_start'),
+    )
+
+
+class ProcessParameterAlert(db.Model):
+    """Auto-triggered parameter violations.
+
+    Created when real-time parameter readings exceed configured limits:
+    - Parameter name and actual value at violation time
+    - Threshold bounds (low/high) from quality_parameters table
+    - Violation type (high_limit or low_limit)
+    - Auto-stop trigger status
+    - Alert lifecycle (active, acknowledged, resolved)
+    """
+    __tablename__ = "process_parameter_alerts"
+
+    id = db.Column(db.String(36), primary_key=True, default=lambda: str(_uuid.uuid4()))
+    run_id = db.Column(db.String(36), db.ForeignKey("process_runs.id"), nullable=False)
+    parameter_name = db.Column(db.String(64), nullable=False)  # e.g., 'billet_temp', 'die_temp'
+    actual_value = db.Column(db.Float, nullable=False)
+    threshold_low = db.Column(db.Float, nullable=True)  # Lower limit
+    threshold_high = db.Column(db.Float, nullable=True)  # Upper limit
+
+    triggered_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
+    # Auto-stop behavior
+    auto_stop_triggered = db.Column(db.Boolean, default=False)
+    stop_confirmed_by = db.Column(db.String(64), nullable=True)  # Operator who confirmed stop
+    violation_type = db.Column(violation_types_enum, nullable=False)
+    severity = db.Column(alert_severity_enum, default='warning')
+    status = db.Column(alert_status_enum, default='active')
+    notes = db.Column(db.Text, nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+
+class SPCRecord(db.Model):
+    """SPC chart data points with shift grouping.
+
+    Stores dimension measurements for Statistical Process Control:
+    - Dimension type (OD, ID, thickness, etc.)
+    - Target and measured values with control limits
+    - Sample number within subgroup for X-bar charts
+    - Shift group classification (morning, afternoon, night)
+    - Out-of-control detection flags
+    """
+    __tablename__ = "spc_records"
+
+    id = db.Column(db.String(36), primary_key=True, default=lambda: str(_uuid.uuid4()))
+    wo_id = db.Column(db.String(36), db.ForeignKey("work_orders.id"), nullable=False)
+
+    # Dimension type being tracked (e.g., 'OD', 'ID', 'thickness')
+    dimension_type = db.Column(db.String(64), nullable=False)
+    target_value = db.Column(db.Float, nullable=False)  # Nominal/target dimension
+    measured_value = db.Column(db.Float, nullable=False)  # Actual measurement
+
+    # Control limits (calculated or specified)
+    upper_limit = db.Column(db.Float, nullable=True)  # UCL/UML
+    lower_limit = db.Column(db.Float, nullable=True)  # LCL/LML
+
+    # Shift grouping for X-bar charts
+    sample_number = db.Column(db.Integer, nullable=False)
+    shift_group = db.Column(db.String(32), nullable=False)  # e.g., 'morning', 'afternoon', 'night'
+
+    # Timing and operator info
+    sample_time = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    operator_id = db.Column(db.String(64), nullable=True)
+    inspector_name = db.Column(db.String(128), nullable=True)
+
+    # SPC status flags
+    out_of_control = db.Column(db.Boolean, default=False)
+    trend_direction = db.Column(trend_directions_enum, nullable=True)
+    notes = db.Column(db.Text, nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+
+class MaterialTraceability(db.Model):
+    """End-to-end traceability chain.
+
+    Links all production entities from raw material to customer shipment:
+    - Batch number and heat number (from foundry)
+    - Billet code and die code used
+    - Work order association
+    - Process parameters snapshot at extrusion time
+    - Customer order linkage for forward traceability
+    - Shipment batch ID for delivery tracking
+    """
+    __tablename__ = "material_traceability"
+
+    id = db.Column(db.String(36), primary_key=True, default=lambda: str(_uuid.uuid4()))
+
+    # Traceability identifiers
+    batch_number = db.Column(db.String(64), nullable=False)  # Production batch ID
+    heat_number = db.Column(db.String(64), nullable=True)     # Heat/lot number from foundry
+    billet_code = db.Column(db.String(64), nullable=True)
+    die_code = db.Column(db.String(64), nullable=True)
+    work_order_id = db.Column(db.String(36), db.ForeignKey("work_orders.id"), nullable=False)
+
+    # Timestamps and operator info
+    extrusion_timestamp = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    operator_id = db.Column(db.String(64), nullable=True)
+
+    # Process parameters snapshot (JSON for flexibility)
+    process_params = db.Column(db.JSON(), default=dict)
+
+    # Customer order linkage for forward traceability
+    customer_order_line_id = db.Column(db.String(36), nullable=True)
+    shipment_batch_id = db.Column(db.String(64), nullable=True)  # For customer shipments
+
+    # Status tracking
+    status = db.Column(traceability_status_enum, default='in_production')
+    notes = db.Column(db.Text, nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+
+# Add indexes for new tables (matching migration)
+DefectCode.__table_args__ = (
+    db.Index('ix_defect_codes_code', 'code'),
+    db.Index('ix_defect_codes_category', 'category'),
+)
+
+QualityParameter.__table_args__ = (
+    db.Index('ix_quality_parameters_profile_code', 'profile_code'),
+    db.Index('ix_quality_parameters_alloy', 'alloy'),
+    db.Index('ix_quality_parameters_is_active', 'is_active'),
+)
+
+ParameterReading.__table_args__ = (
+    db.Index('ix_parameter_readings_run_id', 'run_id'),
+    db.Index('ix_parameter_readings_timestamp', 'timestamp'),
+    db.Index('ix_parameter_readings_all_within_limits', 'all_within_limits'),
+    db.Index('ix_parameter_readings_run_timestamp', 'run_id', 'timestamp'),
+)
+
+QualityInspection.__table_args__ = (
+    db.Index('ix_quality_inspections_inspection_type', 'inspection_type'),
+    db.Index('ix_quality_inspections_stage', 'stage'),
+    db.Index('ix_quality_inspections_wo_id', 'wo_id'),
+    db.Index('ix_quality_inspections_die_id', 'die_id'),
+    db.Index('ix_quality_inspections_pass_fail', 'pass_fail'),
+    db.Index('ix_quality_inspections_wo_die_timestamp', 'wo_id', 'die_id', 'timestamp'),
+)
+
+TestEvent.__table_args__ = (
+    db.Index('ix_test_events_test_type', 'test_type'),
+    db.Index('ix_test_events_wo_id', 'wo_id'),
+    db.Index('ix_test_events_passed', 'passed'),
+)
+
+AlarmBreakdownLog.__table_args__ = (
+    db.Index('ix_alarm_breakdown_log_machine_id', 'machine_id'),
+    db.Index('ix_alarm_breakdown_log_started_at', 'started_at'),
+    db.Index('ix_alarm_breakdown_log_is_recurring', 'is_recurring'),
+)
+
+ProcessParameterAlert.__table_args__ = (
+    db.Index('ix_process_parameter_alerts_run_id', 'run_id'),
+    db.Index('ix_process_parameter_alerts_status', 'status'),
+    db.Index('ix_process_parameter_alerts_auto_stop_triggered', 'auto_stop_triggered'),
+)
+
+SPCRecord.__table_args__ = (
+    db.Index('ix_spc_records_wo_id', 'wo_id'),
+    db.Index('ix_spc_records_dimension_type', 'dimension_type'),
+    db.Index('ix_spc_records_shift_group', 'shift_group'),
+    db.Index('ix_spc_records_out_of_control', 'out_of_control'),
+)
+
+MaterialTraceability.__table_args__ = (
+    db.Index('ix_material_traceability_batch_number', 'batch_number'),
+    db.Index('ix_material_traceability_work_order_id', 'work_order_id'),
+    db.Index('ix_material_traceability_heat_number', 'heat_number'),
+)
 
 

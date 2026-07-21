@@ -1,0 +1,157 @@
+{% extends "layout.html" %}
+
+{% block title %}Material Test Certificate (MTC) Reports{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="bi bi-file-earmark-text"></i> Material Test Certificate (MTC) Reports</h2>
+        <a href="/quality/mtc-reports/" class="btn btn-primary"><i class="bi bi-arrow-left"></i> Back to MTC Home</a>
+    </div>
+
+    <!-- KPI Cards -->
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card bg-light border-success h-100">
+                <div class="card-body text-center">
+                    <h5 class="text-muted">Total Shipped Records</h5>
+                    <h2 class="mb-0">{{ total_shipped }}</h2>
+                    <small class="text-muted">Ready for MTC generation</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card bg-light border-info h-100">
+                <div class="card-body text-center">
+                    <h5 class="text-muted">With Test Data</h5>
+                    <h2 class="mb-0">{{ total_with_test_data }}</h2>
+                    <small class="text-muted">Complete for MTC export</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card bg-light border-warning h-100">
+                <div class="card-body text-center">
+                    <h5 class="text-muted">Recent Certificates</h5>
+                    <h2 class="mb-0">{{ recent_mtc|length }}</h2>
+                    <small class="text-muted">Last 30 days (sample)</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Work Orders with MTC Eligible Data -->
+    {% if recent_mtc %}
+    <div class="card mb-4">
+        <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+            <span><i class="bi bi-clock-history"></i> Work Orders Ready for MTC Generation</span>
+            <small>{{ recent_mtc|length }} records shown</small>
+        </div>
+        <div class="card-body p-0">
+            <table class="table table-hover mb-0">
+                <thead class="table-light sticky-top">
+                    <tr>
+                        <th>Work Order</th>
+                        <th>Profile Code</th>
+                        <th>Alloy</th>
+                        <th>Trace Records</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for wo in recent_mtc %}
+                    <tr>
+                        <td><strong>{{ wo.order_number }}</strong></td>
+                        <td><code>{{ wo.profile_code }}</code></td>
+                        <td><span class="badge bg-secondary">{{ wo.alloy }}</span></td>
+                        <td><span class="badge bg-primary">{{ wo.trace_count }}</span></td>
+                        <td>
+                            <div class="btn-group btn-group-sm">
+                                <a href="/quality/mtc-reports/generate/{{ wo.wo_id }}" class="btn btn-outline-success" title="Generate MTC Report">
+                                    <i class="bi bi-file-earmark-text"></i> Generate
+                                </a>
+                                <a href="/quality/mtc-reports/api/mtc/{{ wo.wo_id }}" class="btn btn-outline-info" target="_blank" title="View JSON Data">
+                                    <i class="bi bi-code-slash"></i> API
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- MTC Generation Options -->
+    <div class="row g-4 mb-4">
+        <div class="col-md-6">
+            <div class="card h-100 border-success">
+                <div class="card-header bg-dark text-white">
+                    <i class="bi bi-file-pdf"></i> PDF Export (Browser Download)
+                </div>
+                <div class="card-body">
+                    <p class="small mb-3">Generate a printable Material Test Certificate with:</p>
+                    <ul class="small mb-4">
+                        <li>Certificate number and order information</li>
+                        <li>Alloy chemical composition data</li>
+                        <li>Material traceability (batches, heats, billets)</li>
+                        <li>Mechanical test results</li>
+                        <li>Electronic signature timestamp</li>
+                    </ul>
+                    <p class="text-muted small">Best for: Customer deliveries, quality audits, compliance documentation</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card h-100 border-info">
+                <div class="card-header bg-dark text-white">
+                    <i class="bi bi-code-slash"></i> JSON API Export
+                </div>
+                <div class="card-body">
+                    <p class="small mb-3">Retrieve MTC data as structured JSON for:</p>
+                    <ul class="small mb-4">
+                        <li>Customer portal integration</li>
+                        <li>Digital certificate generation systems</li>
+                        <li>ERP system synchronization</li>
+                        <li>Automated reporting workflows</li>
+                    </ul>
+                    <p class="text-muted small">Best for: System integrations, automated processes</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MTC Reference Guide -->
+    <div class="card bg-light border-secondary">
+        <div class="card-header bg-dark text-white">
+            <i class="bi bi-info-circle"></i> Material Test Certificate (MTC) / Mill Test Report (MTR) Reference
+        </div>
+        <div class="card-body">
+            <h6>About MTC/MTR Documents:</h6>
+            <p class="small mb-3">Material Test Certificates (also known as Mill Test Reports or MTRs) are standardized documents that provide certified test results for materials. They serve as proof of material quality and compliance with specifications.</p>
+
+            <h6>MTC Contents Include:</h6>
+            <ul class="small mb-3">
+                <li><strong>Certificate Information:</strong> Unique certificate number, order references, generation date</li>
+                <li><strong>Material Identification:</strong> Alloy designation, heat numbers, batch numbers for full traceability</li>
+                <li><strong>Chemical Composition:</strong> Verified elemental analysis confirming alloy specifications</li>
+                <li><strong>Mechanical Properties:</strong> Test results including hardness (Webster/Barcol/Vickers), tensile strength, and other relevant properties</li>
+                <li><strong>Quality Verification:</strong> Pass/fail status against acceptance criteria</li>
+            </ul>
+
+            <h6>Standards Compliance:</h6>
+            <p class="small">MTCs generated by this system comply with common industry standards for aluminum extrusion materials. Custom templates can be created to meet specific customer or regulatory requirements.</p>
+
+            <h6>API Endpoints:</h6>
+            <pre class="bg-dark text-light p-3 rounded small"><code># Generate MTC JSON data
+GET /quality/mtc-reports/api/mtc/&lt;wo_id&gt;
+
+# Export PDF file (direct download)
+GET /quality/mtc-reports/export/pdf/&lt;wo_id&gt;
+
+# Export PDF as base64 for web display
+GET /quality/mtc-reports/api/export/pdf/&lt;wo_id&gt;</code></pre>
+        </div>
+    </div>
+</div>
+{% endblock %}

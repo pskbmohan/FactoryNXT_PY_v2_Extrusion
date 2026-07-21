@@ -1,0 +1,301 @@
+{% extends "layout.html" %}
+
+{% block title %}First Pass Yield (FPY) Reporting - Quality Metrics{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-3">
+        <div class="col-md-6">
+            <h2>First Pass Yield (FPY) Report</h2>
+            <p class="text-muted">Track and analyze first-stroke pass rates across profiles, dies, alloys, and shifts</p>
+        </div>
+        <div class="col-md-6 text-end">
+            <form method="GET" class="d-flex gap-2">
+                <select name="period" class="form-select w-auto">
+                    <option value="1d" {% if period_type == '1d' %}selected{% endif %}>Last 1 Day</option>
+                    <option value="7d" {% if period_type == '7d' %}selected{% endif %}>Last 7 Days</option>
+                    <option value="30d" {% if period_type == '30d' %}selected{% endif %}>Last 30 Days</option>
+                    <option value="custom" {% if period_type == 'custom' %}selected{% endif %}>Custom Range</option>
+                </select>
+                <input type="date" name="start" class="form-control w-auto" value="{{ start_date }}">
+                <input type="date" name="end" class="form-control w-auto" value="{{ end_date }}">
+                <button type="submit" class="btn btn-primary">Apply</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- FPY Summary Cards -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card bg-success text-white h-100">
+                <div class="card-body">
+                    <h5 class="card-title">Overall FPY</h5>
+                    <h2>{{ fpy_summary.fpy_percent }}%</h2>
+                    <p class="mb-0 small">
+                        {{ fpy_summary.good_first_pass }} first-piece inspections passed /
+                        {{ fpy_summary.total_produced }} total runs
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        {% if comparison.status != 'insufficient_data' %}
+        <div class="col-md-6">
+            <div class="card bg-info text-white h-100">
+                <div class="card-body">
+                    <h5 class="card-title">vs Previous Period</h5>
+                    <h2>{{ comparison.absolute_change }}%
+                        {% if comparison.trend == 'improving' %}
+                            <span class="badge bg-light text-success">(Improving)</span>
+                        {% elif comparison.trend == 'declining' %}
+                            <span class="badge bg-light text-danger">(Declining)</span>
+                        {% else %}
+                            <span class="badge bg-light text-secondary">Stable</span>
+                        {% endif %}
+                    </h2>
+                    <p class="mb-0 small">
+                        Current: {{ comparison.current_fpy }}% | Previous: {{ comparison.previous_fpy }}%
+                    </p>
+                </div>
+            </div>
+        </div>
+        {% else %}
+        <div class="col-md-6">
+            <div class="card bg-secondary text-white h-100">
+                <div class="card-body">
+                    <h5 class="card-title">Comparison Data</h5>
+                    <p class="mb-0 small">Insufficient historical data for comparison</p>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- FPY by Profile -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <span><strong>FPY by Profile Code</strong></span>
+                    {% if fpy_by_profile %}
+                    <a href="{{ url_for('fpy_reporting.by_profile', profile_code=fpy_by_profile[0].profile_code) }}" class="btn btn-sm btn-outline-primary">View Details</a>
+                    {% endif %}
+                </div>
+                <table class="table table-striped mb-0">
+                    <thead>
+                        <tr>
+                            <th>Profile Code</th>
+                            <th>Total Runs</th>
+                            <th>Completed</th>
+                            <th>FPY %</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for profile in fpy_by_profile[:10] %}
+                        <tr>
+                            <td><a href="{{ url_for('fpy_reporting.by_profile', profile_code=profile.profile_code) }}">{{ profile.profile_code }}</a></td>
+                            <td>{{ profile.total_runs }}</td>
+                            <td>{{ profile.completed_runs }}</td>
+                            <td>
+                                {% if profile.fpy_percent >= 95 %}
+                                    <span class="badge bg-success">{{ "%.1f"|format(profile.fpy_percent) }}%</span>
+                                {% elif profile.fpy_percent >= 85 %}
+                                    <span class="badge bg-warning text-dark">{{ "%.1f"|format(profile.fpy_percent) }}%</span>
+                                {% else %}
+                                    <span class="badge bg-danger">{{ "%.1f"|format(profile.fpy_percent) }}%</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if profile.fpy_percent >= 95 %}Excellent{% elif profile.fpy_percent >= 85 %}Good{% else %}Needs Improvement{% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- FPY by Alloy -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <span><strong>FPY by Alloy</strong></span>
+                    {% if fpy_by_alloy %}
+                    <a href="{{ url_for('fpy_reporting.by_alloy', alloy=fpy_by_alloy[0].alloy) }}" class="btn btn-sm btn-outline-primary">View Details</a>
+                    {% endif %}
+                </div>
+                <table class="table table-striped mb-0">
+                    <thead>
+                        <tr>
+                            <th>Alloy</th>
+                            <th>Total Runs</th>
+                            <th>Completed</th>
+                            <th>FPY %</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for alloy in fpy_by_alloy[:10] %}
+                        <tr>
+                            <td><a href="{{ url_for('fpy_reporting.by_alloy', alloy=alloy.alloy) }}">{{ alloy.alloy }}</a></td>
+                            <td>{{ alloy.total_runs }}</td>
+                            <td>{{ alloy.completed_runs }}</td>
+                            <td>
+                                {% if alloy.fpy_percent >= 95 %}
+                                    <span class="badge bg-success">{{ "%.1f"|format(alloy.fpy_percent) }}%</span>
+                                {% elif alloy.fpy_percent >= 85 %}
+                                    <span class="badge bg-warning text-dark">{{ "%.1f"|format(alloy.fpy_percent) }}%</span>
+                                {% else %}
+                                    <span class="badge bg-danger">{{ "%.1f"|format(alloy.fpy_percent) }}%</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ alloy.alloy }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- FPY by Shift -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header"><strong>FPY by Shift</strong></div>
+                <table class="table table-striped mb-0">
+                    <thead>
+                        <tr>
+                            <th>Shift</th>
+                            <th>Total Runs</th>
+                            <th>FPY %</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for shift_name, data in fpy_by_shift.items() %}
+                        <tr>
+                            <td><a href="{{ url_for('fpy_reporting.by_shift', shift_name=shift_name|lower) }}">{{ shift_name }}</a></td>
+                            <td>{{ data.total_runs }}</td>
+                            <td>{% if data.fpy_percent is not none %}
+                                    {% if data.fpy_percent >= 95 %}
+                                        <span class="badge bg-success">{{ "%.1f"|format(data.fpy_percent) }}%</span>
+                                    {% elif data.fpy_percent >= 85 %}
+                                        <span class="badge bg-warning text-dark">{{ "%.1f"|format(data.fpy_percent) }}%</span>
+                                    {% else %}
+                                        <span class="badge bg-danger">{{ "%.1f"|format(data.fpy_percent) }}%</span>
+                                    {% endif %}
+                                {% else %}N/A{% endif %}</td>
+                            <td>{{ shift_name|title }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- FPY by Die -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <span><strong>FPY by Die</strong></span>
+                    {% if fpy_by_die %}
+                    <a href="{{ url_for('fpy_reporting.by_profile', profile_code=fpy_by_die[0].profile) }}" class="btn btn-sm btn-outline-primary">View Details</a>
+                    {% endif %}
+                </div>
+                <table class="table table-striped mb-0">
+                    <thead>
+                        <tr>
+                            <th>Die Code</th>
+                            <th>Profile</th>
+                            <th>Alloy</th>
+                            <th>Total Runs</th>
+                            <th>Completed</th>
+                            <th>FPY %</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for die in fpy_by_die[:20] %}
+                        <tr>
+                            <td><a href="{{ url_for('fpy_reporting.by_profile', profile_code=die.profile) }}">{{ die.die_code }}</a></td>
+                            <td>{{ die.profile }}</td>
+                            <td>{{ die.alloy }}</td>
+                            <td>{{ die.total_runs }}</td>
+                            <td>{{ die.completed_runs }}</td>
+                            <td>
+                                {% if die.fpy_percent >= 95 %}
+                                    <span class="badge bg-success">{{ "%.1f"|format(die.fpy_percent) }}%</span>
+                                {% elif die.fpy_percent >= 85 %}
+                                    <span class="badge bg-warning text-dark">{{ "%.1f"|format(die.fpy_percent) }}%</span>
+                                {% else %}
+                                    <span class="badge bg-danger">{{ "%.1f"|format(die.fpy_percent) }}%</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Historical Trend -->
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header"><strong>FPY Historical Trend (Last 30 Days)</strong></div>
+                <div class="card-body">
+                    <canvas id="fpyTrendChart" height="60"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.0.0/dist/chart.umd.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const ctx = document.getElementById('fpyTrendChart');
+
+    if (ctx) {
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: {{ trend_data|map(attribute='date')|list|tojson }},
+                datasets: [{
+                    label: 'FPY (%)',
+                    data: {{ trend_data|map(attribute='fpy_percent')|reject('==', None)|map('float')|list|tojson }},
+                    borderColor: '#0d6efd',
+                    backgroundColor: 'rgba(13, 110, 253, 0.1)',
+                    tension: 0.4,
+                    fill: true
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: true }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: false,
+                        min: 0,
+                        max: 100,
+                        ticks: { callback: function(value) { return value + '%' } }
+                    }
+                }
+            }
+        });
+    }
+});
+</script>
+{% endblock %}

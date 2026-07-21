@@ -1,0 +1,190 @@
+{% extends "layout.html" %}
+
+{% block title %}Defect Detail: {{ defect_code }} - Quality Reporting{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-3">
+        <div class="col-md-6">
+            <h2>Defect Detail</h2>
+            <p class="text-muted">Analysis for defect code: {{ defect_code }}</p>
+        </div>
+        <div class="col-md-6 text-end">
+            <a href="{{ url_for('scrap_reporting.index') }}" class="btn btn-secondary">&larr; Back to Scrap Report</a>
+        </div>
+    </div>
+
+    <!-- Date Range -->
+    <form method="GET" class="row mb-4 g-3">
+        <input type="hidden" name="start" value="{{ start_date }}">
+        <input type="hidden" name="end" value="{{ end_date }}">
+        <div class="col-auto">
+            <label class="visually-hidden">Start Date</label>
+            <input type="date" name="start" class="form-control" value="{{ start_date }}" required>
+        </div>
+        <div class="col-auto">
+            <label class="visually-hidden">End Date</label>
+            <input type="date" name="end" class="form-control" value="{{ end_date }}" required>
+        </div>
+        <div class="col-auto">
+            <button type="submit" class="btn btn-primary">Apply Filter</button>
+        </div>
+    </form>
+
+    <!-- Defect Code Information -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card border-warning">
+                <div class="card-header bg-warning text-dark">
+                    <h5 class="mb-0">{{ defect_info.name }}</h5>
+                </div>
+                <table class="table table-striped mb-0">
+                    <tr>
+                        <td><strong>Defect Code</strong></td>
+                        <td>{{ defect_info.code }}</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Category</strong></td>
+                        <td><span class="badge bg-secondary">{{ defect_info.category|title }}</span></td>
+                    </tr>
+                    <tr>
+                        <td><strong>Severity</strong></td>
+                        <td>{% if defect_info.severity == 'critical' %}
+                                <span class="badge bg-danger">Critical</span>
+                            {% elif defect_info.severity == 'major' %}
+                                <span class="badge bg-warning text-dark">Major</span>
+                            {% elif defect_info.severity == 'moderate' %}
+                                <span class="badge bg-info">Moderate</span>
+                            {% else %}
+                                <span class="badge bg-success">Minor</span>
+                            {% endif %}</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Description</strong></td>
+                        <td>{{ defect_info.description or 'No description available' }}</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Status</strong></td>
+                        <td>{% if defect_info.is_active %}
+                                <span class="badge bg-success">Active</span>
+                            {% else %}
+                                <span class="badge bg-secondary">Inactive</span>
+                            {% endif %}</td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Occurrence Summary -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card bg-primary text-white h-100">
+                <div class="card-body">
+                    <h5 class="card-title">Occurrences in Period</h5>
+                    <h2>{{ defect_count }}</h2>
+                    <p class="mb-0 small">Total count of {{ defect_code }} defects from {{ start_date }} to {{ end_date }}</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-body">
+                    <h5 class="card-title">Period</h5>
+                    <p><strong>{{ start_date }}</strong> to <strong>{{ end_date }}</strong></p>
+                    <p class="text-muted small">Filter applied for defect code: {{ defect_code }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Related Records Placeholder -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header"><strong>Related Quality Inspections</strong></div>
+                <table class="table table-striped mb-0">
+                    <thead>
+                        <tr>
+                            <th>Date/Time</th>
+                            <th>Type</th>
+                            <th>Stage</th>
+                            <th>Status</th>
+                            <th>Inspector</th>
+                            <th>Details</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- This would be populated from actual quality_inspections data -->
+                        <tr>
+                            <td colspan="6" class="text-center text-muted">
+                                Detailed inspection records for this defect code would appear here.
+                                The system tracks all instances of {{ defect_code }} across pre-production, in-process, and post-extrusion inspections.
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Trend Analysis Placeholder -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header"><strong>Trend Analysis</strong></div>
+                <table class="table table-striped mb-0">
+                    <thead>
+                        <tr>
+                            <th>Metric</th>
+                            <th>Value</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Total Occurrences (This Period)</strong></td>
+                            <td>{{ defect_count }}</td>
+                            <td>{% if defect_count >= 50 %}
+                                    <span class="badge bg-danger">High Frequency</span>
+                                {% elif defect_count >= 20 %}
+                                    <span class="badge bg-warning text-dark">Moderate Frequency</span>
+                                {% else %}
+                                    <span class="badge bg-success">Low Frequency</span>
+                                {% endif %}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Action Items -->
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card bg-light">
+                <div class="card-body">
+                    <h5><strong>Action & Improvement</strong></h5>
+                    <p>This defect code has been recorded {{ defect_count }} times in the selected period. Consider:</p>
+                    <ul>
+                        <li>Analyzing root cause patterns (time of day, operator, die used)</li>
+                        <li>Reviewing process parameters during affected runs</li>
+                        <li>Evaluating if preventive actions are needed based on severity level</li>
+                        <li>If critical: Implement immediate corrective actions and CAPA</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Links -->
+    <div class="row mt-4">
+        <div class="col-md-12 text-center">
+            <a href="{{ url_for('scrap_reporting.index') }}" class="btn btn-primary">&larr; Back to Scrap Report</a>
+            <button type="button" class="btn btn-outline-secondary ms-3">Export This Defect Analysis (CSV)</button>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

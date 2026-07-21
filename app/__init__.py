@@ -66,6 +66,36 @@ def create_app(config_class=Config):
     # and registered with SQLAlchemy's metadata.
     from . import models_aps  # noqa: F401
 
+    # Import Quality Reporting & Control System blueprints (Phase 1-3: Database + Services Layer)
+    from app.routes.quality_dashboard import bp as quality_dashboard_bp
+    from app.routes.fpy_reporting import bp as fpy_reporting_bp
+    from app.routes.scrap_reporting import bp as scrap_reporting_bp
+    from app.routes.die_performance import bp as die_performance_bp
+    from app.routes.alarm_downtime import bp as alarm_downtime_bp
+    from app.routes.quality_metrics import bp as quality_metrics_bp
+    from app.routes.parameter_monitoring import bp as parameter_monitoring_bp
+    from app.routes.inspection_management import bp as inspection_management_bp
+
+    # P3 Enhancement Blueprints (Traceability Viewer, SPC Charts, MTC Reports)
+    from app.routes.traceability_viewer import bp as traceability_viewer_bp
+    from app.routes.spc_charts import bp as spc_charts_bp
+    from app.routes.mtc_reports import bp as mtc_reports_bp
+
+    # Register Quality Reporting & Control System blueprints (Phase 1-3: Database + Services Layer)
+    app.register_blueprint(quality_dashboard_bp)           # /quality/dashboard/*
+    app.register_blueprint(fpy_reporting_bp)               # /quality/fpy/*
+    app.register_blueprint(scrap_reporting_bp)             # /quality/scrap/*
+    app.register_blueprint(die_performance_bp)             # /quality/die-perf/*
+    app.register_blueprint(alarm_downtime_bp)              # /quality/alarm-downtime/*
+    app.register_blueprint(quality_metrics_bp)             # /quality/metrics/*
+    app.register_blueprint(parameter_monitoring_bp)        # /quality/parameters/*
+    app.register_blueprint(inspection_management_bp)       # /quality/inspections/*
+
+    # P3 Enhancement Blueprints (Requirement #13, #14, #20-#21)
+    app.register_blueprint(traceability_viewer_bp)         # /quality/traceability/*
+    app.register_blueprint(spc_charts_bp)                  # /quality/spc/*
+    app.register_blueprint(mtc_reports_bp)                 # /quality/mtc-reports/*
+
     app.register_blueprint(dashboard_bp)
     app.register_blueprint(auth_bp, url_prefix="/auth")
     app.register_blueprint(api_bp, url_prefix="/api")

@@ -1,0 +1,241 @@
+{% extends "base.html" %}
+
+{% block title %}Changeover Analysis Dashboard{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-12 d-flex justify-content-between align-items-center">
+            <h3><i class="fas fa-sync-alt"></i> Changeover Analysis Dashboard</h3>
+            <form method="GET" class="d-inline">
+                <input type="date" name="start" value="{{ start_date }}" class="form-control form-control-sm me-2" style="width: auto;">
+                <input type="date" name="end" value="{{ end_date }}" class="form-control form-control-sm me-2" style="width: auto;">
+                <button type="submit" class="btn btn-primary btn-sm">Apply</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Status Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-primary text-white h-100">
+                <div class="card-body text-center">
+                    <h5 class="card-title"><i class="fas fa-exchange-alt"></i> Total Changeovers</h5>
+                    <h2>{{ changeover_metrics.total_runs }}</h2>
+                    <p class="mb-0 text-white-50">Runs in period</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="card bg-success text-white h-100">
+                <div class="card-body text-center">
+                    <h5 class="card-title"><i class="fas fa-stopwatch"></i> Avg Setup Time</h5>
+                    <h2>{{ changeover_metrics.avg_die_setup_time }} min</h2>
+                    <p class="mb-0 text-white-50">Average per die</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="card bg-info text-white h-100">
+                <div class="card-body text-center">
+                    <h5 class="card-title"><i class="fas fa-bullseye"></i> Target Setup</h5>
+                    <h2>{{ changeover_metrics.target_avg_setup_minutes }} min</h2>
+                    <p class="mb-0 text-white-50">Average target</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="card bg-warning text-dark h-100">
+                <div class="card-body text-center">
+                    <h5 class="card-title"><i class="fas fa-database"></i> Active Dies</h5>
+                    <h2>{{ changeover_metrics.active_dies_with_data }}</h2>
+                    <p class="mb-0 text-dark-50">With setup data</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Setup Time Distribution -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0"><i class="fas fa-chart-pie"></i> Setup Time Distribution</h5>
+                </div>
+                <div class="card-body">
+                    {% if setup_time_data.avg > 0 %}
+                    <p class="text-muted small mb-3">Distribution of die average setup times (based on {{ '%.1f'|format(setup_time_data.std_deviation) }} std dev)</p>
+
+                    <!-- Distribution Bars -->
+                    <div class="mb-3">
+                        <strong>Fast (&lt;20 min):</strong>
+                        <ul class="list-group list-group-flush">
+                            {% for die_code, count in setup_time_data.distribution.items() %}
+                            {% if 'fast' in die_code.lower() %}
+                            <li class="list-group-item px-0 d-flex justify-content-between align-items-center">
+                                {{ die_code|capitalize }}: {{ count }} dies
+                                <span class="badge bg-success rounded-pill">{{ '%.1f'|format(count / 20 * 100) if setup_time_data.distribution['fast (<20min)'] > 0 else 0 }}%</span>
+                            </li>
+                            {% endif %}
+                            {% endfor %}
+                        </ul>
+                    </div>
+
+                    <div class="mb-3">
+                        <strong>Medium (20-45 min):</strong>
+                        <ul class="list-group list-group-flush">
+                            {% for die_code, count in setup_time_data.distribution.items() %}
+                            {% if 'medium' in die_code.lower() %}
+                            <li class="list-group-item px-0 d-flex justify-content-between align-items-center">
+                                {{ die_code|capitalize }}: {{ count }} dies
+                                <span class="badge bg-warning text-dark rounded-pill">{{ '%.1f'|format(count / 20 * 100) if setup_time_data.distribution['medium (20-45min)'] > 0 else 0 }}%</span>
+                            </li>
+                            {% endif %}
+                            {% endfor %}
+                        </ul>
+                    </div>
+
+                    <div class="mb-3">
+                        <strong>Slow (&gt;45 min):</strong>
+                        <ul class="list-group list-group-flush">
+                            {% for die_code, count in setup_time_data.distribution.items() %}
+                            {% if 'slow' in die_code.lower() %}
+                            <li class="list-group-item px-0 d-flex justify-content-between align-items-center">
+                                {{ die_code|capitalize }}: {{ count }} dies
+                                <span class="badge bg-danger rounded-pill">{{ '%.1f'|format(count / 20 * 100) if setup_time_data.distribution['slow (>45min)'] > 0 else 0 }}%</span>
+                            </li>
+                            {% endif %}
+                            {% endfor %}
+                        </ul>
+                    </div>
+
+                    <hr>
+                    <p class="text-muted small mb-0">
+                        Average: <strong>{{ setup_time_data.avg }}</strong> min | Std Dev: <strong>{{ '%.1f'|format(setup_time_data.std_deviation) }}</strong> min
+                    </p>
+                    {% else %}
+                    <p class="text-muted">No setup time data available for the selected period.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Daily Changeover Frequency -->
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0"><i class="fas fa-calendar-week"></i> Changeovers by Day of Week</h5>
+                </div>
+                <div class="card-body">
+                    {% if daily_changeover_counts %}
+                    <!-- Simple bar chart visualization -->
+                    <ul class="list-group mb-3">
+                        {% for day, count in daily_changeover_counts.items()|sort(attribute='1', reverse=True) %}
+                        <li class="list-group-item d-flex align-items-center px-0">
+                            <span style="width: 7em; font-weight: bold;">{{ day[:3] }}</span>
+                            <div class="flex-grow-1 mx-3" style="height: 24px; background: #f5f5f5; border-radius: 4px;">
+                                {% set max_count = daily_changeover_counts.values()|max %}
+                                {% set bar_width = [count / max_count * 100, 100]|min if max_count > 0 else 0 %}
+                                <div class="progress-bar bg-primary" role="progressbar" style="width: {{ '%.0f'|format(bar_width) }}%; height: 24px; border-radius: 4px;">
+                                </div>
+                            </div>
+                            <span><strong>{{ count }}</strong></span>
+                        </li>
+                        {% endfor %}
+                    </ul>
+
+                    <!-- Day with most changeovers -->
+                    {% set busiest_day = daily_changeover_counts.items()|max(attribute='1') %}
+                    <p class="text-muted small">
+                        <i class="fas fa-trophy text-warning"></i> Busiest day: <strong>{{ busiest_day[0] }}</strong> with {{ busiest_day[1] }} changeovers.
+                    </p>
+
+                    {% else %}
+                    <p class="text-muted">No daily frequency data available for the selected period.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Die Setup Time Comparison -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="fas fa-list"></i> Die Setup Time Comparison</h5>
+                    <a href="{{ url_for('changeover_analysis.trends') }}" class="btn btn-outline-info btn-sm">View Trends</a>
+                </div>
+                <div class="card-body p-0">
+                    {% if die_setup_comparison %}
+                    <table class="table table-striped mb-0">
+                        <thead class="table-light text-nowrap">
+                            <tr>
+                                <th>#</th>
+                                <th>Die Code</th>
+                                <th>Profile</th>
+                                <th>Avg Setup (min)</th>
+                                <th>Runs in Period</th>
+                                <th>Status</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for die in die_setup_comparison[:15] %}
+                            <tr>
+                                <td>{{ loop.index }}</td>
+                                <td><strong>{{ die.die_code or 'N/A' }}</strong></td>
+                                <td>{{ die.profile_code or 'N/A' }}</td>
+                                <td class="{% if die.avg_setup_time <= changeover_metrics.target_avg_setup_minutes %}text-success{% elif die.avg_setup_time > 45 %}text-danger{% else %}text-warning{% endif %}">
+                                    {{ die.avg_setup_time }} min
+                                </td>
+                                <td>{{ die.run_count }}</td>
+                                <td>
+                                    {% if die.avg_setup_time <= changeover_metrics.target_avg_setup_minutes %}
+                                    <span class="badge bg-success"><i class="fas fa-check"></i> On Target</span>
+                                    {% elif die.avg_setup_time > 45 %}
+                                    <span class="badge bg-danger"><i class="fas fa-exclamation-triangle"></i> Slow</span>
+                                    {% else %}
+                                    <span class="badge bg-warning text-dark">Review</span>
+                                    {% endif %}
+                                </td>
+                                <td><a href="{{ url_for('changeover_analysis.by_die', die_id=die.die_id) }}" class="btn btn-sm btn-outline-primary">View</a></td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+
+                    {% if die_setup_comparison|length > 15 %}
+                    <div class="alert alert-info mt-3 mb-0">
+                        Showing top {{ die_setup_comparison[:15]|length }} of {{ die_setup_comparison|length }} dies. Sort by setup time to see slowest dies first.
+                    </div>
+                    {% endif %}
+
+                    {% else %}
+                    <p class="text-muted p-3 mb-0">No die setup data available for the selected period.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- Action Buttons -->
+<div class="row mt-4 mb-5">
+    <div class="col-12 d-flex justify-content-end gap-2">
+        <a href="{{ url_for('changeover_analysis.by_shift') }}" class="btn btn-outline-primary">
+            <i class="fas fa-users"></i> By Shift Analysis
+        </a>
+        <a href="{{ url_for('changeover_analysis.trends') }}" class="btn btn-outline-info">
+            <i class="fas fa-chart-line"></i> Setup Time Trends
+        </a>
+        <a href="{{ url_for('changeover_analysis.summary') }}" class="btn btn-success">
+            <i class="fas fa-file-alt"></i> Executive Summary
+        </a>
+    </div>
+</div>
+{% endblock %}

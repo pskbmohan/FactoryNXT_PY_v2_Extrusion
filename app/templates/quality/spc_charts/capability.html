@@ -1,0 +1,195 @@
+{% extends "layout.html" %}
+
+{% block title %}Process Capability Analysis - {{ work_order.order_number }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="bi bi-graph-up"></i> Process Capability Analysis</h2>
+        <a href="/quality/spc/" class="btn btn-primary"><i class="bi bi-arrow-left"></i> Back to SPC Home</a>
+    </div>
+
+    <!-- Work Order Info -->
+    <div class="card mb-4 border-info">
+        <div class="card-body">
+            <h5><i class="bi bi-box-seam"></i> Work Order: {{ work_order.order_number }}</h5>
+            {% if work_order.profile_code %}
+            <p class="mb-1"><strong>Profile:</strong> {{ work_order.profile_code }}</p>
+            {% endif %}
+            {% if work_order.alloy %}
+            <p class="mb-0"><strong>Alloy:</strong> {{ work_order.alloy }}</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Dimension Filter -->
+    {% if available_dimensions|length > 1 %}
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="GET" class="d-flex flex-wrap gap-2 align-items-center">
+                <label><strong>Filter by Dimension:</strong></label>
+                <select name="dimension_type" class="form-select form-select-sm" style="min-width: 150px;" onchange="this.form.submit()">
+                    <option value="">All Dimensions</option>
+                    {% for dim in available_dimensions %}
+                    <option value="{{ dim }}" {% if dimension_type_filter == dim %}selected{% endif %}>{{ dim }}</option>
+                    {% endfor %}
+                </select>
+                <button type="submit" class="btn btn-sm btn-outline-primary">Apply Filter</button>
+            </form>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Capability Results -->
+    {% if capability_result.success %}
+    <div class="row mb-4">
+        <!-- Summary Statistics Card -->
+        <div class="col-md-6">
+            <div class="card h-100 border-primary">
+                <div class="card-header bg-dark text-white">
+                    <i class="bi bi-calculator"></i> Summary Statistics ({{ capability_result.dimension_type or 'All Dimensions' }})
+                </div>
+                <div class="card-body">
+                    <table class="table table-sm mb-0">
+                        <tbody>
+                            <tr>
+                                <th width="40%">Sample Count</th>
+                                <td><strong>{{ capability_result.statistics.n_samples }}</strong></td>
+                            </tr>
+                            <tr>
+                                <th>Mean Value</th>
+                                <td><strong>{{ "%.4f"|format(capability_result.statistics.mean) }}</strong></td>
+                            </tr>
+                            <tr>
+                                <th>Standard Deviation (σ)</th>
+                                <td><strong>{{ "%.4f"|format(capability_result.statistics.sigma) }}</strong></td>
+                            </tr>
+                            {% if capability_result.statistics.upper_specification_limit %}
+                            <tr>
+                                <th>Upper Spec Limit (USL)</th>
+                                <td class="text-danger"><strong>{{ "%.4f"|format(capability_result.statistics.upper_specification_limit) }}</strong></td>
+                            </tr>
+                            {% endif %}
+                            {% if capability_result.statistics.lower_specification_limit %}
+                            <tr>
+                                <th>Lower Spec Limit (LSL)</th>
+                                <td class="text-danger"><strong>{{ "%.4f"|format(capability_result.statistics.lower_specification_limit) }}</strong></td>
+                            </tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Capability Indices Card -->
+        <div class="col-md-6">
+            <div class="card h-100 border-success">
+                <div class="card-header bg-dark text-white">
+                    <i class="bi bi-stars"></i> Process Capability Indices
+                </div>
+                <div class="card-body">
+                    <table class="table table-sm mb-0">
+                        <tbody>
+                            <tr>
+                                <th width="40%">Cp (Potential)</th>
+                                <td>
+                                    {% set cp = capability_result.capability_indices.Cp %}
+                                    {% if cp >= 1.33 %}
+                                        <span class="badge bg-success">{{ "%.3f"|format(cp) }}</span> - Excellent
+                                    {% elif cp >= 1.0 %}
+                                        <span class="badge bg-info">{{ "%.3f"|format(cp) }}</span> - Adequate
+                                    {% elif cp >= 0.67 %}
+                                        <span class="badge bg-warning text-dark">{{ "%.3f"|format(cp) }}</span> - Marginal
+                                    {% else %}
+                                        <span class="badge bg-danger">{{ "%.3f"|format(cp) }}</span> - Poor
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            <tr>
+                                <th>Cpk (Actual)</th>
+                                <td>
+                                    {% set cpk = capability_result.capability_indices.Cpk %}
+                                    {% if cpk >= 1.33 %}
+                                        <span class="badge bg-success">{{ "%.3f"|format(cpk) }}</span> - Excellent
+                                    {% elif cpk >= 1.0 %}
+                                        <span class="badge bg-info">{{ "%.3f"|format(cpk) }}</span> - Adequate
+                                    {% elif cpk >= 0.67 %}
+                                        <span class="badge bg-warning text-dark">{{ "%.3f"|format(cpk) }}</span> - Marginal
+                                    {% else %}
+                                        <span class="badge bg-danger">{{ "%.3f"|format(cpk) }}</span> - Poor
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            <tr>
+                                <th>Pp (Overall)</th>
+                                <td><strong>{{ "%.3f"|format(capability_result.capability_indices.Pp) }}</strong></td>
+                            </tr>
+                            <tr>
+                                <th>Ppk (Overall)</th>
+                                <td><strong>{{ "%.3f"|format(capability_result.capability_indices.Ppk) }}</strong></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Interpretation Card -->
+    <div class="card mb-4 border-warning">
+        <div class="card-header bg-dark text-white">
+            <i class="bi bi-lightbulb"></i> Capability Assessment
+        </div>
+        <div class="card-body">
+            {% set interpretation = capability_result.interpretation %}
+            <h5>{{ interpretation.description|title }}</h5>
+            <p><strong>Status:</strong> <span class="badge bg-{{ 'success' if interpretation.status == 'excellent' else ('info' if interpretation.status == 'adequate' else ('warning' if interpretation.status == 'marginal' else 'danger')) }}">{{ interpretation.level }} - {{ interpretation.status|title }}</span></p>
+            <p><strong>Recommendation:</strong> {{ interpretation.recommended_action }}</p>
+        </div>
+    </div>
+
+    <!-- Component Indices -->
+    {% if capability_result.component_indices %}
+    <div class="card mb-4">
+        <div class="card-header bg-dark text-white">
+            <i class="bi bi-diagram-3"></i> Capability Components (CPU/CPL)
+        </div>
+        <div class="card-body">
+            <table class="table table-sm mb-0">
+                <tbody>
+                    <tr>
+                        <th width="40%">CPU (Upper Capability)</th>
+                        <td><strong>{{ "%.3f"|format(capability_result.component_indices.CPU) }}</strong></td>
+                    </tr>
+                    <tr>
+                        <th>CPL (Lower Capability)</th>
+                        <td><strong>{{ "%.3f"|format(capability_result.component_indices.CPL) }}</strong></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- API Endpoint Reference -->
+    <div class="card bg-light border-secondary">
+        <div class="card-header bg-dark text-white">
+            <i class="bi bi-code-slash"></i> API Endpoint
+        </div>
+        <div class="card-body">
+            <p><strong>GET /quality/spc/api/capability/&lt;wo_id&gt;</strong></p>
+            <pre class="bg-dark text-light p-3 rounded"><code>curl http://localhost:5000/quality/spc/api/capability/{{ work_order.id }}</code></pre>
+        </div>
+    </div>
+
+    {% else %}
+    <!-- Error Display -->
+    <div class="alert alert-danger" role="alert">
+        <h4><i class="bi bi-exclamation-triangle"></i> Computation Failed</h4>
+        <p>{{ capability_result.error }}</p>
+        <a href="/quality/spc/" class="btn btn-outline-primary mt-2">Return to SPC Dashboard</a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,123 @@
+{% extends "layout.html" %}
+
+{% block title %}Alarm Executive Summary - Quality Reporting{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <h2><i class="fas fa-exclamation-triangle"></i> Alarm & Downtime Executive Summary</h2>
+            <p class="text-muted">High-level overview of alarm fleet status and critical issues</p>
+        </div>
+    </div>
+
+    <!-- Period Comparison -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card bg-light border-0">
+                <div class="card-body text-center">
+                    <h5>Current Period: {{ current_metrics.total_alarms }} alarms, {{ "%.1f"|format(current_metrics.total_downtime_minutes) }} min downtime</h5>
+                    {% if previous_metrics %}
+                    <p class="text-muted mb-0">Previous Period (30 days prior): {{ previous_metrics.total_alarms }} alarms, {{ "%.1f"|format(previous_metrics.total_downtime_minutes) }} min downtime</p>
+
+                    {% set alarm_diff = current_metrics.total_alarms - previous_metrics.total_alarms %}
+                    {% set downtime_diff = current_metrics.total_downtime_minutes - previous_metrics.total_downtime_minutes %}
+
+                    <div class="mt-2">
+                        {% if alarm_diff > 0 %}
+                        <span class="badge bg-danger">{{ "+" }}{{ alarm_diff }} alarms ({{ "%.1f"|format((alarm_diff/previous_metrics.total_alarms*100) if previous_metrics.total_alarms > 0 else 0) }}%)</span>
+                        {% elif alarm_diff < 0 %}
+                        <span class="badge bg-success">{{ alarm_diff }} alarms ({{ "%.1f"|format((alarm_diff/previous_metrics.total_alarms*100) if previous_metrics.total_alarms > 0 else 0) }}%)</span>
+                        {% else %}
+                        <span class="badge bg-secondary">No change in count</span>
+                        {% endif %}
+
+                        {% if downtime_diff > 60 %}
+                        <span class="badge bg-danger">{{ "+" }}{{ "%.1f"|format(downtime_diff) }} min downtime</span>
+                        {% elif downtime_diff < -60 %}
+                        <span class="badge bg-success">{{ "%.1f"|format(-downtime_diff) }} min less downtime</span>
+                        {% else %}
+                        <span class="badge bg-secondary">Downtime stable</span>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Current Period Metrics -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0"><i class="fas fa-chart-pie"></i> Severity Breakdown</h5>
+                </div>
+                <div class="card-body text-center">
+                    {% for severity, count in current_metrics.severity_breakdown.items() %}
+                    <div class="d-flex justify-content-between mb-2 align-items-center">
+                        <span>{{ severity|capitalize }}:</span>
+                        <span class="badge bg-{{ 'danger' if severity == 'critical' else 'warning text-dark' if severity == 'warning' else 'secondary' }}">{{ count }}</span>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0"><i class="fas fa-tasks"></i> Resolution Status</h5>
+                </div>
+                <div class="card-body text-center">
+                    <p><strong>Resolved:</strong> {{ current_metrics.resolved_alarms }}</p>
+                    <p><strong>Pending:</strong> {{ current_metrics.unresolved_alarms }}</p>
+
+                    {% if current_metrics.total_alarms > 0 %}
+                    {% set resolution_pct = (current_metrics.resolved_alarms / current_metrics.total_alarms * 100) %}
+                    <hr>
+                    <h5 class="text-center">Resolution Rate: {{ "%.1f"|format(resolution_pct) }}%</h5>
+                    <div class="progress" style="height: 20px;">
+                        <div class="progress-bar bg-success" role="progressbar" style="width: {{ resolution_pct }}%;">{{ "%.1f"|format(resolution_pct) }}%</div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Critical Alerts -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card border-danger">
+                <div class="card-header bg-danger text-white">
+                    <h5 class="mb-0"><i class="fas fa-exclamation-triangle"></i> Critical Alerts</h5>
+                </div>
+                <div class="card-body">
+                    {% if current_metrics.unresolved_alarms > 0 %}
+                    <p class="text-danger mb-2"><strong>{{ current_metrics.unresolved_alarms }} alarm(s) still unresolved!</strong></p>
+                    <p>Immediate attention required for active alarms to prevent further downtime.</p>
+                    {% endif %}
+
+                    {% if current_metrics.recurring_count > 0 %}
+                    <p class="text-warning mb-2"><strong>{{ current_metrics.recurring_count }} alarm(s) flagged as recurring</strong></p>
+                    <p>Root cause analysis recommended for these repeating issues.</p>
+                    {% endif %}
+
+                    {% if current_metrics.total_downtime_minutes > 480 %}
+                    <p class="text-danger mb-2"><strong>Total downtime exceeds 8 hours ({{ "%.1f"|format(current_metrics.total_downtime_minutes) }} min)</strong></p>
+                    <p>Review alarm patterns and consider preventive maintenance program adjustments.</p>
+                    {% endif %}
+
+                    {% if current_metrics.unresolved_alarms == 0 and current_metrics.recurring_count == 0 and current_metrics.total_downtime_minutes <= 480 %}
+                    <div class="alert alert-success mb-0">
+                        <i class="fas fa-check-circle"></i> No critical alerts - alarm status is within acceptable ranges.
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+{% endblock %}

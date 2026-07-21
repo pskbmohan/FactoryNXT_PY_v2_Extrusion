@@ -1,0 +1,205 @@
+{% extends "base.html" %}
+{% block title %}Inspection Management Executive Summary{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-12 d-flex justify-content-between align-items-center">
+            <h3><i class="fas fa-file-alt"></i> Inspection Management Executive Summary</h3>
+            <a href="{{ url_for('inspection_management.index') }}" class="btn btn-outline-primary btn-sm">
+                <i class="fas fa-arrow-left"></i> Back to Dashboard
+            </a>
+        </div>
+    </div>
+
+    <!-- Period Comparison Cards -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card bg-primary text-white h-100">
+                <div class="card-body text-center">
+                    <h5 class="card-title"><i class="fas fa-calendar"></i> Current Period (Last 30 Days)</h5>
+                    <h4>{{ '%.1f'|format(current_compliance.compliance_pct) }}%</h4>
+                    <p class="mb-0 text-white-50">Overall Compliance Rate</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card bg-secondary text-white h-100">
+                <div class="card-body text-center">
+                    <h5 class="card-title"><i class="fas fa-calendar-alt"></i> Previous Period</h5>
+                    <h4>{{ '%.1f'|format(previous_compliance.compliance_pct) }}%</h4>
+                    <p class="mb-0 text-white-50">Overall Compliance Rate</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Period-over-Period Comparison -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card border-info">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0"><i class="fas fa-chart-line"></i> Period-over-Period Comparison</h5>
+                </div>
+                <div class="card-body">
+                    {% set compliance_diff = current_compliance.compliance_pct - previous_compliance.compliance_pct %}
+                    {% if compliance_diff > 0 %}
+                    <p class="text-success mb-2"><i class="fas fa-arrow-up"></i> Compliance improved by {{ '%.1f'|format(compliance_diff) }} percentage points</p>
+                    {% elif compliance_diff < 0 %}
+                    <p class="text-danger mb-2"><i class="fas fa-arrow-down"></i> Compliance decreased by {{ '%.1f'|format(abs(compliance_diff)) }} percentage points</p>
+                    {% else %}
+                    <p class="text-muted mb-2">No change in compliance rate between periods</p>
+                    {% endif %}
+
+                    <!-- Side-by-side comparison -->
+                    <div class="row mt-4">
+                        <div class="col-md-6">
+                            <h6>Current Period Metrics</h6>
+                            <ul class="list-group list-group-flush">
+                                <li class="list-group-item d-flex justify-content-between">
+                                    <span>Total Required:</span>
+                                    <strong>{{ current_compliance.total_required or 'N/A' }}</strong>
+                                </li>
+                                <li class="list-group-item d-flex justify-content-between">
+                                    <span>Total Completed:</span>
+                                    <strong>{{ current_compliance.total_completed or 'N/A' }}</strong>
+                                </li>
+                                <li class="list-group-item d-flex justify-content-between">
+                                    <span>Pass Rate:</span>
+                                    <strong>{{ '%.1f'|format(current_compliance.pass_rate_pct) }}%</strong>
+                                </li>
+                            </ul>
+                        </div>
+
+                        <div class="col-md-6">
+                            <h6>Previous Period Metrics</h6>
+                            <ul class="list-group list-group-flush">
+                                <li class="list-group-item d-flex justify-content-between">
+                                    <span>Total Required:</span>
+                                    <strong>{{ previous_compliance.total_required or 'N/A' }}</strong>
+                                </li>
+                                <li class="list-group-item d-flex justify-content-between">
+                                    <span>Total Completed:</span>
+                                    <strong>{{ previous_compliance.total_completed or 'N/A' }}</strong>
+                                </li>
+                                <li class="list-group-item d-flex justify-content-between">
+                                    <span>Pass Rate:</span>
+                                    <strong>{{ '%.1f'|format(previous_compliance.pass_rate_pct) }}%</strong>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- First-Piece Validation Summary -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card border-success">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0"><i class="fas fa-check-double"></i> First-Piece Validation Summary (Req #12)</h5>
+                </div>
+                <div class="card-body">
+                    <!-- Current period FPV -->
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <h6>Current Period</h6>
+                            <table class="table table-sm">
+                                <tr>
+                                    <td width="150"><strong>Total Validations:</strong></td>
+                                    <td>{{ current_first_piece.total or 0 }}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Passed:</strong></td>
+                                    <td class="text-success">{{ current_first_piece.pass_count or 0 }}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Failed:</strong></td>
+                                    <td class="text-danger">{{ (current_first_piece.total or 0) - (current_first_piece.pass_count or 0) }}</td>
+                                </tr>
+                            </table>
+                        </div>
+
+                        <div class="col-md-6">
+                            <h6>Previous Period</h6>
+                            <table class="table table-sm">
+                                <tr>
+                                    <td width="150"><strong>Total Validations:</strong></td>
+                                    <td>{{ previous_first_piece.total or 0 }}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Passed:</strong></td>
+                                    <td class="text-success">{{ previous_first_piece.pass_count or 0 }}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Failed:</strong></td>
+                                    <td class="text-danger">{{ (previous_first_piece.total or 0) - (previous_first_piece.pass_count or 0) }}</td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- FPV Performance Indicator -->
+                    {% set current_fpv_rate = (current_first_piece.pass_count / current_first_piece.total * 100) if (current_first_piece.total or 0) > 0 else 100 %}
+                    {% set prev_fpv_rate = (previous_first_piece.pass_count / previous_first_piece.total * 100) if (previous_first_piece.total or 0) > 0 else 100 %}
+                    {% set fpv_diff = current_fpv_rate - prev_fpv_rate %}
+
+                    <div class="alert alert-{% if fpv_diff >= 5 %}success{% elif fpv_diff <= -5 %}danger{% else %}info{% endif %}">
+                        <i class="fas fa-{{ 'thumbs-up' if fpv_diff >= 0 else 'arrow-left' }}"></i>
+                        First-piece validation pass rate: <strong>{{ '%.1f'|format(current_fpv_rate) }}%</strong> (was {{ '%.1f'|format(prev_fpv_rate) }}%).
+                        {% if fpv_diff >= 5 %}Improved by {{ '%.1f'|format(fpv_diff) }} percentage points.{% elif fpv_diff <= -5 %}Decreased by {{ '%.1f'|format(abs(fpv_diff)) }} percentage points.{% else %}No significant change from previous period.{% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recommendations -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card border-warning">
+                <div class="card-header bg-warning text-dark">
+                    <h5 class="mb-0"><i class="fas fa-lightbulb"></i> Recommendations</h5>
+                </div>
+                <div class="card-body">
+                    {% if current_compliance.compliance_pct >= 95 %}
+                    <p><strong>Excellent compliance rate!</strong> Continue maintaining inspection schedules and review periodic for continuous improvement opportunities.</p>
+
+                    {% elif current_compliance.compliance_pct >= 80 %}
+                    <p><strong>Good compliance with room for improvement:</strong></p>
+                    <ul>
+                        <li>Review missed inspections and identify recurring bottlenecks</li>
+                        <li>Consider additional training for inspection procedures</li>
+                        <li>Evaluate if current frequencies align with actual risk levels</li>
+                    </ul>
+
+                    {% else %}
+                    <p><strong>Compliance rate below target - immediate action required:</strong></p>
+                    <ul>
+                        <li>Audit all active inspection plans for clarity and feasibility</li>
+                        <li>Identify top 3 causes of missed inspections</li>
+                        <li>Implement daily compliance tracking dashboard</li>
+                        <li>Schedule root cause analysis meeting with quality team</li>
+                    </ul>
+
+                    {% endif %}
+
+                    {% if current_fpv_rate < 90 %}
+                    <p class="mt-3"><strong>First-piece validation needs attention:</strong></p>
+                    <ul>
+                        <li>Review first-piece validation checklist for completeness</li>
+                        <li>Analyze failed validations to identify common issues</li>
+                        <li>Consider additional operator training on FPV requirements</li>
+                    </ul>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+{% endblock %}

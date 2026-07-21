@@ -1,0 +1,249 @@
+{% extends "layout.html" %}
+
+{% block title %}Control Charts - {{ work_order.order_number }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="bi bi-bar-chart"></i> X-bar and R Control Charts</h2>
+        <a href="/quality/spc/" class="btn btn-primary"><i class="bi bi-arrow-left"></i> Back to SPC Home</a>
+    </div>
+
+    <!-- Work Order Info -->
+    <div class="card mb-4 border-info">
+        <div class="card-body">
+            <h5><i class="bi bi-box-seam"></i> Work Order: {{ work_order.order_number }}</h5>
+            {% if work_order.profile_code %}
+            <p class="mb-1"><strong>Profile:</strong> {{ work_order.profile_code }}</p>
+            {% endif %}
+            {% if work_order.alloy %}
+            <p class="mb-0"><strong>Alloy:</strong> {{ work_order.alloy }}</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Dimension Filter -->
+    {% if available_dimensions|length > 1 %}
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="GET" class="d-flex flex-wrap gap-2 align-items-center">
+                <label><strong>Filter by Dimension:</strong></label>
+                <select name="dimension_type" class="form-select form-select-sm" style="min-width: 150px;" onchange="this.form.submit()">
+                    <option value="">All Dimensions</option>
+                    {% for dim in available_dimensions %}
+                    <option value="{{ dim }}" {% if dimension_type_filter == dim %}selected{% endif %}>{{ dim }}</option>
+                    {% endfor %}
+                </select>
+                <button type="submit" class="btn btn-sm btn-outline-primary">Apply Filter</button>
+            </form>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Control Chart Results -->
+    {% if xbar_r_result.success %}
+    <div class="row mb-4">
+        <!-- X-bar Chart Card -->
+        <div class="col-md-6">
+            <div class="card h-100 border-primary">
+                <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+                    <span><i class="bi bi-graph-up"></i> X-bar Chart (Process Mean)</span>
+                    <small>{{ xbar_r_result.statistics.n_samples }} subgroups</small>
+                </div>
+                <div class="card-body">
+                    <!-- Center Line and Control Limits -->
+                    <table class="table table-sm mb-3">
+                        <tbody>
+                            <tr>
+                                <th width="40%">Center Line (X-double-bar)</th>
+                                <td><strong>{{ "%.4f"|format(xbar_r_result.statistics.x_double_bar) }}</strong></td>
+                            </tr>
+                            <tr>
+                                <th>Upper Control Limit (UCL)</th>
+                                <td class="text-danger"><strong>{{ "%.4f"|format(xbar_r_result.control_limits.x_bar_chart.ucl) }}</strong></td>
+                            </tr>
+                            <tr>
+                                <th>Lower Control Limit (LCL)</th>
+                                <td class="text-danger"><strong>{{ "%.4f"|format(xbar_r_result.control_limits.x_bar_chart.lcl) }}</strong></td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <!-- Subgroup Data -->
+                    <h6>Subgroup Means:</h6>
+                    <div class="table-responsive" style="max-height: 300px; overflow-y: auto;">
+                        <table class="table table-sm table-striped">
+                            <thead class="sticky-top bg-light">
+                                <tr>
+                                    <th>Shift</th>
+                                    <th>X-bar Value</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for subgroup in xbar_r_result.subgroup_data %}
+                                <tr class="{{ 'table-danger' if subgroup.x_bar > xbar_r_result.control_limits.x_bar_chart.ucl or subgroup.x_bar < xbar_r_result.control_limits.x_bar_chart.lcl else '' }}">
+                                    <td>{{ subgroup.shift }}</td>
+                                    <td><strong>{{ "%.4f"|format(subgroup.x_bar) }}</strong></td>
+                                    <td>
+                                        {% if subgroup.x_bar > xbar_r_result.control_limits.x_bar_chart.ucl %}
+                                            <span class="badge bg-danger">Above UCL</span>
+                                        {% elif subgroup.x_bar < xbar_r_result.control_limits.x_bar_chart.lcl %}
+                                            <span class="badge bg-danger">Below LCL</span>
+                                        {% else %}
+                                            <span class="badge bg-success">In Control</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- R Chart Card -->
+        <div class="col-md-6">
+            <div class="card h-100 border-info">
+                <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+                    <span><i class="bi bi-arrows-expand"></i> R Chart (Process Variation)</span>
+                    <small>Average Range: {{ "%.4f"|format(xbar_r_result.statistics.r_bar) }}</small>
+                </div>
+                <div class="card-body">
+                    <!-- Center Line and Control Limits -->
+                    <table class="table table-sm mb-3">
+                        <tbody>
+                            <tr>
+                                <th width="40%">Center Line (R-bar)</th>
+                                <td><strong>{{ "%.4f"|format(xbar_r_result.statistics.r_bar) }}</strong></td>
+                            </tr>
+                            <tr>
+                                <th>Upper Control Limit (UCL)</th>
+                                <td class="text-danger"><strong>{{ "%.4f"|format(xbar_r_result.control_limits.r_chart.ucl) }}</strong></td>
+                            </tr>
+                            <tr>
+                                <th>Lower Control Limit (LCL)</th>
+                                <td><strong>{{ "%.4f"|format(xbar_r_result.control_limits.r_chart.lcl) }}</strong></td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <!-- Range Data -->
+                    <h6>Subgroup Ranges:</h6>
+                    <div class="table-responsive" style="max-height: 300px; overflow-y: auto;">
+                        <table class="table table-sm table-striped">
+                            <thead class="sticky-top bg-light">
+                                <tr>
+                                    <th>Shift</th>
+                                    <th>Range (R)</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for i, subgroup in enumerate(xbar_r_result.subgroup_data) %}
+                                <tr class="{{ 'table-danger' if subgroup.range > xbar_r_result.control_limits.r_chart.ucl else '' }}">
+                                    <td>{{ subgroup.shift }}</td>
+                                    <td><strong>{{ "%.4f"|format(subgroup.range) }}</strong></td>
+                                    <td>
+                                        {% if subgroup.range > xbar_r_result.control_limits.r_chart.ucl %}
+                                            <span class="badge bg-danger">Above UCL</span>
+                                        {% else %}
+                                            <span class="badge bg-success">In Control</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Control Violations -->
+    {% if xbar_r_result.control_violations %}
+    <div class="card mb-4 border-danger">
+        <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+            <span><i class="bi bi-exclamation-triangle"></i> Control Violations Detected ({{ xbar_r_result.control_violations|length }})</span>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-sm table-striped mb-0">
+                    <thead>
+                        <tr>
+                            <th>Shift</th>
+                            <th>Violation Type</th>
+                            <th>Value</th>
+                            <th>Limit Exceeded</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for violation in xbar_r_result.control_violations %}
+                        <tr>
+                            <td><strong>{{ violation.shift }}</strong></td>
+                            <td>{{ violation.violation_type }}</td>
+                            <td>{{ "%.4f"|format(violation.get('x_bar', violation.get('range'))) }}</td>
+                            <td><span class="badge bg-danger">{{ violation.limit_exceeded }}</span></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <!-- No Violations -->
+    <div class="card mb-4 border-success">
+        <div class="card-header bg-dark text-white">
+            <i class="bi bi-check-circle"></i> Process In Control
+        </div>
+        <div class="card-body">
+            <p class="mb-0"><strong>No control violations detected.</strong> All subgroup means and ranges are within statistical control limits.</p>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Control Chart Interpretation -->
+    <div class="card bg-light border-secondary">
+        <div class="card-header bg-dark text-white">
+            <i class="bi bi-info-circle"></i> X-bar and R Chart Reference
+        </div>
+        <div class="card-body">
+            <h6>X-bar Chart (Process Mean Tracking):</h6>
+            <ul class="small mb-3">
+                <li><strong>Center Line:</strong> Grand mean of all subgroup means (X-double-bar)</li>
+                <li><strong>UCL/LCL:</strong> ±3 sigma control limits calculated as X-double-bar ± A2 × R-bar</li>
+                <li><strong>Purpose:</strong> Detect shifts in process average over time</li>
+            </ul>
+            <h6>R Chart (Process Variation Tracking):</h6>
+            <ul class="small">
+                <li><strong>Center Line:</strong> Average of all subgroup ranges (R-bar)</li>
+                <li><strong>UCL/LCL:</strong> Control limits calculated as D4 × R-bar and D3 × R-bar</li>
+                <li><strong>Purpose:</strong> Detect changes in process variability/spread</li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- API Endpoint Reference -->
+    <div class="card bg-light border-secondary mt-4">
+        <div class="card-header bg-dark text-white">
+            <i class="bi bi-code-slash"></i> API Endpoint
+        </div>
+        <div class="card-body">
+            <p><strong>GET /quality/spc/api/control-charts/&lt;wo_id&gt;</strong></p>
+            <pre class="bg-dark text-light p-3 rounded"><code>curl http://localhost:5000/quality/spc/api/control-charts/{{ work_order.id }}</code></pre>
+        </div>
+    </div>
+
+    {% else %}
+    <!-- Error Display -->
+    <div class="alert alert-danger" role="alert">
+        <h4><i class="bi bi-exclamation-triangle"></i> Computation Failed</h4>
+        <p>{{ xbar_r_result.error }}</p>
+        <a href="/quality/spc/" class="btn btn-outline-primary mt-2">Return to SPC Dashboard</a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,156 @@
+{% extends "layout.html" %}
+
+{% block title %}Forward Trace - {{ search_batch }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="bi bi-arrow-right"></i> Forward Traceability</h2>
+        <a href="/quality/traceability/" class="btn btn-primary"><i class="bi bi-arrow-left"></i> Back to Search</a>
+    </div>
+
+    <!-- Batch Records -->
+    <div class="card mb-4 border-info">
+        <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+            <span><i class="bi bi-box-seam"></i> Batch Number: {{ search_batch }}</span>
+            <small>{{ batch_records|length }} trace records found</small>
+        </div>
+        <div class="card-body p-0">
+            {% if batch_records %}
+            <table class="table table-sm mb-0">
+                <thead class="sticky-top bg-light">
+                    <tr>
+                        <th>Trace ID</th>
+                        <th>Billet Code</th>
+                        <th>Die Code</th>
+                        <th>Work Order</th>
+                        <th>Date</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for record in batch_records %}
+                    <tr>
+                        <td><a href="/quality/traceability/trace/{{ record.id }}" class="text-primary"><strong>{{ record.id[:8] }}</strong></a></td>
+                        <td>{% if record.billet_code %}<code>{{ record.billet_code[:12] }}...</code>{% else %}-{% endif %}</td>
+                        <td>{% if record.die_code %}<code>{{ record.die_code[:10] }}</code>{% else %}-{% endif %}</td>
+                        <td><strong>{{ WorkOrder.query.get(record.work_order_id).order_number if WorkOrder.query.get(record.work_order_id) else 'Unknown' }}</strong></td>
+                        <td>{% if record.extrusion_timestamp %}{{ record.extrusion_timestamp.strftime('%Y-%m-%d') }}{% else %}-{% endif %}</td>
+                        <td><span class="badge bg-{{ 'success' if record.status == 'shipped' else ('info' if record.status == 'in_production' else 'warning') }}">{{ record.status|title }}</span></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <div class="text-center py-3 text-muted">No trace records found for batch number: {{ search_batch }}</div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Customer Order Association -->
+    <div class="card mb-4 border-success">
+        <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+            <span><i class="bi bi-box"></i> Associated Customer Orders</span>
+            <small>{{ associated_orders|length }} orders found</small>
+        </div>
+        <div class="card-body p-0">
+            {% if associated_orders %}
+            <table class="table table-sm mb-0">
+                <thead class="sticky-top bg-light">
+                    <tr>
+                        <th>Order Number</th>
+                        <th>Line ID</th>
+                        <th>Quantity Ordered</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for order in associated_orders %}
+                    <tr>
+                        <td><strong>{{ order.order_number }}</strong></td>
+                        <td><code>{{ order.line_id[:12] }}</code></td>
+                        <td>{{ order.quantity_ordered }} kg</td>
+                        <td>
+                            <a href="/quality/traceability/backward/{{ order.wo_id if hasattr(order, 'wo_id') else 1 }}" class="btn btn-sm btn-outline-info">
+                                <i class="bi bi-arrow-left"></i> Backward Trace
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <div class="text-center py-3 text-muted">
+                <p>No customer orders associated with this batch yet.</p>
+                <small>This may indicate the product is still in production or has not been assigned to a customer order line.</small>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Forward Trace Reference -->
+    <div class="card bg-light border-secondary">
+        <div class="card-header bg-dark text-white">
+            <i class="bi bi-info-circle"></i> Forward Traceability Guide
+        </div>
+        <div class="card-body">
+            <p><strong>Purpose:</strong> Given a batch number (from raw material receipt or production), identify all customer orders that received product made from that batch.</p>
+
+            <h6>Use Cases:</h6>
+            <ul class="small mb-3">
+                <li><strong>Customer Complaint Investigation:</strong> Customer reports quality issue → find which batches were used in their order</li>
+                <li><strong>Recall Management:</strong> Raw material supplier issues recall → identify all customers who received product from affected batches</li>
+                <li><strong>Quality Audit:</strong> Verify traceability chain completeness for customer orders</li>
+            </ul>
+
+            <h6>How It Works:</h6>
+            <ol class="small">
+                <li>Enter the batch number or heat number to search</li>
+                <li>All production records associated with that batch are displayed</li>
+                <li>If customer order line associations exist, those orders are listed below</li>
+                <li>Use "Backward Trace" links to investigate raw materials for specific work orders</li>
+            </ol>
+
+            <h6>API Integration:</h6>
+            <pre class="bg-dark text-light p-3 rounded small"><code># Forward trace API call
+GET /quality/traceability/api/forward/BATCH001
+
+# Returns:
+{
+  "batch_number": "BATCH001",
+  "trace_records_found": 5,
+  "associated_customer_orders": [
+    {"order_number": "CO2024-001", "line_id": "...", "quantity_ordered": "1000"}
+  ]
+}</code></pre>
+        </div>
+    </div>
+
+    <!-- Search Form -->
+    <div class="card mt-4 border-secondary">
+        <div class="card-header bg-dark text-white">
+            <i class="bi bi-search"></i> Perform New Forward Trace
+        </div>
+        <div class="card-body">
+            <form method="GET" action="/quality/traceability/forward/">
+                <div class="input-group input-group-sm">
+                    <span class="input-group-text"><strong>Batch Number:</strong></span>
+                    <input type="text" name="batch_number" class="form-control" placeholder="e.g., BATCH001, H12345" value="{{ search_batch }}">
+                    <button type="submit" class="btn btn-outline-primary">Search</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- API Endpoint Reference -->
+    <div class="card bg-light border-secondary mt-4">
+        <div class="card-header bg-dark text-white">
+            <i class="bi bi-code-slash"></i> API Endpoint for This Trace
+        </div>
+        <div class="card-body">
+            <p><strong>GET /quality/traceability/api/forward/{{ search_batch }}</strong></p>
+            <pre class="bg-dark text-light p-3 rounded"><code>curl http://localhost:5000/quality/traceability/api/forward/{{ search_batch }}</code></pre>
+        </div>
+    </div>
+</div>
+{% endblock %}

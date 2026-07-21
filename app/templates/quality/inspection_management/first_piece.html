@@ -1,0 +1,198 @@
+{% extends "base.html" %}
+{% block title %}First-Piece Validation (Req #12){% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-12 d-flex justify-content-between align-items-center">
+            <h3><i class="fas fa-check-double"></i> First-Piece Validation (Req #12)</h3>
+            <form method="GET" class="d-inline">
+                <input type="date" name="start" value="{{ start_date }}" class="form-control form-control-sm me-2" style="width: auto;">
+                <input type="date" name="end" value="{{ end_date }}" class="form-control form-control-sm me-2" style="width: auto;">
+                <button type="submit" class="btn btn-primary btn-sm">Apply</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Status Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-primary text-white h-100">
+                <div class="card-body text-center">
+                    <h5 class="card-title"><i class="fas fa-clock"></i> Pending Validations</h5>
+                    <h2>{{ total_pending }}</h2>
+                    <p class="mb-0 text-white-50">Awaiting first-piece check</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="card bg-success text-white h-100">
+                <div class="card-body text-center">
+                    <h5 class="card-title"><i class="fas fa-check-circle"></i> Completed FPV</h5>
+                    <h2>{{ first_piece_summary.total }}</h2>
+                    <p class="mb-0 text-white-50">Validations completed</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="card bg-info text-white h-100">
+                <div class="card-body text-center">
+                    <h5 class="card-title"><i class="fas fa-thumbs-up"></i> Passed</h5>
+                    <h2>{{ first_piece_summary.pass_count }}</h2>
+                    <p class="mb-0 text-white-50">First-piece approved</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="card bg-warning text-dark h-100">
+                <div class="card-body text-center">
+                    <h5 class="card-title"><i class="fas fa-exclamation-triangle"></i> Pass Rate</h5>
+                    <h2>{{ '%.1f'|format(pass_rate) }}%</h2>
+                    <p class="mb-0 text-dark-50">First-piece approval rate</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- First-Piece Validation Guidelines -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card bg-light border-info">
+                <div class="card-body">
+                    <h6><i class="fas fa-info-circle"></i> First-Piece Validation Requirements (Req #12)</h6>
+                    <p class="mb-0 small text-muted">
+                        Before production starts, operators must complete first-piece validation which includes:
+                        <ul class="mb-0 mt-2">
+                            <li><strong>Dimensional Verification:</strong> Measure key dimensions against specifications</li>
+                            <li><strong>Visual Inspection:</strong> Check for surface defects and proper formation</li>
+                            <li><strong>Process Parameter Confirmation:</strong> Verify extrusion parameters are within setpoints</li>
+                            <li><strong>Documentation:</strong> Record validation results before authorizing production run</li>
+                        </ul>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pending First-Piece Validations -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="fas fa-hourglass-half"></i> Pending First-Piece Validations</h5>
+                    {% if total_pending > 0 %}
+                    <span class="badge bg-danger">{{ total_pending }} pending</span>
+                    {% endif %}
+                </div>
+                <div class="card-body p-0">
+                    {% if pending_validations and pending_validations|length > 0 %}
+                    <table class="table table-striped mb-0">
+                        <thead class="table-light text-nowrap">
+                            <tr>
+                                <th>#</th>
+                                <th>Work Order</th>
+                                <th>Profile</th>
+                                <th>Die</th>
+                                <th>Scheduled Time</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for pv in pending_validations[:20] %}
+                            <tr>
+                                <td>{{ loop.index }}</td>
+                                <td><strong>{{ pv.wo_id or 'N/A' }}</strong></td>
+                                <td>{{ pv.profile_code or 'N/A' }}</td>
+                                <td>{{ pv.die_code or 'N/A' }}</td>
+                                <td>{{ pv.scheduled_time or 'Not Scheduled' }}</td>
+                                <td>
+                                    <a href="{{ url_for('inspection_management.first_piece_validate', wo_id=pv.wo_id) }}"
+                                       class="btn btn-sm btn-primary">Validate</a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                    {% else %}
+                    <div class="alert alert-success mb-0">
+                        <i class="fas fa-check-circle"></i> No pending first-piece validations. All active work orders have completed FPV.
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Completed First-Piece Inspections -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="fas fa-check-square"></i> Completed First-Piece Inspections</h5>
+                    <a href="{{ url_for('inspection_management.summary') }}" class="btn btn-outline-info btn-sm">View Full Summary</a>
+                </div>
+                <div class="card-body p-0">
+                    {% if first_piece_summary.total > 0 %}
+                    <!-- Performance indicator -->
+                    <div class="mb-3">
+                        {% if pass_rate >= 95 %}
+                        <span class="badge bg-success"><i class="fas fa-trophy"></i> Excellent FPV performance ({{ '%.1f'|format(pass_rate) }}% pass rate)</span>
+                        {% elif pass_rate >= 80 %}
+                        <span class="badge bg-warning text-dark"><i class="fas fa-thumbs-up"></i> Good FPV performance ({{ '%.1f'|format(pass_rate) }}% pass rate)</span>
+                        {% else %}
+                        <span class="badge bg-danger"><i class="fas fa-exclamation-triangle"></i> Review needed - low first-piece pass rate ({{ '%.1f'|format(pass_rate) }}%)</span>
+                        {% endif %}
+                    </div>
+
+                    <table class="table table-striped mb-0">
+                        <thead class="table-light text-nowrap">
+                            <tr>
+                                <th>#</th>
+                                <th>Work Order</th>
+                                <th>Profile</th>
+                                <th>Die</th>
+                                <th>Validated By</th>
+                                <th>Status</th>
+                                <th>Timestamp</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- This would show completed FPV records - simplified for now -->
+                            <tr>
+                                <td colspan="7" class="text-center text-muted">
+                                    Detailed completion records available in the executive summary view.
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    {% else %}
+                    <div class="alert alert-info mb-0">
+                        <i class="fas fa-info-circle"></i> No first-piece validations completed for the selected period.
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- Action Buttons -->
+<div class="row mt-4 mb-5">
+    <div class="col-12 d-flex justify-content-end gap-2">
+        <a href="{{ url_for('inspection_management.index') }}" class="btn btn-outline-primary">
+            <i class="fas fa-arrow-left"></i> Back to Dashboard
+        </a>
+        <a href="{{ url_for('inspection_management.plans') }}" class="btn btn-outline-success">
+            <i class="fas fa-list"></i> Inspection Plans (Req #10)
+        </a>
+        <a href="{{ url_for('inspection_management.summary') }}" class="btn btn-primary">
+            <i class="fas fa-file-alt"></i> Executive Summary
+        </a>
+    </div>
+</div>
+{% endblock %}

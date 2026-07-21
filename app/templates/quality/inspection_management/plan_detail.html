@@ -1,0 +1,178 @@
+{% extends "base.html" %}
+{% block title %}Inspection Plan Details - {{ plan.profile_code }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Breadcrumb -->
+    <div class="row mb-3">
+        <div class="col-12">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('inspection_management.index') }}">Dashboard</a></li>
+                    <li class="breadcrumb-item"><a href="{{ url_for('inspection_management.inspection_plans') }}">Inspection Plans</a></li>
+                    <li class="breadcrumb-item active">Plan Details - {{ plan.id }}</li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+
+    <!-- Plan Header -->
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h3><i class="fas fa-file-contract"></i> Inspection Plan Details</h3>
+        </div>
+        <div class="col-md-4 text-end">
+            <a href="{{ url_for('inspection_management.inspection_plans') }}" class="btn btn-outline-primary">
+                <i class="fas fa-arrow-left"></i> Back to Plans
+            </a>
+            <button class="btn btn-primary">
+                <i class="fas fa-edit"></i> Edit Plan
+            </button>
+        </div>
+    </div>
+
+    <!-- Plan Configuration -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card border-primary">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="fas fa-cog"></i> Plan Configuration</h5>
+                </div>
+                <div class="card-body">
+                    <table class="table table-borderless mb-0">
+                        <tr>
+                            <td width="20%"><strong>Plan ID:</strong></td>
+                            <td><code>{{ plan.id }}</code></td>
+                        </tr>
+                        <tr>
+                            <td><strong>Profile Code:</strong></td>
+                            <td>{{ plan.profile_code or '<em>All Profiles</em>' }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Inspection Type:</strong></td>
+                            <td>
+                                {% if plan.inspection_type %}
+                                <span class="badge bg-info">{{ plan.inspection_type|replace('_', ' ')|title }}</span>
+                                {% else %}
+                                Not Specified
+                                {% endif %}
+                            </td>
+                        </tr>
+                        <tr>
+                            <td><strong>Frequency:</strong></td>
+                            <td>{{ plan.frequency or '<em>As Needed</em>' }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Method:</strong></td>
+                            <td>{{ plan.method or '<em>Not Defined</em>' }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Acceptance Criteria:</strong></td>
+                            <td class="small">{{ (plan.acceptance_criteria[:100] + '...') if plan.acceptance_criteria and plan.acceptance_criteria|length > 100 else (plan.acceptance_criteria or '<em>Not Defined</em>') }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Status:</strong></td>
+                            <td>
+                                {% if plan.is_active %}
+                                <span class="badge bg-success"><i class="fas fa-check"></i> Active</span>
+                                {% else %}
+                                <span class="badge bg-secondary">Inactive</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Historical Compliance -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="fas fa-chart-bar"></i> Historical Compliance (Last 90 Days)</h5>
+                    <span class="badge bg-info">{{ inspection_count }} inspections</span>
+                </div>
+                <div class="card-body">
+                    {% if inspection_count > 0 %}
+                    <!-- Progress indicator -->
+                    <div class="row text-center mb-3">
+                        <div class="col-md-4">
+                            <h5>{{ inspection_count }}</h5>
+                            <p class="text-muted small">Total Inspections</p>
+                        </div>
+                        <div class="col-md-4">
+                            <h5 class="text-success">{{ passed_count }}</h5>
+                            <p class="text-muted small">Passed</p>
+                        </div>
+                        <div class="col-md-4">
+                            {% set failed = inspection_count - passed_count %}
+                            <h5 class="{% if failed > 0 %}text-danger{% else %}text-success{% endif %}">{{ failed }}</h5>
+                            <p class="text-muted small">Failed</p>
+                        </div>
+                    </div>
+
+                    <!-- Compliance percentage -->
+                    <div class="progress mb-3" style="height: 30px;">
+                        {% if compliance_pct >= 95 %}
+                        <div class="progress-bar bg-success" role="progressbar" style="width: {{ '%.1f'|format(compliance_pct) }}%;">{{ '%.1f'|format(compliance_pct) }}%</div>
+                        {% elif compliance_pct >= 80 %}
+                        <div class="progress-bar bg-warning text-dark" role="progressbar" style="width: {{ '%.1f'|format(compliance_pct) }}%;">{{ '%.1f'|format(compliance_pct) }}%</div>
+                        {% else %}
+                        <div class="progress-bar bg-danger" role="progressbar" style="width: {{ '%.1f'|format(compliance_pct) }}%;">{{ '%.1f'|format(compliance_pct) }}%</div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Related inspections list -->
+                    <h6><i class="fas fa-history"></i> Recent Inspections</h6>
+                    <table class="table table-sm">
+                        <thead class="table-light">
+                            <tr>
+                                <th>#</th>
+                                <th>Work Order</th>
+                                <th>Status</th>
+                                <th>Timestamp</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for insp in related_inspections[:10] %}
+                            <tr>
+                                <td>{{ loop.index }}</td>
+                                <td><strong>{{ insp.wo_id or 'N/A' }}</strong></td>
+                                <td>
+                                    {% if insp.pass_fail == 'pass' %}
+                                    <span class="badge bg-success">Pass</span>
+                                    {% elif insp.pass_fail == 'fail' %}
+                                    <span class="badge bg-danger">Fail</span>
+                                    {% else %}
+                                    <span class="badge bg-secondary">Pending</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ insp.timestamp.strftime('%Y-%m-%d %H:%M') if insp.timestamp else 'N/A' }}</td>
+                            </tr>
+                            {% endfor %}
+
+                            {% if related_inspections|length > 10 %}
+                            <tr>
+                                <td colspan="4" class="text-center text-muted small">
+                                    +{{ related_inspections|length - 10 }} more inspection(s)
+                                </td>
+                            </tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+
+                    {% else %}
+                    <div class="alert alert-info mb-0">
+                        <i class="fas fa-info-circle"></i> No historical inspections found for this plan in the last 90 days.
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+{% endblock %}

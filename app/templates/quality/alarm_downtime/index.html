@@ -1,0 +1,219 @@
+{% extends "layout.html" %}
+
+{% block title %}Alarm & Downtime Dashboard - Quality Reporting{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <h2><i class="fas fa-exclamation-triangle"></i> Alarm & Downtime Dashboard</h2>
+            <p class="text-muted">Machine alarm tracking and downtime analytics</p>
+        </div>
+    </div>
+
+    <!-- Date Range Filter -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <form method="GET" class="card bg-light border-0">
+                <div class="card-body p-3">
+                    <div class="row align-items-end">
+                        <div class="col-md-3">
+                            <label for="start" class="form-label">Start Date</label>
+                            <input type="date" name="start" id="start" class="form-control" value="{{ start_date }}">
+                        </div>
+                        <div class="col-md-3">
+                            <label for="end" class="form-label">End Date</label>
+                            <input type="date" name="end" id="end" class="form-control" value="{{ end_date }}">
+                        </div>
+                        <div class="col-md-2">
+                            <button type="submit" class="btn btn-primary w-100">Apply Filter</button>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- KPI Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-primary text-white h-100">
+                <div class="card-body text-center">
+                    <h5 class="card-title">{{ alarm_metrics.total_alarms }}</h5>
+                    <p class="card-text mb-0">Total Alarms</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-success text-white h-100">
+                <div class="card-body text-center">
+                    <h5 class="card-title">{{ alarm_metrics.resolved_alarms }}</h5>
+                    <p class="card-text mb-0">Resolved</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-warning text-dark h-100">
+                <div class="card-body text-center">
+                    <h5 class="card-title">{{ alarm_metrics.unresolved_alarms }}</h5>
+                    <p class="card-text mb-0">Unresolved</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-danger text-white h-100">
+                <div class="card-body text-center">
+                    <h5 class="card-title">{{ alarm_metrics.total_downtime_minutes }} min</h5>
+                    <p class="card-text mb-0">Total Downtime</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Alarms by Category (Pareto) -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="fas fa-chart-pie"></i> Alarms by Category</h5>
+                    <a href="{{ url_for('alarm_downtime.by_category') }}" class="btn btn-sm btn-outline-primary">View Details</a>
+                </div>
+                <div class="card-body p-0 table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Category</th>
+                                <th>Alarm Count</th>
+                                <th>Total Downtime (min)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for category, data in alarms_by_category.items() %}
+                            <tr>
+                                <td>{{ category or 'Unknown' }}</td>
+                                <td><strong>{{ data.count }}</strong></td>
+                                <td>{{ "%.1f"|format(data.total_downtime_minutes) }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recurring Alarms -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="fas fa-sync-alt"></i> Top Recurring Alarms</h5>
+                    <a href="{{ url_for('alarm_downtime.recurring') }}" class="btn btn-sm btn-outline-primary">View All Recurring</a>
+                </div>
+                <div class="card-body p-0 table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Alarm Code</th>
+                                <th>Alarm Name</th>
+                                <th>Occurrences</th>
+                                <th>Total Downtime (min)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for alarm in recurring_alarms %}
+                            <tr>
+                                <td><strong>{{ alarm.alarm_code }}</strong></td>
+                                <td>{{ alarm.alarm_name }}</td>
+                                <td><span class="badge bg-danger">{{ alarm.occurrence_count }}</span></td>
+                                <td>{{ "%.1f"|format(alarm.total_downtime_minutes) }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Alarms by Severity -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0"><i class="fas fa-exclamation-circle"></i> Alarms by Severity</h5>
+                </div>
+                <div class="card-body text-center">
+                    {% for severity, count in alarms_by_severity.items() %}
+                    <div class="d-flex justify-content-between mb-2 align-items-center">
+                        <span>{{ severity|capitalize }}:</span>
+                        <span class="badge bg-{{ 'danger' if severity == 'critical' else 'warning text-dark' if severity == 'warning' else 'secondary' }}">{{ count }}</span>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Alarms by Machine -->
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0"><i class="fas fa-industry"></i> Alarms by Machine</h5>
+                </div>
+                <div class="card-body p-0 table-responsive">
+                    <table class="table table-sm mb-0">
+                        <thead class="table-light small">
+                            <tr>
+                                <th>Machine ID</th>
+                                <th>Count</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for machine, count in alarms_by_machine.items() %}
+                            <tr>
+                                <td>{{ machine or 'Unknown' }}</td>
+                                <td><strong>{{ count }}</strong></td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Downtime Trend -->
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0"><i class="fas fa-chart-line"></i> Downtime Trend (Last 30 Days)</h5>
+                </div>
+                <div class="card-body">
+                    {% if downtime_trends %}
+                    <table class="table table-sm mb-0">
+                        <thead class="table-light small">
+                            <tr>
+                                <th>Date</th>
+                                <th>Downtime (min)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for trend in downtime_trends %}
+                            <tr>
+                                <td>{{ trend.date }}</td>
+                                <td class="{{ 'text-danger' if trend.downtime_minutes > 60 else '' }}">{{ "%.1f"|format(trend.downtime_minutes) }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                    {% else %}
+                    <p class="text-muted">No downtime data available for this period.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+{% endblock %}

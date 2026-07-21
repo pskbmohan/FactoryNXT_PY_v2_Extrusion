@@ -1,0 +1,183 @@
+{% extends "base.html" %}
+
+{% block title %}Quality Metrics by Profile{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-12 d-flex justify-content-between align-items-center">
+            <h3><i class="fas fa-filter"></i> Quality Metrics by Profile</h3>
+            <form method="GET" class="d-inline">
+                <input type="date" name="start" value="{{ start_date }}" class="form-control form-control-sm me-2" style="width: auto;">
+                <input type="date" name="end" value="{{ end_date }}" class="form-control form-control-sm me-2" style="width: auto;">
+                <button type="submit" class="btn btn-primary btn-sm">Apply</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Profile Performance Cards -->
+    {% if profile_metrics %}
+    <div class="row mb-4">
+        {% for profile, data in profile_metrics.items()|sort(attribute='1.ppm_rate') %}
+        <div class="col-md-4">
+            <div class="card h-100{% if data.ppm_rate <= 50000 %} border-success{% elif data.ppm_rate <= 100000 %} border-warning{% else %} border-danger{% endif %}">
+                <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                    <span><strong>{{ profile }}</strong></span>
+                    <span class="badge badge-{{ 'success' if data.ppm_rate <= 50000 else ('warning' if data.ppm_rate <= 100000 else 'danger') }}">
+                        {{ data.ppm_rate }} PPM
+                    </span>
+                </div>
+                <div class="card-body">
+                    <h5 class="text-muted small mb-3">Performance Analysis</h5>
+
+                    <div class="mb-3">
+                        <small class="text-muted d-block">Parts Produced:</small>
+                        <strong>{{ data.parts_produced }}</strong>
+                    </div>
+
+                    <div class="mb-3">
+                        <small class="text-muted d-block">Defects:</small>
+                        {{ data.defects }}
+                    </div>
+
+                    <hr>
+
+                    <div class="row text-center">
+                        <div class="col-6">
+                            <p class="mb-1 text-muted small">Yield</p>
+                            <h4>{{ data.yield_pct }}%</h4>
+                        </div>
+                        <div class="col-6">
+                            <p class="mb-1 text-muted small">Target PPM</p>
+                            <h5>50K</h5>
+                        </div>
+                    </div>
+
+                    {% if data.ppm_rate <= 50000 %}
+                    <div class="alert alert-success mt-3 mb-0 text-center small">
+                        <i class="fas fa-check-circle"></i> Target Met!
+                    </div>
+                    {% else %}
+                    <div class="alert alert-warning mt-3 mb-0 text-center small">
+                        <i class="fas fa-exclamation-triangle"></i> Above target - Review needed
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Detailed Table View -->
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0"><i class="fas fa-table"></i> Profile Performance Details</h5>
+                </div>
+                <div class="card-body p-0">
+                    <table class="table table-striped mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Profile</th>
+                                <th class="text-right">Parts Produced</th>
+                                <th class="text-right">Defects</th>
+                                <th class="text-right">PPM Rate</th>
+                                <th class="text-center">Yield %</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for profile, data in profile_metrics.items()|sort(attribute='1.ppm_rate') %}
+                            <tr>
+                                <td><strong>{{ profile }}</strong></td>
+                                <td class="text-right">{{ data.parts_produced }}</td>
+                                <td class="text-right{% if data.defects > 0 %} text-danger{% endif %}">{{ data.defects }}</td>
+                                <td class="text-right">
+                                    <span class="{% if data.ppm_rate <= 50000 %}text-success{% elif data.ppm_rate <= 100000 %}text-warning{% else %}text-danger{% endif %}">
+                                        {{ data.ppm_rate }} PPM
+                                    </span>
+                                </td>
+                                <td class="text-center">
+                                    <div class="progress" style="height: 20px;">
+                                        <div class="progress-bar bg-{{ 'success' if data.yield_pct >= 95 else ('warning' if data.yield_pct >= 90 else 'danger') }}" role="progressbar"
+                                             style="width: {{ data.yield_pct }}%;" aria-valuenow="{{ data.yield_pct }}" aria-valuemin="0" aria-valuemax="100">
+                                            {{ data.yield_pct }}%
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    {% if data.ppm_rate <= 50000 %}
+                                    <span class="badge bg-success"><i class="fas fa-check"></i> On Target</span>
+                                    {% elif data.ppm_rate <= 100000 %}
+                                    <span class="badge bg-warning"><i class="fas fa-exclamation-triangle"></i> Review</span>
+                                    {% else %}
+                                    <span class="badge bg-danger"><i class="fas fa-times-circle"></i> Action Required</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Summary Statistics -->
+    <div class="row mt-4">
+        <div class="col-md-12">
+            <div class="card bg-light">
+                <div class="card-body">
+                    <h5><i class="fas fa-chart-bar"></i> Profile Performance Summary</h5>
+                    <div class="row mt-3">
+                        {% set all_ppm = profile_metrics.values()|map(attribute='ppm_rate')|list %}
+                        {% if all_ppm %}
+                        <div class="col-md-4 text-center">
+                            <p class="mb-1 text-muted">Average PPM</p>
+                            <h3>{{ '%.2f'|format(all_ppm|sum / all_ppm|length) }} PPM</h3>
+                        </div>
+                        <div class="col-md-4 text-center">
+                            <p class="mb-1 text-muted">Best Performing Profile</p>
+                            {% set best = profile_metrics.values()|min(attribute='ppm_rate') %}
+                            <h5>{{ loop.index0 }}</h5>
+                        </div>
+                        <div class="col-md-4 text-center">
+                            <p class="mb-1 text-muted">Worst Performing Profile</p>
+                            {% set worst = profile_metrics.values()|max(attribute='ppm_rate') %}
+                            <h5>{{ worst.ppm_rate }} PPM</h5>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% else %}
+    <div class="row">
+        <div class="col-md-12">
+            <div class="alert alert-info">
+                <i class="fas fa-info-circle"></i> No profile quality data available for the selected period.
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+</div>
+
+<!-- Action Buttons -->
+<div class="row mt-4 mb-5">
+    <div class="col-12 d-flex justify-content-end gap-2">
+        <a href="{{ url_for('quality_metrics.index') }}" class="btn btn-outline-primary">
+            <i class="fas fa-arrow-left"></i> Back to Dashboard
+        </a>
+        <a href="{{ url_for('quality_metrics.by_alloy') }}" class="btn btn-outline-info">
+            <i class="fas fa-flask"></i> By Alloy
+        </a>
+        <a href="{{ url_for('quality_metrics.summary') }}" class="btn btn-success">
+            <i class="fas fa-file-alt"></i> Executive Summary
+        </a>
+    </div>
+</div>
+{% endblock %}

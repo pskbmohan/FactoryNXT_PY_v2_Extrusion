@@ -1,0 +1,178 @@
+{% extends "layout.html" %}
+
+{% block title %}Backward Trace - {{ work_order.order_number }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="bi bi-arrow-left"></i> Backward Traceability</h2>
+        <a href="/quality/traceability/" class="btn btn-primary"><i class="bi bi-arrow-left"></i> Back to Search</a>
+    </div>
+
+    <!-- Work Order Details -->
+    <div class="card mb-4 border-info">
+        <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+            <span><i class="bi bi-box-seam"></i> Work Order Information</span>
+        </div>
+        <div class="card-body">
+            {% if work_order %}
+            <table class="table table-sm mb-0">
+                <tbody>
+                    <tr>
+                        <th width="25%">Order Number</th>
+                        <td><strong>{{ work_order.order_number }}</strong></td>
+                        <th width="25%">Status</th>
+                        <td><span class="badge bg-secondary">{{ work_order.status|title if work_order.status else 'Unknown' }}</span></td>
+                    </tr>
+                    {% if work_order.profile_code %}
+                    <tr>
+                        <th>Profile Code</th>
+                        <td><code>{{ work_order.profile_code }}</code></td>
+                        <th>Alloy</th>
+                        <td><strong>{{ work_order.alloy or 'Unknown' }}</strong></td>
+                    </tr>
+                    {% endif %}
+                    {% if work_order.quantity_ordered %}
+                    <tr>
+                        <th>Quantity Ordered</th>
+                        <td>{{ work_order.quantity_ordered }} kg</td>
+                        <th>Date Created</th>
+                        <td>{% if work_order.created_at %}{{ work_order.created_at.strftime('%Y-%m-%d') }}{% else %}-{% endif %}</td>
+                    </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+            {% else %}
+            <p class="text-danger">Work order not found</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Raw Materials Used -->
+    <div class="card mb-4 border-success">
+        <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+            <span><i class="bi bi-box-seam"></i> Raw Materials Used in Production</span>
+            <small>{{ trace_records|length }} production records found</small>
+        </div>
+        <div class="card-body p-0">
+            {% if trace_records %}
+            <!-- Unique Billets -->
+            <h6 class="mt-3 mb-2"><i class="bi bi-cpu"></i> Billets Used:</h6>
+            <table class="table table-sm mb-4">
+                <thead class="sticky-top bg-light">
+                    <tr>
+                        <th>Billet Code</th>
+                        <th>Heat Number</th>
+                        <th>Batch Number</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for billet in unique_billets %}
+                    <tr>
+                        <td><code>{{ billet.billet_code }}</code></td>
+                        <td>{% if billet.heat_number != 'Unknown' %}<span class="badge bg-secondary">{{ billet.heat_number }}</span>{% else %}-{% endif %}</td>
+                        <td><span class="badge bg-info">{{ billet.batch_number }}</span></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+
+            <!-- Unique Dies Used -->
+            <h6 class="mb-2"><i class="bi bi-gear"></i> Dies Used:</h6>
+            <table class="table table-sm mb-0">
+                <thead class="sticky-top bg-light">
+                    <tr>
+                        <th>Die Code</th>
+                        <th>Batch Number (Material)</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for die in unique_dies %}
+                    <tr>
+                        <td><code>{{ die.die_code }}</code></td>
+                        <td><span class="badge bg-info">{{ die.batch_number }}</span></td>
+                        <td>
+                            <a href="/quality/traceability/forward/{{ die.batch_number }}" class="btn btn-sm btn-outline-success">Forward Trace</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <div class="text-center py-3 text-muted">No trace records found for this work order. Material-to-product linkage may not be complete.</div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Backward Trace Reference -->
+    <div class="card bg-light border-secondary mb-4">
+        <div class="card-header bg-dark text-white">
+            <i class="bi bi-info-circle"></i> Backward Traceability Guide
+        </div>
+        <div class="card-body">
+            <p><strong>Purpose:</strong> Given a work order, identify all raw materials (billets and dies) used in its production.</p>
+
+            <h6>Use Cases:</h6>
+            <ul class="small mb-3">
+                <li><strong>Root Cause Analysis:</strong> Customer complaint → trace back to specific billet batch or die that caused the issue</li>
+                <li><strong>Quality Investigation:</strong> Process deviation detected → identify which materials were being used at the time</li>
+                <li><strong>Due Diligence:</strong> Verify material specifications for customer order fulfillment</li>
+            </ul>
+
+            <h6>How It Works:</h6>
+            <ol class="small">
+                <li>Enter work order ID or number to search</li>
+                <li>All production records associated with that work order are retrieved</li>
+                <li>Billet and die codes used in production are displayed</li>
+                <li>"Forward Trace" links allow investigation of customer orders from specific batches</li>
+            </ol>
+
+            <h6>API Integration:</h6>
+            <pre class="bg-dark text-light p-3 rounded small"><code># Backward trace API call
+GET /quality/traceability/api/backward/&lt;wo_id&gt;
+
+# Returns:
+{
+  "work_order_id": 123,
+  "trace_records_found": 3,
+  "raw_materials_used": [
+    {"batch_number": "BATCH001", "heat_number": "H12345", "billet_code": "BILLET001"},
+    {"batch_number": "BATCH002", "heat_number": "H67890", "die_code": "DIE001"}
+  ]
+}</code></pre>
+        </div>
+    </div>
+
+    <!-- Complaint Investigation Link -->
+    <div class="card mb-4 border-warning">
+        <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+            <span><i class="bi bi-search"></i> Root Cause Analysis</span>
+        </div>
+        <div class="card-body text-center py-3">
+            <h5>Customer Complaint Investigation Required?</h5>
+            <p class="text-muted mb-3">Use our complaint investigation tool to analyze SPC data, quality inspections, and test results for this work order.</p>
+            {% if work_order %}
+            <a href="/quality/traceability/complaint/{{ work_order.id }}" class="btn btn-warning">
+                <i class="bi bi-search"></i> Launch Complaint Investigation
+            </a>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- API Endpoint Reference -->
+    <div class="card bg-light border-secondary mt-4">
+        <div class="card-header bg-dark text-white">
+            <i class="bi bi-code-slash"></i> API Endpoint for This Trace
+        </div>
+        <div class="card-body">
+            {% if work_order %}
+            <p><strong>GET /quality/traceability/api/backward/{{ work_order.id }}</strong></p>
+            <pre class="bg-dark text-light p-3 rounded"><code>curl http://localhost:5000/quality/traceability/api/backward/{{ work_order.id }}</code></pre>
+            {% else %}
+            <div class="alert alert-warning mb-0">Work order not found - API endpoint unavailable</div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

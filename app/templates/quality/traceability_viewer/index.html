@@ -1,0 +1,215 @@
+{% extends "layout.html" %}
+
+{% block title %}End-to-End Traceability Viewer{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="bi bi-diagram-3"></i> End-to-End Traceability Viewer</h2>
+        <a href="/quality/traceability/" class="btn btn-primary"><i class="bi bi-arrow-left"></i> Back to Traceability Home</a>
+    </div>
+
+    <!-- Search Form -->
+    <div class="card mb-4 border-primary">
+        <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+            <span><i class="bi bi-search"></i> Traceability Search</span>
+            <small>{{ total_traces }} total trace records</small>
+        </div>
+        <div class="card-body">
+            <form method="GET" class="row g-3">
+                <div class="col-md-2">
+                    <label for="batch" class="form-label small"><strong>Batch Number:</strong></label>
+                    <input type="text" class="form-control form-control-sm" id="batch" name="batch" value="{{ search_params.batch }}" placeholder="e.g., BATCH001">
+                </div>
+                <div class="col-md-2">
+                    <label for="heat" class="form-label small"><strong>Heat Number:</strong></label>
+                    <input type="text" class="form-control form-control-sm" id="heat" name="heat" value="{{ search_params.heat }}" placeholder="e.g., H12345">
+                </div>
+                <div class="col-md-2">
+                    <label for="billet" class="form-label small"><strong>Billet Code:</strong></label>
+                    <input type="text" class="form-control form-control-sm" id="billet" name="billet" value="{{ search_params.billet }}" placeholder="e.g., BILLET001">
+                </div>
+                <div class="col-md-2">
+                    <label for="die" class="form-label small"><strong>Die Code:</strong></label>
+                    <input type="text" class="form-control form-control-sm" id="die" name="die" value="{{ search_params.die }}" placeholder="e.g., DIE001">
+                </div>
+                <div class="col-md-2">
+                    <label for="wo" class="form-label small"><strong>Work Order:</strong></label>
+                    <input type="text" class="form-control form-control-sm" id="wo" name="wo" value="{{ search_params.wo }}" placeholder="e.g., WO001">
+                </div>
+                <div class="col-md-2 d-flex align-items-end gap-2">
+                    <button type="submit" class="btn btn-primary btn-sm flex-fill"><i class="bi bi-search"></i> Search</button>
+                    <a href="/quality/traceability/" class="btn btn-outline-secondary btn-sm"><i class="bi bi-x-lg"></i></a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Quick Links -->
+    <div class="row g-4 mb-4">
+        <div class="col-md-3">
+            <div class="card h-100 border-success">
+                <div class="card-body text-center">
+                    <i class="bi bi-box-seam display-5 text-success"></i>
+                    <h5 class="mt-2">Forward Trace</h5>
+                    <p class="small text-muted mb-3">Find customer orders from batch number</p>
+                    <a href="/quality/traceability/forward/BATCH001" class="btn btn-sm btn-outline-success mt-auto">Try Example: BATCH001</a>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card h-100 border-info">
+                <div class="card-body text-center">
+                    <i class="bi bi-arrow-left-circle display-5 text-info"></i>
+                    <h5 class="mt-2">Backward Trace</h5>
+                    <p class="small text-muted mb-3">Find raw materials for work order</p>
+                    <a href="/quality/traceability/backward/1" class="btn btn-sm btn-outline-info mt-auto">Try Example: WO #1</a>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card h-100 border-warning">
+                <div class="card-body text-center">
+                    <i class="bi bi-search display-5 text-warning"></i>
+                    <h5 class="mt-2">Complaint Investigation</h5>
+                    <p class="small text-muted mb-3">Root cause analysis support</p>
+                    <a href="/quality/traceability/complaint/1" class="btn btn-sm btn-outline-warning mt-auto">Try Example: WO #1</a>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card h-100 border-secondary">
+                <div class="card-body text-center">
+                    <i class="bi bi-code-slash display-5 text-secondary"></i>
+                    <h5 class="mt-2">API Endpoints</h5>
+                    <p class="small text-muted mb-3">REST API for integration</p>
+                    <a href="/quality/traceability/api/search" class="btn btn-sm btn-outline-secondary mt-auto">View API Docs</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Trace Records -->
+    {% if trace_records %}
+    <div class="card mb-4">
+        <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+            <span><i class="bi bi-clock-history"></i> Recent Trace Records</span>
+            <small>{{ total_traces }} total records (showing latest 100)</small>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light sticky-top">
+                        <tr>
+                            <th>Trace ID</th>
+                            <th>Batch Number</th>
+                            <th>Heat Number</th>
+                            <th>Billet Code</th>
+                            <th>Die Code</th>
+                            <th>Work Order</th>
+                            <th>Extrusion Date</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for record in trace_records %}
+                        <tr>
+                            <td><a href="/quality/traceability/trace/{{ record.id }}" class="text-primary"><strong>{{ record.id[:8] }}</strong></a></td>
+                            <td><span class="badge bg-info">{{ record.batch_number }}</span></td>
+                            <td>{% if record.heat_number %}<span class="badge bg-secondary">{{ record.heat_number }}</span>{% else %}-{% endif %}</td>
+                            <td>{% if record.billet_code %}<code>{{ record.billet_code[:12] }}...</code>{% else %}-{% endif %}</td>
+                            <td>{% if record.die_code %}<code>{{ record.die_code[:10] }}</code>{% else %}-{% endif %}</td>
+                            <td><strong>{{ WorkOrder.query.get(record.work_order_id).order_number if WorkOrder.query.get(record.work_order_id) else 'Unknown' }}</strong></td>
+                            <td>{% if record.extrusion_timestamp %}{{ record.extrusion_timestamp.strftime('%Y-%m-%d') }}{% else %}-{% endif %}</td>
+                            <td><span class="badge bg-{{ 'success' if record.status == 'shipped' else ('info' if record.status == 'in_production' else 'warning') }}">{{ record.status|title }}</span></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Batches Summary -->
+    <div class="card mb-4">
+        <div class="card-header bg-dark text-white">
+            <i class="bi bi-box-seam"></i> Recent Production Batches (Top 10)
+        </div>
+        <div class="card-body p-0">
+            {% if recent_batches %}
+            <table class="table table-sm mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Batch Number</th>
+                        <th>Total Traces</th>
+                        <th>Last Extrusion Date</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for batch in recent_batches %}
+                    <tr>
+                        <td><strong>{{ batch.batch_number }}</strong></td>
+                        <td><span class="badge bg-primary">{{ batch.trace_count }}</span></td>
+                        <td>{% if batch.last_extrusion %}{{ batch.last_extrusion.strftime('%Y-%m-%d') }}{% else %}-{% endif %}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <div class="text-center py-3 text-muted">No batch data available</div>
+            {% endif %}
+        </div>
+    </div>
+
+    {% else %}
+    <!-- No Results -->
+    <div class="card mb-4 border-secondary">
+        <div class="card-header bg-dark text-white">
+            <i class="bi bi-inbox"></i> Trace Records
+        </div>
+        <div class="card-body text-center py-5">
+            <p class="text-muted mb-3">No trace records found matching your search criteria.</p>
+            <a href="/quality/traceability/" class="btn btn-outline-primary mt-2"><i class="bi bi-arrow-left"></i> Reset Search</a>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Traceability Reference Guide -->
+    <div class="card bg-light border-secondary">
+        <div class="card-header bg-dark text-white">
+            <i class="bi bi-info-circle"></i> Traceability System Reference
+        </div>
+        <div class="card-body">
+            <h6>Data Flow:</h6>
+            <ul class="small mb-3">
+                <li><strong>Raw Material Receipt:</strong> Heat number assigned from foundry → stored in traceability system</li>
+                <li><strong>Billet Production:</strong> Billet code generated, linked to heat number and batch</li>
+                <li><strong>Extrusion:</strong> Die code used recorded, process parameters captured, work order associated</li>
+                <li><strong>Quality Verification:</strong> SPC data, inspections, and tests linked to trace record</li>
+                <li><strong>Customer Shipment:</strong> Customer order line association for forward traceability</li>
+            </ul>
+
+            <h6>Use Cases:</h6>
+            <ul class="small">
+                <li><strong>Search by Batch/Heat:</strong> Find all production associated with a raw material batch</li>
+                <li><strong>Forward Trace:</strong> Given a batch number, find which customer orders received product from that batch</li>
+                <li><strong>Backward Trace:</strong> Given a work order, identify the raw materials used in its production</li>
+                <li><strong>Complaint Investigation:</strong> When a customer complaint arises, quickly trace back to root cause (material, die, process parameters)</li>
+            </ul>
+
+            <h6>API Integration:</h6>
+            <pre class="bg-dark text-light p-3 rounded small"><code># Search for traces
+GET /quality/traceability/api/search?batch=BATCH001&heat=H12345
+
+# Get detailed trace record
+GET /quality/traceability/api/trace/&lt;trace_id&gt;
+
+# Forward trace (find customer orders from batch)
+GET /quality/traceability/api/forward/BATCH001
+
+# Backward trace (find raw materials for work order)
+GET /quality/traceability/api/backward/&lt;wo_id&gt;</code></pre>
+        </div>
+    </div>
+</div>
+{% endblock %}

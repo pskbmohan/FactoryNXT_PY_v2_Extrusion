@@ -1,0 +1,348 @@
+{% extends "layout.html" %}
+
+{% block title %}Generate MTC - {{ work_order.order_number }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="bi bi-file-earmark-text"></i> Generate Material Test Certificate</h2>
+        <a href="/quality/mtc-reports/" class="btn btn-primary"><i class="bi bi-arrow-left"></i> Back to MTC Home</a>
+    </div>
+
+    <!-- Work Order Header -->
+    {% if work_order %}
+    <div class="card mb-4 border-info">
+        <div class="card-body">
+            <h5><i class="bi bi-box-seam"></i> Work Order: {{ work_order.order_number }}</h5>
+            {% if work_order.profile_code %}
+            <p class="mb-1"><strong>Profile:</strong> {{ work_order.profile_code }}</p>
+            {% endif %}
+            {% if work_order.alloy %}
+            <p class="mb-0"><strong>Alloy:</strong> {{ alloy.alloy_name if alloy else work_order.alloy }}</p>
+            {% endif %}
+        </div>
+    </div>
+    {% else %}
+    <div class="alert alert-danger">Work order not found</div>
+    {% endif %}
+
+    <!-- Traceability Information -->
+    <div class="card mb-4 border-primary">
+        <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+            <span><i class="bi bi-diagram-3"></i> Material Traceability</span>
+            <small>{{ trace_records|length }} production records found</small>
+        </div>
+        <div class="card-body">
+            <table class="table table-sm mb-0">
+                <thead class="sticky-top bg-light">
+                    <tr>
+                        <th>Batch Number</th>
+                        <th>Heat Number</th>
+                        <th>Billet Code</th>
+                        <th>Extrusion Date</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for record in trace_records %}
+                    <tr>
+                        <td><span class="badge bg-info">{{ record.batch_number }}</span></td>
+                        <td>{% if record.heat_number %}<code>{{ record.heat_number[:12] }}...</code>{% else %}-{% endif %}</td>
+                        <td>{% if record.billet_code %}<code>{{ record.billet_code[:12] }}</code>{% else %}-{% endif %}</td>
+                        <td><small>{{ record.extrusion_timestamp.strftime('%Y-%m-%d') if record.extrusion_timestamp else '-' }}</small></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+
+            <!-- Summary Statistics -->
+            <div class="row mt-3 pt-3 border-top">
+                <div class="col-md-4">
+                    <strong>Batches Covered:</strong><br>
+                    <small>{{ batch_numbers|length }} unique batches</small>
+                </div>
+                <div class="col-md-4">
+                    <strong>Heat Numbers:</strong><br>
+                    <small>{{ heat_numbers|length }} heats identified</small>
+                </div>
+                <div class="col-md-4">
+                    <strong>Billet Codes:</strong><br>
+                    <small>{{ billet_codes|length }} billets tracked</small>
+                </div>
+            </div>
+
+            <!-- Extrusion Period -->
+            <div class="row mt-3 pt-3 border-top">
+                <div class="col-md-6">
+                    <strong>First Extrusion:</strong><br>
+                    <span class="badge bg-secondary">{{ first_extrusion_date }}</span>
+                </div>
+                <div class="col-md-6">
+                    <strong>Last Extrusion:</strong><br>
+                    <span class="badge bg-secondary">{{ last_extrusion_date }}</span>
+                </div>
+            </div>
+
+            <!-- Customer Order Linkage -->
+            {% if customer_orders %}
+            <h6 class="mt-3 mb-2"><i class="bi bi-box"></i> Associated Customer Orders:</h6>
+            <table class="table table-sm">
+                <thead>
+                    <tr>
+                        <th>Order Number</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for order in customer_orders %}
+                    <tr>
+                        <td><strong>{{ order.order_number }}</strong></td>
+                        <td><a href="/quality/traceability/forward/{{ batch_numbers[0] if batch_numbers else 'BATCH' }}" class="btn btn-sm btn-outline-info">Forward Trace</a></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% endif %}
+
+        </div>
+    </div>
+
+    <!-- Alloy Chemical Composition -->
+    <div class="card mb-4 border-success">
+        <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+            <span><i class="bi bi-flask"></i> Material Specifications</span>
+        </div>
+        <div class="card-body p-0">
+            {% if alloy %}
+            <table class="table table-sm mb-0">
+                <thead class="sticky-top bg-light">
+                    <tr>
+                        <th width="35%">Element</th>
+                        <th width="20%">Min Spec (%)</th>
+                        <th width="20%">Max Spec (%)</th>
+                        <th width="25%">Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if alloy.composition %}
+                    {% for element, limits in alloy.composition.items() %}
+                    <tr>
+                        <td><strong>{{ element }}</strong></td>
+                        <td>{% if isinstance(limits, dict) and 'min' in limits %}{{ limits.min }}{% else %}-{% endif %}</td>
+                        <td>{% if isinstance(limits, dict) and 'max' in limits %}{{ limits.max }}{% elif not isinstance(limits, dict) %}{{ limits }}{% else %}-{% endif %}</td>
+                        <td><span class="badge bg-success">Specified</span></td>
+                    </tr>
+                    {% endfor %}
+                    {% else %}
+                    <tr>
+                        <td colspan="4" class="text-center text-muted py-3">No composition data available</td>
+                    </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+
+            <!-- Alloy Details -->
+            <div class="mt-3 p-3 bg-light rounded">
+                <p><strong>Alloy Designation:</strong> {{ alloy.alloy_name }}</p>
+                {% if alloy.standard %}
+                <p><strong>Standard:</strong> {{ alloy.standard }}</p>
+                {% endif %}
+            </div>
+
+            {% else %}
+            <div class="text-center py-4 text-muted">
+                <i class="bi bi-exclamation-circle display-5"></i>
+                <p class="mt-3">Alloy composition data not found for {{ work_order.alloy or 'this order' }}</p>
+                <small>Contact your administrator to add alloy specifications</small>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Mechanical Test Results -->
+    <div class="card mb-4 border-info">
+        <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+            <span><i class="bi bi-check2-square"></i> Mechanical Test Results</span>
+            <small>{{ test_events|length }} tests completed</small>
+        </div>
+        <div class="card-body p-0">
+            {% if test_events %}
+            <table class="table table-hover mb-0">
+                <thead class="sticky-top bg-light">
+                    <tr>
+                        <th>Date Tested</th>
+                        <th>Test Type</th>
+                        <th>Result Value</th>
+                        <th>Acceptance Limit</th>
+                        <th>Status</th>
+                        <th>Tester</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for test in test_events %}
+                    <tr class="{{ 'table-success' if test.passed is sameas true else ('table-danger' if test.passed is sameas false else '') }}">
+                        <td><small>{{ test.tested_at.strftime('%Y-%m-%d') if test.tested_at else '-' }}</small></td>
+                        <td><span class="badge bg-primary">{{ test.test_type|title }}</span></td>
+                        <td>{% if test.result_value is not none %}<strong>{{ "%.2f"|format(test.result_value) }}{% endif %}</td>
+                        <td>{% if test.acceptance_limit is not none %}{{ "%.2f"|format(test.acceptance_limit) }}{% else %}-{% endif %}</td>
+                        <td>
+                            {% if test.passed is sameas true %}
+                                <span class="badge bg-success">PASS</span>
+                            {% elif test.passed is sameas false %}
+                                <span class="badge bg-danger">FAIL</span>
+                            {% else %}
+                                <span class="badge bg-warning text-dark">PENDING</span>
+                            {% endif %}
+                        </td>
+                        <td>{% if test.tester_name %}<small>{{ test.tester_name }}</small>{% else %}-{% endif %}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+
+            <!-- Test Summary -->
+            <div class="row mt-3 pt-3 border-top">
+                <div class="col-md-4 text-center">
+                    <h5 class="text-success">{{ inspection_summary.passed }}</h5>
+                    <small>Passed Tests</small>
+                </div>
+                <div class="col-md-4 text-center">
+                    <h5 class="text-danger">{{ inspection_summary.failed }}</h5>
+                    <small>Failed Tests</small>
+                </div>
+                <div class="col-md-4 text-center">
+                    <h5 class="text-warning">{{ inspection_summary.pending if 'pending' in inspection_summary else 0 }}</h5>
+                    <small>Pending Tests</small>
+                </div>
+            </div>
+
+            {% else %}
+            <div class="text-center py-4 text-muted">
+                <i class="bi bi-inbox display-5"></i>
+                <p class="mt-3">No mechanical test results recorded for this work order.</p>
+                <small>MTC generation requires at least one completed test</small>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Quality Inspection Summary -->
+    <div class="card mb-4 border-warning">
+        <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+            <span><i class="bi bi-check2"></i> Quality Inspections</span>
+            <small>{{ inspection_summary.total }} total inspections</small>
+        </div>
+        <div class="card-body p-0">
+            {% if inspection_summary %}
+            <table class="table table-sm mb-0">
+                <thead class="sticky-top bg-light">
+                    <tr>
+                        <th width="35%">Result</th>
+                        <th width="25%">Count</th>
+                        <th width="40%">Percentage</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr class="table-success">
+                        <td><span class="badge bg-success">PASS</span></td>
+                        <td><strong>{{ inspection_summary.passed }}</strong></td>
+                        <td>
+                            {% set pass_pct = (inspection_summary.passed / inspection_summary.total * 100)|round(1) if inspection_summary.total > 0 else 0 %}
+                            <div class="progress" style="height: 20px;">
+                                <div class="progress-bar bg-success" role="progressbar" style="width: {{ pass_pct }}%;">{{ pass_pct }}%</div>
+                            </div>
+                        </td>
+                    </tr>
+                    {% if inspection_summary.failed > 0 %}
+                    <tr class="table-danger">
+                        <td><span class="badge bg-danger">FAIL</span></td>
+                        <td><strong>{{ inspection_summary.failed }}</strong></td>
+                        <td>
+                            <div class="progress" style="height: 20px;">
+                                <div class="progress-bar bg-danger" role="progressbar" style="width: {{ (inspection_summary.failed / inspection_summary.total * 100)|round(1) }}%;">{{ (inspection_summary.failed / inspection_summary.total * 100)|round(1) }}%</div>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+            {% else %}
+            <div class="text-center py-3 text-muted">No inspection data available</div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- MTC Generation Actions -->
+    <div class="card mb-4 border-primary">
+        <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+            <span><i class="bi bi-download"></i> Generate & Export MTC</span>
+        </div>
+        <div class="card-body">
+            {% if test_events %}
+            <p class="text-success mb-4"><strong>MTC Generation Ready:</strong> All required data is available for certificate generation.</p>
+
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <div class="card h-100 border-success">
+                        <div class="card-body text-center">
+                            <i class="bi bi-file-pdf display-4 text-success"></i>
+                            <h5 class="mt-3 mb-2">Download PDF Certificate</h5>
+                            <p class="small text-muted mb-3">Print-ready Material Test Certificate with all specifications and test results.</p>
+                            <a href="/quality/mtc-reports/export/pdf/{{ work_order.id }}" class="btn btn-success btn-lg" target="_blank">
+                                <i class="bi bi-download"></i> Download PDF
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card h-100 border-info">
+                        <div class="card-body text-center">
+                            <i class="bi bi-code-slash display-4 text-info"></i>
+                            <h5 class="mt-3 mb-2">Get JSON Data</h5>
+                            <p class="small text-muted mb-3">Structured MTC data for system integration or custom PDF generation.</p>
+                            <a href="/quality/mtc-reports/api/mtc/{{ work_order.id }}" class="btn btn-info btn-lg" target="_blank">
+                                <i class="bi bi-box-arrow-up-right"></i> View JSON API
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Certificate Preview -->
+            <h6 class="mt-4 mb-3"><i class="bi bi-eye"></i> MTC Preview</h6>
+            <table class="table table-sm">
+                <tr><th>Certificate Number:</th><td>MTC-{{ work_order.order_number }}-{{ date.today().strftime('%Y%m%d') }}</td></tr>
+                <tr><th>Order Number:</th><td>{{ work_order.order_number }}</td></tr>
+                <tr><th>Profile Code:</th><td>{{ work_order.profile_code or 'N/A' }}</td></tr>
+                <tr><th>Alloy:</th><td>{{ alloy.alloy_name if alloy else (work_order.alloy or 'Unknown') }}</td></tr>
+                <tr><th>Batches Covered:</th><td>{{ batch_numbers|length }} batches</td></tr>
+                <tr><th>Total Tests:</th><td>{{ test_events|length }} tests</td></tr>
+            </table>
+
+            {% else %}
+            <div class="alert alert-warning">
+                <strong>MTC Generation Not Ready:</strong> This work order is missing mechanical test results required for MTC generation. Please complete all necessary testing before generating the certificate.
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- API Endpoint Reference -->
+    <div class="card bg-light border-secondary">
+        <div class="card-header bg-dark text-white">
+            <i class="bi bi-code-slash"></i> MTC Generation API Endpoints
+        </div>
+        <div class="card-body">
+            <h6>Available Endpoints:</h6>
+
+            <pre class="bg-dark text-light p-3 rounded small mb-2"><code># Get MTC data as JSON
+GET /quality/mtc-reports/api/mtc/{{ work_order.id }}</code></pre>
+
+            <pre class="bg-dark text-light p-3 rounded small mb-2"><code># Download PDF certificate (direct file download)
+GET /quality/mtc-reports/export/pdf/{{ work_order.id }}</code></pre>
+
+            <pre class="bg-dark text-light p-3 rounded small"><code># Get MTC data as base64-encoded PDF for web display
+GET /quality/mtc-reports/api/export/pdf/{{ work_order.id }}</code></pre>
+        </div>
+    </div>
+</div>
+{% endblock %}

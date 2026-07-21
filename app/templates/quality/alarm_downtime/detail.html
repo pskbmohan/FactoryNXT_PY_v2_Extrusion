@@ -1,0 +1,150 @@
+{% extends "layout.html" %}
+
+{% block title %}Alarm Detail - {{ alarm.alarm_code }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-3">
+        <div class="col-md-6">
+            <h2><i class="fas fa-exclamation-triangle"></i> Alarm Detail: {{ alarm.alarm_code }}</h2>
+            <p class="text-muted">{{ alarm.alarm_name }}</p>
+        </div>
+        <div class="col-md-6 text-end">
+            <a href="{{ url_for('alarm_downtime.index') }}" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Back to Dashboard</a>
+        </div>
+    </div>
+
+    <!-- Alarm Basic Info -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card bg-light border-0">
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-md-3 border-end">
+                            <h5 class="text-muted mb-0">{{ alarm.alarm_code }}</h5>
+                            <small>Alarm Code</small>
+                        </div>
+                        <div class="col-md-3 border-end">
+                            <h5 class="text-muted mb-0">{{ alarm.alarm_name or 'N/A' }}</h5>
+                            <small>Alarm Name</small>
+                        </div>
+                        <div class="col-md-3 border-end">
+                            <h5 class="text-muted mb-0">{{ alarm.category or 'Unknown' }}</h5>
+                            <small>Category</small>
+                        </div>
+                        <div class="col-md-3">
+                            <h5 class="text-muted mb-0">
+                                {% if alarm.severity == 'critical' %}
+                                    <span class="badge bg-danger">{{ alarm.severity|upper }}</span>
+                                {% elif alarm.severity == 'warning' %}
+                                    <span class="badge bg-warning text-dark">{{ alarm.severity|upper }}</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">{{ alarm.severity|upper }}</span>
+                                {% endif %}
+                            </h5>
+                            <small>Severity</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Timing and Resolution -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0"><i class="fas fa-clock"></i> Timing Information</h5>
+                </div>
+                <div class="card-body">
+                    <p><strong>Started:</strong> {{ alarm.started_at.strftime('%Y-%m-%d %H:%M') if alarm.started_at else '-' }}</p>
+                    {% if alarm.ended_at %}
+                    <p><strong>Ended:</strong> {{ alarm.ended_at.strftime('%Y-%m-%d %H:%M') }}</p>
+                    {% endif %}
+                    <p><strong>Duration:</strong> {{ "%.1f"|format(alarm.duration_min or 0) }} minutes</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Resolution Info -->
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0"><i class="fas fa-tools"></i> Resolution Information</h5>
+                </div>
+                <div class="card-body">
+                    {% if alarm.ended_at %}
+                    <p><strong>Resolved By:</strong> {{ alarm.resolved_by or 'N/A' }}</p>
+                    <hr>
+                    <p><strong>Notes:</strong></p>
+                    <p class="text-muted">{{ alarm.resolution_notes or 'No notes provided.' }}</p>
+                    {% else %}
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-circle"></i> This alarm is still unresolved.
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recurring Flag -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card {{ 'border-danger' if alarm.is_recurring else '' }}">
+                <div class="card-header {{ 'bg-danger text-white' if alarm.is_recurring else 'bg-secondary text-white' }}">
+                    <h5 class="mb-0"><i class="fas fa-sync-alt"></i> Recurring Alarm Status</h5>
+                </div>
+                <div class="card-body">
+                    {% if alarm.is_recurring %}
+                    <p class="text-danger"><strong>This is a recurring alarm.</strong></p>
+                    <p>This alarm has been identified as repeating. Consider root cause analysis and preventive measures.</p>
+                    {% else %}
+                    <p><span class="badge bg-success">Not Recurring</span></p>
+                    <p>This alarm has not been flagged as recurring.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Related Alarms -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0"><i class="fas fa-history"></i> Related Alarms (Same Code, Similar Timeframe)</h5>
+                </div>
+                <div class="card-body p-0 table-responsive">
+                    {% if related_alarms %}
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Date Started</th>
+                                <th>Machine ID</th>
+                                <th>Duration (min)</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for related in related_alarms %}
+                            <tr>
+                                <td><a href="{{ url_for('alarm_downtime.detail', alarm_id=related.id) }}">{{ related.started_at.strftime('%Y-%m-%d') if related.started_at else '-' }}</a></td>
+                                <td>{{ related.machine_id or 'N/A' }}</td>
+                                <td>{{ "%.1f"|format(related.duration_min or 0) }}</td>
+                                <td><span class="badge bg-{{ 'success' if related.ended_at else 'warning text-dark' }}">{{ 'Resolved' if related.ended_at else 'Active' }}</span></td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                    {% else %}
+                    <p class="text-muted">No related alarms found.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+{% endblock %}

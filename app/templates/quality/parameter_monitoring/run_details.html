@@ -1,0 +1,139 @@
+{% extends "base.html" %}
+
+{% block title %}Extrusion Run #{{ run.id }} - Parameter Details{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-12 d-flex justify-content-between align-items-center">
+            <h3><i class="fas fa-microchip"></i> Extrusion Run #{{ run.id }} - Parameter Details</h3>
+            <a href="{{ url_for('parameter_monitoring.index') }}" class="btn btn-outline-primary btn-sm">
+                <i class="fas fa-arrow-left"></i> Back to Dashboard
+            </a>
+        </div>
+    </div>
+
+    <!-- Run Information Card -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card bg-light">
+                <div class="card-body">
+                    <h5><i class="fas fa-info-circle"></i> Extrusion Run Information</h5>
+                    <hr>
+                    <div class="row">
+                        <div class="col-md-3"><strong>Work Order:</strong> {{ run.wo_id }}</div>
+                        <div class="col-md-3"><strong>Die ID:</strong> {{ run.die_id }}</div>
+                        <div class="col-md-3"><strong>Profile Code:</strong> {{ run.profile_code or 'N/A' }}</div>
+                        <div class="col-md-3"><strong>Alloy:</strong> {{ run.alloy or 'N/A' }}</div>
+                    </div>
+                    <div class="row mt-2">
+                        <div class="col-md-3"><strong>Started:</strong> {{ run.started_at.strftime('%Y-%m-%d %H:%M') if run.started_at else 'N/A' }}</div>
+                        <div class="col-md-3"><strong>Completed:</strong> {{ run.completed_at.strftime('%Y-%m-%d %H:%M') if run.completed_at else 'N/A' }}</div>
+                        <div class="col-md-3"><strong>Expected Output:</strong> {{ run.expected_output or 'N/A' }} kg</div>
+                        <div class="col-md-3"><strong>Status:</strong> <span class="badge bg-primary">{{ run.status|capitalize if run.status else 'Unknown' }}</span></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Parameter Readings Table -->
+    {% if readings %}
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0"><i class="fas fa-list-alt"></i> Parameter Readings ({{ readings|length }} total)</h5>
+                </div>
+                <div class="card-body p-0">
+                    <table class="table table-sm table-bordered mb-0" style="font-size: 12px;">
+                        <thead class="table-light text-nowrap">
+                            <tr>
+                                <th>#</th>
+                                <th>Timestamp</th>
+                                <th>Billet Temp (°C)</th>
+                                <th>Container Temp (°C)</th>
+                                <th>Die Temp (°C)</th>
+                                <th>Exit Temp (°C)</th>
+                                <th>Ram Speed</th>
+                                <th>Pressure (bar)</th>
+                                <th>Force (kN)</th>
+                                <th>Cycle Time (s)</th>
+                                <th class="text-center">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for reading in readings %}
+                            <tr class="{% if not reading.all_within_limits %}table-danger{% endif %}">
+                                <td>{{ loop.index }}</td>
+                                <td>{{ reading.timestamp.strftime('%H:%M:%S') if reading.timestamp else '-' }}</td>
+                                <td>{% if reading.billet_temp %}<strong>{{ '%.1f'|format(reading.billet_temp) }}°C</strong>{% else %}-{% endif %}</td>
+                                <td>{% if reading.container_temp %}<strong>{{ '%.1f'|format(reading.container_temp) }}°C</strong>{% else %}-{% endif %}</td>
+                                <td>{% if reading.die_temp %}<strong>{{ '%.1f'|format(reading.die_temp) }}°C</strong>{% else %}-{% endif %}</td>
+                                <td>{% if reading.exit_temp %}<strong>{{ '%.1f'|format(reading.exit_temp) }}°C</strong>{% else %}-{% endif %}</td>
+                                <td>{% if reading.ram_speed %}{{ '%.2f'|format(reading.ram_speed) }} mm/s{% else %}-{% endif %}</td>
+                                <td>{% if reading.main_cylinder_pressure %}<strong>{{ '%.1f'|format(reading.main_cylinder_pressure) }}</strong>{% else %}-{% endif %}</td>
+                                <td>{% if reading.extrusion_force %}{{ '%.1f'|format(reading.extrusion_force) }} kN{% else %}-{% endif %}</td>
+                                <td>{% if reading.cycle_time %}{{ '%.2f' if reading.cycle_time else '-' }}</td>
+                                <td class="text-center">
+                                    {% if reading.all_within_limits %}
+                                    <span class="badge bg-success"><i class="fas fa-check"></i></span>
+                                    {% else %}
+                                    <span class="badge bg-danger"><i class="fas fa-times"></i></span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Setpoint Profile Comparison -->
+    {% if setpoint_profile %}
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <h5><i class="fas fa-bullseye"></i> Setpoint Profile Comparison</h5>
+                    <p class="mb-0"><strong>Profile:</strong> {{ setpoint_profile.profile_code }} | <strong>Alloy:</strong> {{ setpoint_profile.alloy }}</p>
+                    <hr>
+                    <div class="row text-center">
+                        <div class="col-md-3">
+                            <small class="text-white-50">Billet Temp Range</small><br>
+                            <span class="badge bg-light text-dark">{{ setpoint_profile.billet_temp_min }}°C - {{ setpoint_profile.billet_temp_max }}°C</span>
+                        </div>
+                        <div class="col-md-3">
+                            <small class="text-white-50">Die Temp Range</small><br>
+                            <span class="badge bg-light text-dark">{{ setpoint_profile.die_temp_min }}°C - {{ setpoint_profile.die_temp_max }}°C</span>
+                        </div>
+                        <div class="col-md-3">
+                            <small class="text-white-50">Ram Speed Range</small><br>
+                            <span class="badge bg-light text-dark">{{ setpoint_profile.ram_speed_min }} - {{ setpoint_profile.ram_speed_max }}</span>
+                        </div>
+                        <div class="col-md-3">
+                            <small class="text-white-50">Pressure Range</small><br>
+                            <span class="badge bg-light text-dark">{{ setpoint_profile.pressure_min }} - {{ setpoint_profile.pressure_max }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% endif %}
+
+    {% else %}
+    <div class="row">
+        <div class="col-md-12">
+            <div class="alert alert-info">
+                <i class="fas fa-info-circle"></i> No parameter readings available for this extrusion run.
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+</div>
+{% endblock %}

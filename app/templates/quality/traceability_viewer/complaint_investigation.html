@@ -1,0 +1,290 @@
+{% extends "layout.html" %}
+
+{% block title %}Complaint Investigation - {{ work_order.order_number }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="bi bi-search"></i> Complaint Investigation</h2>
+        <a href="/quality/traceability/" class="btn btn-primary"><i class="bi bi-arrow-left"></i> Back to Search</a>
+    </div>
+
+    <!-- Work Order Header -->
+    {% if work_order %}
+    <div class="card mb-4 border-info">
+        <div class="card-body">
+            <h5><i class="bi bi-box-seam"></i> Work Order: {{ work_order.order_number }}</h5>
+            {% if work_order.profile_code %}
+            <p class="mb-1"><strong>Profile:</strong> {{ work_order.profile_code }}</p>
+            {% endif %}
+            {% if work_order.alloy %}
+            <p class="mb-0"><strong>Alloy:</strong> {{ work_order.alloy }}</p>
+            {% endif %}
+        </div>
+    </div>
+    {% else %}
+    <div class="alert alert-danger">Work order not found</div>
+    {% endif %}
+
+    <!-- Investigation Summary Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card border-warning text-center h-100">
+                <div class="card-body">
+                    <h6 class="text-muted">SPC Capability</h6>
+                    {% if spc_data and spc_data.get('capability') %}
+                        {% set cpk = spc_data.capability.Cpk %}
+                        <h2 class="{{ 'text-success' if cpk >= 1.0 else ('text-warning' if cpk >= 0.67 else 'text-danger') }}">Cpk: {{ "%.3f"|format(cpk) }}</h2>
+                        {% set status = spc_data.interpretation.status if spc_data.get('interpretation') else 'unknown' %}
+                        <span class="badge bg-{{ 'success' if cpk >= 1.33 else ('info' if cpk >= 1.0 else ('warning' if cpk >= 0.67 else 'danger')) }}">{{ status|title }}</span>
+                    {% elif spc_data and spc_data.get('error') %}
+                        <h4 class="text-muted">-</h4>
+                        <small class="text-muted">{{ spc_data.error }}</small>
+                    {% else %}
+                        <h2 class="text-muted">-</h2>
+                        <small class="text-muted">No SPC data</small>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-danger text-center h-100">
+                <div class="card-body">
+                    <h6 class="text-muted">Control Violations</h6>
+                    {% if spc_data and 'violations_count' in spc_data %}
+                        <h2 class="{{ 'text-success' if spc_data.violations_count == 0 else 'text-danger' }}">{{ spc_data.violations_count }}</h2>
+                        <span class="badge bg-{{ 'success' if spc_data.violations_count == 0 else 'danger' }}">
+                            {{ 'In Control' if spc_data.violations_count == 0 else 'Violations Detected' }}
+                        </span>
+                    {% else %}
+                        <h2 class="text-muted">-</h2>
+                        <small class="text-muted">No violations data</small>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-success text-center h-100">
+                <div class="card-body">
+                    <h6 class="text-muted">Quality Inspections</h6>
+                    {% if inspection_summary %}
+                        <h2>{{ inspection_summary.passed }}/{{ inspection_summary.total_inspections }}</h2>
+                        <span class="badge bg-success">{{ inspection_summary.failed }} failed</span>
+                    {% else %}
+                        <h2 class="text-muted">-</h2>
+                        <small class="text-muted">No data available</small>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-info text-center h-100">
+                <div class="card-body">
+                    <h6 class="text-muted">Test Results</h6>
+                    {% if test_summary %}
+                        <h2>{{ test_summary.passed }}/{{ test_summary.total_tests }}</h2>
+                        <span class="badge bg-{{ 'success' if test_summary.failed == 0 else 'danger' }}">
+                            {{ test_summary.failed }} failed
+                        </span>
+                    {% else %}
+                        <h2 class="text-muted">-</h2>
+                        <small class="text-muted">No data available</small>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Material Traceability Records -->
+    <div class="card mb-4 border-primary">
+        <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+            <span><i class="bi bi-box-seam"></i> Material Traceability</span>
+            <small>{{ trace_records|length }} records found</small>
+        </div>
+        <div class="card-body p-0">
+            {% if trace_records %}
+            <table class="table table-sm mb-0">
+                <thead class="sticky-top bg-light">
+                    <tr>
+                        <th>Batch Number</th>
+                        <th>Heat Number</th>
+                        <th>Billet Code</th>
+                        <th>Die Code Used</th>
+                        <th>Extrusion Date</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for record in trace_records %}
+                    <tr>
+                        <td><span class="badge bg-info">{{ record.batch_number }}</span></td>
+                        <td>{% if record.heat_number %}<code>{{ record.heat_number[:12] }}...</code>{% else %}-{% endif %}</td>
+                        <td>{% if record.billet_code %}<code>{{ record.billet_code[:12] }}</code>{% else %}-{% endif %}</td>
+                        <td>{% if record.die_code %}<code>{{ record.die_code[:10] }}</code>{% else %}-{% endif %}</td>
+                        <td><small>{{ record.extrusion_timestamp.strftime('%Y-%m-%d') if record.extrusion_timestamp else '-' }}</small></td>
+                        <td><span class="badge bg-{{ 'success' if record.status == 'shipped' else ('info' if record.status == 'in_production' else 'warning') }}">{{ record.status|title }}</span></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <div class="text-center py-3 text-muted">No trace records found for this work order</div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Root Cause Analysis Recommendations -->
+    <div class="card mb-4 border-warning">
+        <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+            <span><i class="bi bi-lightbulb"></i> Root Cause Analysis</span>
+        </div>
+        <div class="card-body">
+            {% set has_spc_data = spc_data and spc_data.get('capability') %}
+            {% set violations = spc_data.violations_count if (spc_data and 'violations_count' in spc_data) else 0 %}
+
+            <h6>Potential Root Causes to Investigate:</h6>
+
+            <!-- SPC Capability Issues -->
+            {% if has_spc_data and cpk is defined and cpk < 1.0 %}
+            <div class="alert alert-warning">
+                <strong><i class="bi bi-exclamation-triangle"></i> Low Process Capability (Cpk: {{ "%.3f"|format(cpk) }})</strong>
+                <p class="mb-2 small">The process may not be capable of consistently meeting specifications. Investigate:</p>
+                <ul class="small mb-0">
+                    <li>Check for tool wear or die degradation</li>
+                    <li>Review extrusion parameter drift over time</li>
+                    <li>Verify raw material specification compliance</li>
+                    <li>Consider process centering adjustments</li>
+                </ul>
+            </div>
+            {% endif %}
+
+            <!-- Control Violations -->
+            {% if violations > 0 %}
+            <div class="alert alert-danger">
+                <strong><i class="bi bi-exclamation-octagon"></i> {{ violations }} Control Violation(s) Detected</strong>
+                <p class="mb-2 small">Out-of-control conditions indicate process instability. Investigate:</p>
+                <ul class="small mb-0">
+                    <li>Review timeline of violation occurrences</li>
+                    <li>Check for equipment malfunctions during violations</li>
+                    <li>Identify if specific operators or shifts correlate with violations</li>
+                    <li>Analyze parameter readings at time of violations</li>
+                </ul>
+            </div>
+            {% endif %}
+
+            <!-- Quality Inspection Failures -->
+            {% if inspection_summary and inspection_summary.failed > 0 %}
+            <div class="alert alert-danger">
+                <strong><i class="bi bi-check2-square"></i> {{ inspection_summary.failed }} Failed Inspection(s)</strong>
+                <p class="mb-2 small">Failed quality inspections require investigation:</p>
+                <ul class="small mb-0">
+                    <li>Review defect codes associated with failures</li>
+                    <li>Check if failures cluster by date, shift, or operator</li>
+                    <li>Verify inspection method consistency</li>
+                    <li>Identify root cause of defects (material, process, measurement)</li>
+                </ul>
+            </div>
+            {% endif %}
+
+            <!-- Test Failures -->
+            {% if test_summary and test_summary.failed > 0 %}
+            <div class="alert alert-danger">
+                <strong><i class="bi bi-flask"></i> {{ test_summary.failed }} Failed Test(s)</strong>
+                <p class="mb-2 small">Failed material tests indicate potential quality issues:</p>
+                <ul class="small mb-0">
+                    <li>Identify which specific tests failed (Webster, Barcol, UTS, etc.)</li>
+                    <li>Check if failures correlate with specific billet batches</li>
+                    <li>Verify test equipment calibration and procedure compliance</li>
+                    <li>Consider material specification verification</li>
+                </ul>
+            </div>
+            {% endif %}
+
+            <!-- No Issues Detected -->
+            {% if (not has_spc_data or cpk is not defined or cpk >= 1.0) and violations == 0 and (not inspection_summary or inspection_summary.failed == 0) and (not test_summary or test_summary.failed == 0) %}
+            <div class="alert alert-success">
+                <strong><i class="bi bi-check-circle"></i> No Quality Issues Detected</strong>
+                <p class="mb-0 small">All quality indicators are within acceptable ranges. The complaint may be unrelated to process or material issues.</p>
+            </div>
+            {% endif %}
+
+        </div>
+    </div>
+
+    <!-- Material Trace Details -->
+    <div class="card mb-4 border-secondary">
+        <div class="card-header bg-dark text-white">
+            <i class="bi bi-diagram-3"></i> Detailed Traceability Information
+        </div>
+        <div class="card-body p-0">
+            {% if trace_records %}
+            <table class="table table-sm mb-0">
+                <thead class="sticky-top bg-light">
+                    <tr>
+                        <th>Batch</th>
+                        <th>Heat Number</th>
+                        <th>Billet Code</th>
+                        <th>Die Code</th>
+                        <th>Date</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for record in trace_records %}
+                    <tr>
+                        <td><span class="badge bg-info">{{ record.batch_number }}</span></td>
+                        <td>{% if record.heat_number %}<code>{{ record.heat_number[:12] }}...</code>{% else %}-{% endif %}</td>
+                        <td>{% if record.billet_code %}<code>{{ record.billet_code[:12] }}</code>{% else %}-{% endif %}</td>
+                        <td>{% if record.die_code %}<code>{{ record.die_code[:10] }}</code>{% else %}-{% endif %}</td>
+                        <td><small>{{ record.extrusion_timestamp.strftime('%Y-%m-%d') if record.extrusion_timestamp else '-' }}</small></td>
+                        <td>
+                            <a href="/quality/traceability/forward/{{ record.batch_number }}" class="btn btn-sm btn-outline-success">Forward</a>
+                            <a href="/quality/traceability/trace/{{ record.id }}" class="btn btn-sm btn-outline-info">Details</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <div class="text-center py-3 text-muted">No trace records available for investigation</div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Investigation Checklist -->
+    <div class="card bg-light border-secondary mt-4">
+        <div class="card-header bg-dark text-white">
+            <i class="bi bi-list-check"></i> Complaint Investigation Checklist
+        </div>
+        <div class="card-body">
+            <ul class="small mb-0">
+                <li><input type="checkbox" checked disabled> Document customer complaint details and date received</li>
+                <li><input type="checkbox" id="check1" onclick="toggleAll(this)"> Review work order traceability records</li>
+                <li><input type="checkbox" id="check2"> Verify SPC capability indices (Cpk)</li>
+                <li><input type="checkbox" id="check3"> Check for control violations during production period</li>
+                <li><input type="checkbox" id="check4"> Review quality inspection results and defect codes</li>
+                <li><input type="checkbox" id="check5"> Analyze test event results (Webster, Barcol, UTS)</li>
+                <li><input type="checkbox" id="check6"> Correlate material batch with complaint timeline</li>
+                <li><input type="checkbox" id="check7"> Identify root cause and corrective actions required</li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- API Endpoint Reference -->
+    <div class="card bg-light border-secondary mt-4">
+        <div class="card-header bg-dark text-white">
+            <i class="bi bi-code-slash"></i> Investigation Data API
+        </div>
+        <div class="card-body">
+            <p><strong>GET /quality/traceability/api/backward/{{ work_order.id if work_order else '1' }}</strong></p>
+            <pre class="bg-dark text-light p-3 rounded"><code>curl http://localhost:5000/quality/traceability/api/backward/{{ work_order.id if work_order else '1' }}</code></pre>
+        </div>
+    </div>
+</div>
+
+<script>
+function toggleAll(source) {
+    document.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = source.checked);
+}
+</script>
+{% endblock %}

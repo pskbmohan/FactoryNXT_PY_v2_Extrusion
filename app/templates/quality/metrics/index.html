@@ -1,0 +1,390 @@
+{% extends "base.html" %}
+
+{% block title %}Quality Metrics Dashboard{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-12 d-flex justify-content-between align-items-center">
+            <h3><i class="fas fa-chart-line"></i> Quality Metrics Dashboard</h3>
+            <form method="GET" class="d-inline">
+                <input type="date" name="start" value="{{ start_date }}" class="form-control form-control-sm me-2" style="width: auto;">
+                <input type="date" name="end" value="{{ end_date }}" class="form-control form-control-sm me-2" style="width: auto;">
+                <button type="submit" class="btn btn-primary btn-sm">Apply</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- KPI Cards Row -->
+    <div class="row mb-4">
+        <!-- PPM Rate Card -->
+        <div class="col-md-3">
+            <div class="card bg-primary text-white h-100">
+                <div class="card-body">
+                    <h5 class="card-title"><i class="fas fa-percentage"></i> Overall PPM</h5>
+                    <h2>{{ ppm_data.ppm_rate }}</h2>
+                    <p class="mb-0 text-white-50">Defects per Million Parts</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Surface Defects Card -->
+        <div class="col-md-3">
+            <div class="card bg-warning text-dark h-100">
+                <div class="card-body">
+                    <h5 class="card-title"><i class="fas fa-exclamation-triangle"></i> Surface PPM</h5>
+                    <h2>{{ surface_defects_data.surface_ppm }}</h2>
+                    <p class="mb-0 text-dark-50">{{ surface_defects_data.total_surface_defects }} defects</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bend Per Meter Card -->
+        <div class="col-md-3">
+            <div class="card bg-success text-white h-100">
+                <div class="card-body">
+                    <h5 class="card-title"><i class="fas fa-ruler-horizontal"></i> Avg Bend/m</h5>
+                    <h2>{{ bend_per_meter_data.avg_bend_per_meter }}</h2>
+                    <p class="mb-0 text-white-50">{{ bend_per_meter_data.total_measurements }} measurements</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Target Comparison Card -->
+        <div class="col-md-3">
+            <div class="card bg-info text-white h-100">
+                <div class="card-body">
+                    <h5 class="card-title"><i class="fas fa-bullseye"></i> PPM Target</h5>
+                    <h2>{{ ppm_data.target_ppm }}</h2>
+                    <p class="mb-0 text-white-50">{{ 'Target Met' if ppm_data.ppm_rate <= ppm_data.target_ppm else 'Above Target - Review Needed' }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- PPM Analysis Section -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0"><i class="fas fa-chart-pie"></i> PPM by Defect Category</h5>
+                </div>
+                <div class="card-body">
+                    {% if ppm_data.defects_by_category %}
+                    <table class="table table-sm table-bordered">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Category</th>
+                                <th>Defects</th>
+                                <th>PPM Impact</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for category, data in ppm_data.defects_by_category.items() %}
+                            <tr>
+                                <td><span class="badge bg-secondary">{{ category }}</span></td>
+                                <td>{{ data.defect_count }}</td>
+                                <td>{{ data.ppm_contribution }} PPM</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                    {% else %}
+                    <p class="text-muted">No defect data available for selected period.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Top Defects Pareto -->
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0"><i class="fas fa-chart-bar"></i> Top 10 Defect Codes (Pareto)</h5>
+                </div>
+                <div class="card-body">
+                    {% if ppm_data.top_defects %}
+                    <table class="table table-sm table-bordered">
+                        <thead class="table-light">
+                            <tr>
+                                <th>#</th>
+                                <th>Code/Name</th>
+                                <th>Count</th>
+                                <th>PPM Impact</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for defect in ppm_data.top_defects %}
+                            <tr>
+                                <td>{{ loop.index }}</td>
+                                <td><strong>{{ defect.code }}</strong><br><small class="text-muted">{{ defect.name }}</small></td>
+                                <td>{{ defect.count }}</td>
+                                <td>{{ defect.ppm_impact }} PPM</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                    {% else %}
+                    <p class="text-muted">No defect data available for selected period.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Surface Defects Analysis -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0"><i class="fas fa-search"></i> Surface Defects Analysis</h5>
+                </div>
+                <div class="card-body">
+                    {% if surface_defects_data.total_surface_defects > 0 %}
+                    <div class="row mb-3">
+                        <div class="col-md-4 text-center">
+                            <div class="alert alert-warning d-inline-block m-2">
+                                <strong>Total:</strong> {{ surface_defects_data.total_surface_defects }} defects
+                            </div>
+                        </div>
+                        <div class="col-md-8">
+                            <h6>Severity Breakdown:</h6>
+                            <ul class="list-inline mb-0">
+                                {% for severity, count in surface_defects_data.severity_breakdown.items() %}
+                                <li class="list-inline-item badge bg-secondary">{{ severity|capitalize }}: {{ count }}</li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                    </div>
+
+                    <h6>By Defect Type:</h6>
+                    <table class="table table-sm table-bordered">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Defect Code</th>
+                                <th>Name</th>
+                                <th>Severity</th>
+                                <th>Count</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for code, data in surface_defects_data.by_defect_type.items() %}
+                            <tr>
+                                <td><span class="badge bg-danger">{{ code }}</span></td>
+                                <td>{{ data.name }}</td>
+                                <td><span class="badge badge-{{ 'danger' if data.severity == 'major' else ('warning' if data.severity == 'moderate' else 'secondary') }}">{{ data.severity|capitalize }}</span></td>
+                                <td>{{ data.count }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                    {% else %}
+                    <div class="alert alert-success">
+                        <i class="fas fa-check-circle"></i> No surface defects recorded for the selected period. Excellent quality performance!
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bend Per Meter Analysis -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0"><i class="fas fa-chart-area"></i> Bend Per Meter Statistics</h5>
+                </div>
+                <div class="card-body">
+                    {% if bend_per_meter_data.total_measurements > 0 %}
+                    <div class="row text-center mb-3">
+                        <div class="col-6">
+                            <p class="mb-1 text-muted">Average</p>
+                            <h4>{{ bend_per_meter_data.avg_bend_per_meter }}</h4>
+                        </div>
+                        <div class="col-6">
+                            <p class="mb-1 text-muted">Std Deviation</p>
+                            <h4>{{ bend_per_meter_data.std_deviation }}</h4>
+                        </div>
+                    </div>
+                    <div class="row text-center mb-3">
+                        <div class="col-6">
+                            <p class="mb-1 text-muted">Minimum</p>
+                            <h5>{{ bend_per_meter_data.min_bend_per_meter }}</h5>
+                        </div>
+                        <div class="col-6">
+                            <p class="mb-1 text-muted">Maximum</p>
+                            <h5>{{ bend_per_meter_data.max_bend_per_meter }}</h5>
+                        </div>
+                    </div>
+
+                    {% if bend_per_meter_data.by_profile %}
+                    <h6>Average by Profile:</h6>
+                    <ul class="list-group">
+                        {% for profile, stats in bend_per_meter_data.by_profile.items()|sort(attribute='1.avg_bend_per_meter', reverse=True) %}
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            {{ profile }}
+                            <span class="badge bg-primary rounded-pill">{{ stats.avg_bend_per_meter }}</span>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                    {% endif %}
+                    {% else %}
+                    <p class="text-muted">No bend-per-meter measurements available for selected period.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Performance by Shift -->
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0"><i class="fas fa-users"></i> Quality Metrics by Shift</h5>
+                </div>
+                <div class="card-body">
+                    {% if metrics_by_shift %}
+                    <table class="table table-sm table-bordered">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Shift</th>
+                                <th>PPM Rate</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for shift, data in metrics_by_shift.items() %}
+                            <tr>
+                                <td><strong>{{ shift }}</strong></td>
+                                <td class="{% if data.ppm_rate <= 50000 %}text-success{% elif data.ppm_rate <= 100000 %}text-warning{% else %}text-danger{% endif %}">
+                                    {{ data.ppm_rate }} PPM
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                    {% else %}
+                    <p class="text-muted">No shift-level quality data available for selected period.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Top Performing Operators -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0"><i class="fas fa-trophy"></i> Top Performing Operators (by Yield)</h5>
+                </div>
+                <div class="card-body">
+                    {% if top_operators %}
+                    <table class="table table-hover">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Rank</th>
+                                <th>Operator</th>
+                                <th>Parts Produced</th>
+                                <th>Defects</th>
+                                <th>PPM Rate</th>
+                                <th>Yield %</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for operator in top_operators[:10] %}
+                            <tr>
+                                <td><span class="badge badge-{{ 'success' if loop.index <= 3 else 'secondary' }}">{{ loop.index }}</span></td>
+                                <td>{{ operator.operator }}</td>
+                                <td>{{ operator.parts_produced }}</td>
+                                <td>{{ operator.defects }}</td>
+                                <td><strong>{{ operator.ppm_rate }} PPM</strong></td>
+                                <td class="text-{{ 'success' if operator.yield_pct >= 95 else ('warning' if operator.yield_pct >= 90 else 'danger') }}">
+                                    {{ operator.yield_pct }}%
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                    {% else %}
+                    <p class="text-muted">No operator quality data available for selected period.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quality KPI Trends -->
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0"><i class="fas fa-chart-line"></i> Quality KPI Trends (Last 30 Days)</h5>
+                </div>
+                <div class="card-body">
+                    {% if quality_trends %}
+                    <!-- Simple text-based trend display - Chart.js can be added for visualization -->
+                    <table class="table table-sm table-bordered">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Date</th>
+                                <th>Parts Produced</th>
+                                <th>Defects</th>
+                                <th>PPM Rate</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for trend in quality_trends %}
+                            <tr class="{% if trend.ppm_rate > 100000 %}table-danger{% elif trend.ppm_rate > 50000 %}table-warning{% endif %}">
+                                <td>{{ trend.date }}</td>
+                                <td>{{ trend.parts_produced }}</td>
+                                <td>{{ trend.defects }}</td>
+                                <td><strong>{{ trend.ppm_rate }} PPM</strong></td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+
+                    <!-- Trend Direction Indicator -->
+                    {% if quality_trends|length >= 2 %}
+                    {% set first_ppm = quality_trends[0].ppm_rate %}
+                    {% set last_ppm = quality_trends[-1].ppm_rate %}
+                    <div class="mt-3">
+                        <strong>Trend Direction:</strong>
+                        {% if last_ppm < first_ppm %}
+                        <span class="badge bg-success"><i class="fas fa-arrow-down"></i> Improving ({{ '%.1f'|format((first_ppm - last_ppm) / first_ppm * 100) }}% reduction)</span>
+                        {% elif last_ppm > first_ppm %}
+                        <span class="badge bg-danger"><i class="fas fa-arrow-up"></i> Worsening ({{ '%.1f'|format((last_ppm - first_ppm) / first_ppm * 100) }}% increase)</span>
+                        {% else %}
+                        <span class="badge bg-info"><i class="fas fa-minus"></i> Stable</span>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+
+                    {% else %}
+                    <p class="text-muted">No trend data available for selected period.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- Action Buttons -->
+<div class="row mt-4 mb-5">
+    <div class="col-12 d-flex justify-content-end gap-2">
+        <a href="{{ url_for('quality_metrics.by_profile') }}" class="btn btn-outline-primary">
+            <i class="fas fa-filter"></i> By Profile
+        </a>
+        <a href="{{ url_for('quality_metrics.by_alloy') }}" class="btn btn-outline-info">
+            <i class="fas fa-flask"></i> By Alloy
+        </a>
+        <a href="{{ url_for('quality_metrics.defect_analysis') }}" class="btn btn-outline-warning">
+            <i class="fas fa-bug"></i> Defect Analysis
+        </a>
+        <a href="{{ url_for('quality_metrics.summary') }}" class="btn btn-success">
+            <i class="fas fa-file-alt"></i> Executive Summary
+        </a>
+    </div>
+</div>
+{% endblock %}

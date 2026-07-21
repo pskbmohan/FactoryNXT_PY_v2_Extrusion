@@ -1,0 +1,76 @@
+{% extends "layout.html" %}
+
+{% block title %}Die Performance by Status - Quality Reporting{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <h2><i class="fas fa-cogs"></i> Die Performance by Status</h2>
+            <p class="text-muted">Die fleet grouped by current operational status</p>
+        </div>
+    </div>
+
+    <!-- Status Summary Tables -->
+    {% for status, data in status_summary.items() %}
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header bg-secondary text-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="fas fa-info-circle"></i> Status: {{ status }}</h5>
+                    <span class="badge bg-light text-dark">{{ data.total_dies }} dies</span>
+                </div>
+                <div class="card-body p-0">
+                    <!-- Summary Row -->
+                    <div class="row text-center border-bottom">
+                        <div class="col-md-6 border-end">
+                            <h5 class="mb-0">{{ "%.1f"|format(data.avg_life_remaining_pct) }}%</h5>
+                            <small>Avg Life Remaining</small>
+                        </div>
+                    </div>
+
+                    <!-- Die Details -->
+                    <table class="table table-hover mb-0 mt-2">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Die Code</th>
+                                <th>Profile Code</th>
+                                <th>Alloy</th>
+                                <th>Life Remaining (%)</th>
+                                <th>Last Failure Reason</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for die_info in data.dies_list %}
+                            <tr>
+                                <td><a href="{{ url_for('die_performance.by_die', die_id=die_info.die_id) }}">{{ die_info.die_code }}</a></td>
+                                <td>{{ die_info.profile_code or '-' }}</td>
+                                <td>{{ die_info.alloy or '-' }}</td>
+                                <td>
+                                    {% if die_info.life_remaining_pct >= 50 %}
+                                        <span class="badge bg-success">{{ "%.1f"|format(die_info.life_remaining_pct) }}%</span>
+                                    {% elif die_info.life_remaining_pct >= 20 %}
+                                        <span class="badge bg-warning text-dark">{{ "%.1f"|format(die_info.life_remaining_pct) }}%</span>
+                                    {% else %}
+                                        <span class="badge bg-danger">{{ "%.1f"|format(die_info.life_remaining_pct) }}%</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ die_info.last_failure_reason or 'None' }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="row">
+        <div class="col-md-12">
+            <div class="alert alert-info">No die data available.</div>
+        </div>
+    </div>
+    {% endfor %}
+
+</div>
+{% endblock %}

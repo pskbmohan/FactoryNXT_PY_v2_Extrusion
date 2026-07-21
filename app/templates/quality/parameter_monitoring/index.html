@@ -1,0 +1,183 @@
+{% extends "base.html" %}
+
+{% block title %}Parameter Monitoring Dashboard{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-12 d-flex justify-content-between align-items-center">
+            <h3><i class="fas fa-chart-line"></i> Parameter Monitoring Dashboard</h3>
+            <form method="GET" class="d-inline">
+                <input type="date" name="start" value="{{ start_date }}" class="form-control form-control-sm me-2" style="width: auto;">
+                <input type="date" name="end" value="{{ end_date }}" class="form-control form-control-sm me-2" style="width: auto;">
+                <button type="submit" class="btn btn-primary btn-sm">Apply</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Status Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-primary text-white h-100">
+                <div class="card-body text-center">
+                    <h5 class="card-title"><i class="fas fa-database"></i> Total Readings</h5>
+                    <h2>{{ recent_readings|length }}</h2>
+                    <p class="mb-0 text-white-50">Recent parameter readings</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="card bg-success text-white h-100">
+                <div class="card-body text-center">
+                    <h5 class="card-title"><i class="fas fa-check-circle"></i> Within Limits</h5>
+                    {% set within_count = violation_summary.within_limit_count %}
+                    <h2>{{ within_count }}</h2>
+                    <p class="mb-0 text-white-50">Parameters within spec</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="card bg-warning text-dark h-100">
+                <div class="card-body text-center">
+                    <h5 class="card-title"><i class="fas fa-exclamation-triangle"></i> Violations</h5>
+                    {% set violation_count = violation_summary.violation_count %}
+                    <h2>{{ violation_count }}</h2>
+                    <p class="mb-0 text-dark-50">Parameters outside limits</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="card bg-info text-white h-100">
+                <div class="card-body text-center">
+                    <h5 class="card-title"><i class="fas fa-tachometer-alt"></i> Capture Rate</h5>
+                    <h2>{{ violation_summary.capture_rate_pct }}%</h2>
+                    <p class="mb-0 text-white-50">Data capture completeness</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Extrusion Runs with Parameter Summary -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="fas fa-list"></i> Recent Extrusion Runs</h5>
+                    <a href="{{ url_for('parameter_monitoring.violations') }}" class="btn btn-outline-primary btn-sm">View Violations</a>
+                </div>
+                <div class="card-body p-0">
+                    {% if recent_runs %}
+                    <table class="table table-striped mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Run ID</th>
+                                <th>WO / Die</th>
+                                <th>Profile / Alloy</th>
+                                <th>Start Time</th>
+                                <th>Readings</th>
+                                <th class="text-center">Within Limits %</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for run in recent_runs %}
+                            <tr>
+                                <td><strong>#{{ run.run_id }}</strong></td>
+                                <td>WO: {{ run.wo_id }}<br>DIE: {{ run.die_id }}</td>
+                                <td>{{ run.profile_code or 'N/A' }} / {{ run.alloy or 'N/A' }}</td>
+                                <td>{{ run.started_at|default('N/A') }}</td>
+                                <td><span class="badge bg-secondary">{{ run.reading_count }} readings</span></td>
+                                <td class="text-center">
+                                    {% if run.within_limit_ratio >= 95 %}
+                                    <span class="badge bg-success">{{ run.within_limit_ratio }}%</span>
+                                    {% elif run.within_limit_ratio >= 80 %}
+                                    <span class="badge bg-warning text-dark">{{ run.within_limit_ratio }}%</span>
+                                    {% else %}
+                                    <span class="badge bg-danger">{{ run.within_limit_ratio }}%</span>
+                                    {% endif %}
+                                </td>
+                                <td><a href="{{ url_for('parameter_monitoring.run_details', run_id=run.run_id) }}" class="btn btn-sm btn-outline-primary">View</a></td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                    {% else %}
+                    <p class="text-muted p-3 mb-0">No extrusion runs found for the selected period.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Parameter Readings -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="fas fa-clock"></i> Recent Parameter Readings</h5>
+                    <a href="{{ url_for('parameter_monitoring.trends') }}" class="btn btn-outline-info btn-sm">View Trends</a>
+                </div>
+                <div class="card-body p-0">
+                    {% if recent_readings %}
+                    <table class="table table-sm table-bordered mb-0">
+                        <thead class="table-light text-nowrap">
+                            <tr>
+                                <th>Timestamp</th>
+                                <th>Billet Temp (°C)</th>
+                                <th>Container Temp (°C)</th>
+                                <th>Die Temp (°C)</th>
+                                <th>Exit Temp (°C)</th>
+                                <th>Ram Speed</th>
+                                <th>Pressure (bar)</th>
+                                <th class="text-center">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for reading in recent_readings[:20] %}
+                            <tr>
+                                <td>{{ reading.timestamp }}</td>
+                                <td>{{ reading.billet_temp or '-' }}</td>
+                                <td>{{ reading.container_temp or '-' }}</td>
+                                <td>{{ reading.die_temp or '-' }}</td>
+                                <td>{{ reading.exit_temp or '-' }}</td>
+                                <td>{{ reading.ram_speed or '-' }}</td>
+                                <td>{{ reading.pressure or '-' }}</td>
+                                <td class="text-center">
+                                    {% if reading.within_limits %}
+                                    <span class="badge bg-success"><i class="fas fa-check"></i></span>
+                                    {% else %}
+                                    <span class="badge bg-danger"><i class="fas fa-times"></i></span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                    {% else %}
+                    <p class="text-muted p-3 mb-0">No parameter readings available for the selected period.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- Action Buttons -->
+<div class="row mt-4 mb-5">
+    <div class="col-12 d-flex justify-content-end gap-2">
+        <a href="{{ url_for('parameter_monitoring.violations') }}" class="btn btn-outline-warning">
+            <i class="fas fa-exclamation-triangle"></i> Violation Analysis
+        </a>
+        <a href="{{ url_for('parameter_monitoring.trends') }}" class="btn btn-outline-info">
+            <i class="fas fa-chart-line"></i> Parameter Trends
+        </a>
+        <a href="{{ url_for('parameter_monitoring.summary') }}" class="btn btn-success">
+            <i class="fas fa-file-alt"></i> Executive Summary
+        </a>
+    </div>
+</div>
+{% endblock %}

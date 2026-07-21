@@ -1,0 +1,228 @@
+{% extends "base.html" %}
+{% block title %}Inspection Management Dashboard{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-12 d-flex justify-content-between align-items-center">
+            <h3><i class="fas fa-clipboard-check"></i> Inspection Management Dashboard</h3>
+            <form method="GET" class="d-inline">
+                <input type="date" name="start" value="{{ start_date }}" class="form-control form-control-sm me-2" style="width: auto;">
+                <input type="date" name="end" value="{{ end_date }}" class="form-control form-control-sm me-2" style="width: auto;">
+                <button type="submit" class="btn btn-primary btn-sm">Apply</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Status Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-primary text-white h-100">
+                <div class="card-body text-center">
+                    <h5 class="card-title"><i class="fas fa-file-contract"></i> Active Plans</h5>
+                    <h2>{{ active_plans|length }}</h2>
+                    <p class="mb-0 text-white-50">Inspection plans configured</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="card bg-success text-white h-100">
+                <div class="card-body text-center">
+                    <h5 class="card-title"><i class="fas fa-check-circle"></i> Compliance Rate</h5>
+                    <h2>{{ '%.1f'|format(compliance_metrics.compliance_pct) }}%</h2>
+                    <p class="mb-0 text-white-50">In period</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="card bg-info text-white h-100">
+                <div class="card-body text-center">
+                    <h5 class="card-title"><i class="fas fa-bullseye"></i> FPY Validation</h5>
+                    <h2>{{ '%.1f'|format(first_piece_status.pass_rate) }}%</h2>
+                    <p class="mb-0 text-white-50">First-piece pass rate</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="card bg-warning text-dark h-100">
+                <div class="card-body text-center">
+                    <h5 class="card-title"><i class="fas fa-clock"></i> Pending FPV</h5>
+                    <h2>{{ total_pending }}</h2>
+                    <p class="mb-0 text-dark-50">First-piece validations pending</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Inspection Compliance Overview -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0"><i class="fas fa-chart-bar"></i> Inspection Compliance by Type</h5>
+                </div>
+                <div class="card-body">
+                    {% if compliance_metrics.total_required > 0 %}
+                    <!-- Progress bars for each inspection type -->
+                    <ul class="list-group mb-3">
+                        <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+                            Dimensional Inspections
+                            <span class="badge bg-primary rounded-pill">{{ compliance_metrics.total_completed }} completed</span>
+                        </li>
+                        {% if compliance_metrics.compliance_pct >= 80 %}
+                        <div class="progress mb-3" style="height: 24px;">
+                            <div class="progress-bar bg-success" role="progressbar" style="width: {{ '%.1f'|format(compliance_metrics.compliance_pct) }}%;">{{ '%.1f'|format(compliance_metrics.compliance_pct) }}%</div>
+                        </div>
+                        {% elif compliance_metrics.compliance_pct >= 50 %}
+                        <div class="progress mb-3" style="height: 24px;">
+                            <div class="progress-bar bg-warning text-dark" role="progressbar" style="width: {{ '%.1f'|format(compliance_metrics.compliance_pct) }}%;">{{ '%.1f'|format(compliance_metrics.compliance_pct) }}%</div>
+                        </div>
+                        {% else %}
+                        <div class="progress mb-3" style="height: 24px;">
+                            <div class="progress-bar bg-danger" role="progressbar" style="width: {{ '%.1f'|format(compliance_metrics.compliance_pct) }}%;">{{ '%.1f'|format(compliance_metrics.compliance_pct) }}%</div>
+                        </div>
+                        {% endif %}
+                    </ul>
+
+                    <p class="text-muted small mb-0">
+                        Overall compliance: <strong>{{ '%.1f'|format(compliance_metrics.compliance_pct) }}</strong>% |
+                        Pass rate: <strong>{{ '%.1f'|format(compliance_metrics.pass_rate_pct) }}%</strong>
+                    </p>
+                    {% else %}
+                    <p class="text-muted">No inspection data available for the selected period.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- First-Piece Validation Status -->
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0"><i class="fas fa-tasks"></i> First-Piece Validation (Req #12)</h5>
+                </div>
+                <div class="card-body">
+                    {% if first_piece_status.total > 0 %}
+                    <!-- Summary cards -->
+                    <div class="row text-center mb-3">
+                        <div class="col-4">
+                            <div class="border rounded p-2">
+                                <h5 class="mb-0 text-success">{{ first_piece_status.pass_count }}</h5>
+                                <small class="text-muted">Passed</small>
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <div class="border rounded p-2">
+                                <h5 class="mb-0 text-danger">{{ first_piece_status.fail_count }}</h5>
+                                <small class="text-muted">Failed</small>
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <div class="border rounded p-2">
+                                <h5 class="mb-0 text-primary">{{ first_piece_status.total }}</h5>
+                                <small class="text-muted">Total</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Status indicator -->
+                    {% if first_piece_status.pass_rate >= 90 %}
+                    <p class="text-success"><i class="fas fa-thumbs-up"></i> Excellent FPV performance ({{ '%.1f'|format(first_piece_status.pass_rate) }}% pass rate)</p>
+                    {% elif first_piece_status.pass_rate >= 70 %}
+                    <p class="text-warning"><i class="fas fa-exclamation-circle"></i> Review FPV process ({{ '%.1f'|format(first_piece_status.pass_rate) }}% pass rate)</p>
+                    {% else %}
+                    <p class="text-danger"><i class="fas fa-times-circle"></i> Poor FPV performance - investigate (<strong>{{ '%.1f'|format(first_piece_status.pass_rate) }}%</strong> pass rate)</p>
+                    {% endif %}
+
+                    {% else %}
+                    <p class="text-muted">No first-piece validation data available for the selected period.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Inspections -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="fas fa-history"></i> Recent Inspections</h5>
+                    <a href="{{ url_for('inspection_management.by_work_order', wo_id=recent_inspections[0].wo_id if recent_inspections else 1) }}" class="btn btn-outline-primary btn-sm">View All</a>
+                </div>
+                <div class="card-body p-0">
+                    {% if recent_inspections %}
+                    <table class="table table-striped mb-0">
+                        <thead class="table-light text-nowrap">
+                            <tr>
+                                <th>#</th>
+                                <th>Work Order</th>
+                                <th>Type</th>
+                                <th>Stage</th>
+                                <th>Status</th>
+                                <th>Die</th>
+                                <th>Profile</th>
+                                <th>Timestamp</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for insp in recent_inspections[:15] %}
+                            <tr>
+                                <td>{{ loop.index }}</td>
+                                <td><strong>{{ insp.wo_id or 'N/A' }}</strong></td>
+                                <td>{{ insp.inspection_type or 'Not Specified' }}</td>
+                                <td>{{ insp.stage or 'Unknown' }}</td>
+                                <td>
+                                    {% if insp.pass_fail == 'pass' %}
+                                    <span class="badge bg-success"><i class="fas fa-check"></i> Pass</span>
+                                    {% elif insp.pass_fail == 'fail' %}
+                                    <span class="badge bg-danger"><i class="fas fa-times"></i> Fail</span>
+                                    {% else %}
+                                    <span class="badge bg-secondary">Pending</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ insp.die_code or 'N/A' }}</td>
+                                <td>{{ insp.profile_code or 'N/A' }}</td>
+                                <td>{{ insp.timestamp or 'N/A' }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+
+                    {% if recent_inspections|length > 15 %}
+                    <div class="alert alert-info mt-3 mb-0">
+                        Showing top {{ recent_inspections[:15]|length }} of {{ recent_inspections|length }} inspections.
+                    </div>
+                    {% endif %}
+
+                    {% else %}
+                    <p class="text-muted p-3 mb-0">No inspection records found for the selected period.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- Action Buttons -->
+<div class="row mt-4 mb-5">
+    <div class="col-12 d-flex justify-content-end gap-2">
+        <a href="{{ url_for('inspection_management.inspection_plans') }}" class="btn btn-outline-primary">
+            <i class="fas fa-list"></i> Inspection Plans (Req #10)
+        </a>
+        <a href="{{ url_for('inspection_management.first_piece_validation') }}" class="btn btn-outline-info">
+            <i class="fas fa-clipboard-check"></i> First-Piece Validation (Req #12)
+        </a>
+        <a href="{{ url_for('inspection_management.compliance_view') }}" class="btn btn-outline-success">
+            <i class="fas fa-chart-line"></i> Compliance Analysis
+        </a>
+        <a href="{{ url_for('inspection_management.summary') }}" class="btn btn-primary">
+            <i class="fas fa-file-alt"></i> Executive Summary
+        </a>
+    </div>
+</div>
+{% endblock %}

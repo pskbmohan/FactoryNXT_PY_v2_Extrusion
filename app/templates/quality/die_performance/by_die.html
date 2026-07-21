@@ -1,0 +1,160 @@
+{% extends "layout.html" %}
+
+{% block title %}Die Performance - {{ die.die_code }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-3">
+        <div class="col-md-6">
+            <h2><i class="fas fa-cogs"></i> Die Performance: {{ die.die_code }}</h2>
+            <p class="text-muted">{{ die.profile_code or 'No Profile' }} | {{ die.alloy or 'No Alloy' }}</p>
+        </div>
+        <div class="col-md-6 text-end">
+            <a href="{{ url_for('die_performance.index') }}" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Back to Dashboard</a>
+            <a href="{{ url_for('die_performance.die_failures', die_id=die.id) }}" class="btn btn-outline-danger"><i class="fas fa-exclamation-triangle"></i> Failure Analysis</a>
+        </div>
+    </div>
+
+    <!-- Die Basic Info -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card bg-light border-0">
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-md-3 border-end">
+                            <h5 class="text-muted mb-0">{{ die.die_code }}</h5>
+                            <small>Die Code</small>
+                        </div>
+                        <div class="col-md-3 border-end">
+                            <h5 class="text-muted mb-0">{{ die.profile_code or 'N/A' }}</h5>
+                            <small>Profile Code</small>
+                        </div>
+                        <div class="col-md-3 border-end">
+                            <h5 class="text-muted mb-0">{{ die.alloy or 'N/A' }}</h5>
+                            <small>Alloy Type</small>
+                        </div>
+                        <div class="col-md-3">
+                            <h5 class="text-muted mb-0">{{ die.status or 'Unknown' }}</h5>
+                            <small>Status</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Life Remaining -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0"><i class="fas fa-hourglass-half"></i> Die Life Remaining</h5>
+                </div>
+                <div class="card-body text-center">
+                    {% if life_remaining.press_count_limit %}
+                    <div class="row">
+                        <div class="col-md-6 border-end">
+                            <h3>{{ life_remaining.cycles_remaining_absolute }}</h3>
+                            <small>Cycles Remaining</small>
+                        </div>
+                        <div class="col-md-6">
+                            <h3>{{ life_remaining.percent_remaining }}%</h3>
+                            <small>Percentage Remaining</small>
+                        </div>
+                    </div>
+                    <hr>
+                    <p><strong>Cycles Used:</strong> {{ life_remaining.press_count_current }} / {{ life_remaining.press_count_limit }}</p>
+                    <span class="badge bg-{{ 'success' if life_remaining.status == 'good' else 'warning text-dark' if life_remaining.status == 'warning' else 'danger' }}">{{ life_remaining.status|upper }}</span>
+                    {% else %}
+                    <p class="text-muted">No press count limit defined for this die</p>
+                    <p><strong>Cycles Used:</strong> {{ life_remaining.press_count_current or 0 }} (no limit set)</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Productivity Metrics -->
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0"><i class="fas fa-chart-line"></i> Productivity ({{ start_date }} - {{ end_date }})</h5>
+                </div>
+                <div class="card-body">
+                    {% for die_id, data in productivity_data.by_die.items() %}
+                    <p><strong>Total Runs:</strong> {{ data.total_runs_in_period }}</p>
+                    <p><strong>Avg Setup Time:</strong> {{ "%.1f"|format(data.average_setup_time_minutes) }} minutes</p>
+                    <p><strong>Life Remaining:</strong> {{ data.life_remaining_percent }}%</p>
+                    <hr>
+                    <h5 class="text-center">Productivity Score: {{ "%.1f"|format(data.productivity_score) }}</h5>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Failure History -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0"><i class="fas fa-exclamation-triangle"></i> Failure History</h5>
+                </div>
+                <div class="card-body p-0 table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Date Updated</th>
+                                <th>Failure Reason</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for failure in failure_history.failures %}
+                            <tr>
+                                <td>{{ failure.updated_at[:10] if failure.updated_at else '-' }}</td>
+                                <td>{{ failure.last_failure_reason or 'N/A' }}</td>
+                                <td><span class="badge bg-{{ 'danger' if failure.status == 'MaintenanceRequired' else 'secondary' }}">{{ failure.status }}</span></td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Process Runs -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0"><i class="fas fa-history"></i> Recent Process Runs (Last 12 Months)</h5>
+                </div>
+                <div class="card-body p-0 table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Run ID</th>
+                                <th>Date Started</th>
+                                <th>Status</th>
+                                <th>Billet ID</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for run in process_runs %}
+                            <tr>
+                                <td><a href="{{ url_for('production.details', run_id=run.id) }}">{{ run.id }}</a></td>
+                                <td>{{ run.started_at.strftime('%Y-%m-%d') if run.started_at else '-' }}</td>
+                                <td><span class="badge bg-{{ 'success' if run.status == 'COMPLETED' else 'secondary' }}">{{ run.status }}</span></td>
+                                <td>{{ run.billet_id or 'N/A' }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+{% endblock %}

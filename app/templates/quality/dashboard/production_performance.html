@@ -1,0 +1,193 @@
+{% extends "layout.html" %}
+
+{% block title %}Production Performance Dashboard - Quality Reporting{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-3">
+        <div class="col-md-6">
+            <h2>Production Performance Dashboard</h2>
+            <p class="text-muted">Real-time quality metrics and KPIs for Global Aluminium operations</p>
+        </div>
+        <div class="col-md-6 text-end">
+            <form method="GET" class="d-inline">
+                <input type="date" name="date" class="form-control d-inline-block w-auto" value="{{ selected_date }}">
+                <button type="submit" class="btn btn-primary">Apply</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- KPI Cards Row -->
+    <div class="row mb-4">
+        <!-- FPY Card -->
+        <div class="col-md-3">
+            <div class="card bg-primary text-white h-100">
+                <div class="card-body">
+                    <h5 class="card-title">First Pass Yield (FPY)</h5>
+                    <h2>{{ fpy_data.fpy_percent }}%</h2>
+                    <p class="mb-0 small">
+                        {{ fpy_data.good_first_pass }} / {{ fpy_data.total_produced }} runs passed first inspection
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Scrap Rate Card -->
+        <div class="col-md-3">
+            <div class="card bg-danger text-white h-100">
+                <div class="card-body">
+                    <h5 class="card-title">Scrap Rate</h5>
+                    <h2>{{ scrap_data.scrap_rate_percent }}%</h2>
+                    <p class="mb-0 small">
+                        {{ scrap_data.total_scrap }} / {{ scrap_data.total_produced }} units scrapped
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Parameter Compliance Card -->
+        <div class="col-md-3">
+            <div class="card bg-success text-white h-100">
+                <div class="card-body">
+                    <h5 class="card-title">Parameter Compliance</h5>
+                    <h2>{{ param_compliance.compliance_percent }}%</h2>
+                    <p class="mb-0 small">
+                        {{ param_compliant_readings }} / {{ param_compliance.total_readings }} readings within limits
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Die Utilization Card -->
+        <div class="col-md-3">
+            <div class="card bg-info text-white h-100">
+                <div class="card-body">
+                    <h5 class="card-title">Die Utilization</h5>
+                    <h2>{{ die_performance.utilization_percent }}%</h2>
+                    <p class="mb-0 small">
+                        {{ die_performance.dies_used_today }} dies used / {{ die_performance.total_dies }} total
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quality Trends Chart -->
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">Quality Trend (Last 7 Days)</div>
+                <div class="card-body">
+                    <canvas id="qualityTrendChart" height="80"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Alarm Summary -->
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header bg-warning text-dark">Recent Alarms</div>
+                <div class="list-group list-group-flush">
+                    {% for alert in alarm_summary.recent_critical_alerts %}
+                    <a href="#" class="list-group-item list-group-item-action">
+                        <div class="d-flex w-100 justify-content-between">
+                            <h6 class="mb-1">{{ alert.title }}</h6>
+                            <small>{{ alert.created_at[:10] if alert.created_at else 'N/A' }}</small>
+                        </div>
+                    </a>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Die Status Summary -->
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header">Die Inventory Status</div>
+                <table class="table table-striped mb-0">
+                    <thead>
+                        <tr>
+                            <th>Total Dies</th>
+                            <th>Available</th>
+                            <th>In Use Today</th>
+                            <th>Testing Pending</th>
+                            <th>Utilization Rate</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>{{ die_performance.total_dies }}</td>
+                            <td>{{ die_performance.available_dies }}</td>
+                            <td>{{ die_performance.dies_used_today }}</td>
+                            <td>{{ die_performance.testing_pending }}</td>
+                            <td>
+                                {% if die_performance.utilization_percent >= 80 %}
+                                    <span class="badge bg-success">{{ die_performance.utilization_percent }}%</span>
+                                {% elif die_performance.utilization_percent >= 50 %}
+                                    <span class="badge bg-warning">{{ die_performance.utilization_percent }}%</span>
+                                {% else %}
+                                    <span class="badge bg-danger">{{ die_performance.utilization_percent }}%</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.0.0/dist/chart.umd.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Quality Trend Chart
+    const ctx = document.getElementById('qualityTrendChart');
+
+    if (ctx) {
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: {{ quality_trends|map(attribute='date')|list|tojson }},
+                datasets: [{
+                    label: 'FPY (%)',
+                    data: {{ quality_trends|map(attribute='fpy_percent')|map('float', default=None)|reject('==', None)|list|tojson }},
+                    borderColor: '#0d6efd',
+                    backgroundColor: 'rgba(13, 110, 253, 0.1)',
+                    tension: 0.4,
+                    fill: true
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: true },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return 'FPY: ' + context.parsed.y + '%';
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: false,
+                        min: 0,
+                        max: 100,
+                        ticks: {
+                            callback: function(value) { return value + '%' }
+                        }
+                    }
+                }
+            }
+        });
+    }
+});
+</script>
+{% endblock %}

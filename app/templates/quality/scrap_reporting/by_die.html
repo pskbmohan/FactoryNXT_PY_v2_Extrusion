@@ -1,0 +1,163 @@
+{% extends "layout.html" %}
+
+{% block title %}Scrap by Die: {{ die_info.die_code if die_info else 'View' }} - Quality Reporting{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-3">
+        <div class="col-md-6">
+            <h2>Scrap Analysis by Die</h2>
+            {% if die_info %}
+            <p class="text-muted">Detailed scrap analysis for die: {{ die_info.die_code }}</p>
+            {% else %}
+            <p class="text-muted">Select a specific die to view detailed scrap metrics</p>
+            {% endif %}
+        </div>
+        <div class="col-md-6 text-end">
+            <a href="{{ url_for('scrap_reporting.index') }}" class="btn btn-secondary">&larr; Back to Scrap Report</a>
+        </div>
+    </div>
+
+    <!-- Date Range -->
+    <form method="GET" class="row mb-4 g-3">
+        <input type="hidden" name="start" value="{{ start_date }}">
+        <input type="hidden" name="end" value="{{ end_date }}">
+        <div class="col-auto">
+            <label class="visually-hidden">Start Date</label>
+            <input type="date" name="start" class="form-control" value="{{ start_date }}" required>
+        </div>
+        <div class="col-auto">
+            <label class="visually-hidden">End Date</label>
+            <input type="date" name="end" class="form-control" value="{{ end_date }}" required>
+        </div>
+        <div class="col-auto">
+            <button type="submit" class="btn btn-primary">Apply Filter</button>
+        </div>
+    </form>
+
+    {% if die_info %}
+    <!-- Die Information -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card border-info">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">{{ die_info.die_code }}</h5>
+                </div>
+                <table class="table table-striped mb-0">
+                    <tr>
+                        <td><strong>Die Code</strong></td>
+                        <td>{{ die_info.die_code }}</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Profile Code</strong></td>
+                        <td>{{ die_info.profile_code or 'N/A' }}</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Alloy</strong></td>
+                        <td>{{ die_info.alloy or 'N/A' }}</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Status</strong></td>
+                        <td><span class="badge bg-{{ 'success' if die_info.status == 'Available' else 'warning' }}">{{ die_info.status }}</span></td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scrap Metrics -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card bg-primary text-white h-100">
+                <div class="card-body">
+                    <h5 class="card-title">Total Runs (Period)</h5>
+                    <h2>{{ scrap_metrics.total_runs }}</h2>
+                    <p class="mb-0 small">{{ die_info.die_code }} completed runs from {{ start_date }} to {{ end_date }}</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card bg-danger text-white h-100">
+                <div class="card-body">
+                    <h5 class="card-title">Scrap Units</h5>
+                    <h2>{{ scrap_metrics.scrap_units }}</h2>
+                    <p class="mb-0 small">{{ "%.1f"|format(scrap_metrics.scrap_rate_percent) }}% of total production scrapped</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scrap Rate Status -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card {% if scrap_metrics.scrap_rate_percent >= 10 %}border-danger{% elif scrap_metrics.scrap_rate_percent >= 5 %}border-warning{% else %}border-success{% endif %}">
+                <div class="card-header text-white bg-{% if scrap_metrics.scrap_rate_percent >= 10 %}danger{% elif scrap_metrics.scrap_rate_percent >= 5 %}warning{% else %}success{% endif %}">
+                    <h5 class="mb-0">Scrap Rate Status: {{ "%.1f"|format(scrap_metrics.scrap_rate_percent) }}%</h5>
+                </div>
+                <table class="table table-striped mb-0">
+                    <tr>
+                        <td><strong>Total Production</strong></td>
+                        <td>{{ scrap_metrics.total_runs }}</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Scrapped Units</strong></td>
+                        <td>{{ scrap_metrics.scrap_units }}</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Good Production</strong></td>
+                        <td>{{ scrap_metrics.total_runs - scrap_metrics.scrap_units }}</td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Related Analysis -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card bg-light">
+                <div class="card-body">
+                    <h5><strong>Detailed Analysis</strong></h5>
+                    <p>This view provides scrap metrics for die {{ die_info.die_code }} over the period from <strong>{{ start_date }}</strong> to <strong>{{ end_date }}</strong>.</p>
+                    <p>The breakdown includes:</p>
+                    <ul>
+                        <li>Total process runs completed</li>
+                        <li>Number of scrapped units due to quality failures</li>
+                        <li>Scrap rate percentage for this specific die</li>
+                        <li>Status indicator based on scrap rate thresholds</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% else %}
+    <!-- No Die Selected - Show Instructions -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card bg-info text-white">
+                <div class="card-body text-center py-5">
+                    <h3>Select a Die to View Scrap Analysis</h3>
+                    <p class="lead">Click on any die code in the main scrap report to view detailed analysis for that specific die.</p>
+                    <a href="{{ url_for('scrap_reporting.index') }}" class="btn btn-light btn-lg">&larr; Back to Main Scrap Report</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% endif %}
+
+    <!-- Quick Actions -->
+    <div class="row mt-4">
+        <div class="col-md-12 text-center">
+            <a href="{{ url_for('scrap_reporting.index') }}" class="btn btn-primary">&larr; Back to Scrap Report</a>
+            {% if die_info %}
+            <button type="button" class="btn btn-outline-secondary ms-3">Export Die Analysis (CSV)</button>
+            <button type="button" class="btn btn-outline-secondary ms-2">View Inspection History</button>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+{% endblock %}

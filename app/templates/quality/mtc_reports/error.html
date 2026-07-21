@@ -1,0 +1,71 @@
+{% extends "layout.html" %}
+
+{% block title %}Error - MTC Reports{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card border-danger">
+                <div class="card-header bg-dark text-white">
+                    <i class="bi bi-exclamation-triangle"></i> Error Generating MTC Report
+                </div>
+                <div class="card-body text-center py-5">
+                    {% if error %}
+                    <h4 class="text-danger mb-3">{{ error }}</h4>
+                    {% else %}
+                    <h4 class="text-danger mb-3">An error occurred while generating the MTC report</h4>
+                    {% endif %}
+
+                    <p class="text-muted mb-4">Please verify that:</p>
+                    <ul class="text-muted small text-start mx-auto" style="max-width: 500px;">
+                        <li>The work order exists in the system</li>
+                        <li>All required test data has been recorded</li>
+                        <li>Material traceability records are complete</li>
+                    </ul>
+
+                    <div class="d-flex justify-content-center gap-2 mt-4">
+                        <a href="/quality/mtc-reports/" class="btn btn-primary">
+                            <i class="bi bi-house"></i> Return to MTC Home
+                        </a>
+                        <button onclick="window.location.reload()" class="btn btn-outline-secondary">
+                            <i class="bi bi-arrow-clockwise"></i> Retry
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Debug Information (if available) -->
+            {% if request.args.get('debug') %}
+            <div class="card mt-4 border-secondary">
+                <div class="card-header bg-dark text-white">
+                    <i class="bi bi-code-slash"></i> Request Details
+                </div>
+                <div class="card-body">
+                    <pre class="bg-light p-3 rounded" style="font-size: 0.85rem;">
+URL: {{ request.url }}
+Method: {{ request.method }}
+Args: {{ request.args.to_dict() }}
+                    </pre>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Support Contact -->
+            <div class="card mt-4 border-warning">
+                <div class="card-header bg-dark text-white">
+                    <i class="bi bi-envelope"></i> Need Assistance?
+                </div>
+                <div class="card-body text-center">
+                    <p class="mb-0 small">If the problem persists, please contact your system administrator with:</p>
+                    <ul class="small text-start mx-auto" style="max-width: 500px;">
+                        <li>The work order ID</li>
+                        <li>A screenshot of this error message</li>
+                        <li>The time the error occurred</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

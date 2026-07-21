@@ -1,0 +1,159 @@
+{% extends "base.html" %}
+{% block title %}Inspection Compliance Dashboard{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-12 d-flex justify-content-between align-items-center">
+            <h3><i class="fas fa-chart-line"></i> Inspection Compliance Dashboard</h3>
+            <form method="GET" class="d-inline">
+                <input type="date" name="start" value="{{ start_date }}" class="form-control form-control-sm me-2" style="width: auto;">
+                <input type="date" name="end" value="{{ end_date }}" class="form-control form-control-sm me-2" style="width: auto;">
+                <button type="submit" class="btn btn-primary btn-sm">Apply</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Compliance by Inspection Type -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0"><i class="fas fa-chart-bar"></i> Compliance by Inspection Type</h5>
+                </div>
+                <div class="card-body">
+                    {% if compliance_by_type %}
+                    <!-- Summary cards -->
+                    <div class="row mb-4 text-center">
+                        {% for type_data in compliance_by_type.values() %}
+                        <div class="col-md-3 col-sm-6 mb-3">
+                            <div class="card h-100 border-primary">
+                                <div class="card-body">
+                                    <h6 class="text-muted small">{{ type_data.inspection_type|replace('_', ' ')|title }}</h6>
+                                    <h4>{{ '%.1f'|format(type_data.compliance_pct) }}%</h4>
+                                    <p class="mb-0 text-muted small">{{ type_data.completed_count }} completed</p>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+
+                    <!-- Detailed breakdown -->
+                    <table class="table table-striped">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Inspection Type</th>
+                                <th>Completed</th>
+                                <th>Passed</th>
+                                <th>Compliance Rate</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for type_data in compliance_by_type.values() %}
+                            <tr>
+                                <td><strong>{{ type_data.inspection_type|replace('_', ' ')|title }}</strong></td>
+                                <td>{{ type_data.completed_count }}</td>
+                                <td>{{ type_data.passed_count }}</td>
+                                <td>
+                                    {% if type_data.compliance_pct >= 95 %}
+                                    <span class="badge bg-success">{{ '%.1f'|format(type_data.compliance_pct) }}%</span>
+                                    {% elif type_data.compliance_pct >= 80 %}
+                                    <span class="badge bg-warning text-dark">{{ '%.1f'|format(type_data.compliance_pct) }}%</span>
+                                    {% else %}
+                                    <span class="badge bg-danger">{{ '%.1f'|format(type_data.compliance_pct) }}%</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if type_data.compliance_pct >= 95 %}
+                                    <i class="fas fa-check-circle text-success"></i> Excellent
+                                    {% elif type_data.compliance_pct >= 80 %}
+                                    <i class="fas fa-thumbs-up text-warning"></i> Good
+                                    {% else %}
+                                    <i class="fas fa-exclamation-triangle text-danger"></i> Needs Improvement
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+
+                    {% else %}
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i> No inspection compliance data available for the selected period.
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Missed Inspections -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card border-warning">
+                <div class="card-header bg-warning text-dark">
+                    <h5 class="mb-0"><i class="fas fa-exclamation-triangle"></i> Missed/Overdue Inspections</h5>
+                </div>
+                <div class="card-body p-0">
+                    {% if missed_inspections and missed_inspections|length > 0 %}
+                    <table class="table table-striped mb-0">
+                        <thead class="table-light text-nowrap">
+                            <tr>
+                                <th>#</th>
+                                <th>Type</th>
+                                <th>Scheduled Frequency</th>
+                                <th>Last Completed</th>
+                                <th>Overdue By</th>
+                                <th>Action Required</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for missed in missed_inspections[:20] %}
+                            <tr class="table-warning">
+                                <td>{{ loop.index }}</td>
+                                <td><strong>{{ missed.inspection_type or 'Not Specified' }}</strong></td>
+                                <td>{{ missed.frequency or 'As Needed' }}</td>
+                                <td>{{ missed.last_completed or 'Never' }}</td>
+                                <td class="text-danger">{{ missed.overdue_days or 'Unknown' }} days</td>
+                                <td>
+                                    <button class="btn btn-sm btn-outline-primary">Schedule Now</button>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+
+                    {% if missed_inspections|length > 20 %}
+                    <div class="alert alert-warning mt-3 mb-0">
+                        Showing top {{ missed_inspections[:20]|length }} of {{ missed_inspections|length }} overdue inspections.
+                    </div>
+                    {% endif %}
+
+                    {% else %}
+                    <div class="alert alert-success mb-0">
+                        <i class="fas fa-check-circle"></i> No missed or overdue inspections detected for the selected period. All required inspections are current.
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- Action Buttons -->
+<div class="row mt-4 mb-5">
+    <div class="col-12 d-flex justify-content-end gap-2">
+        <a href="{{ url_for('inspection_management.index') }}" class="btn btn-outline-primary">
+            <i class="fas fa-arrow-left"></i> Back to Dashboard
+        </a>
+        <a href="{{ url_for('inspection_management.inspection_plans') }}" class="btn btn-outline-success">
+            <i class="fas fa-list"></i> Inspection Plans (Req #10)
+        </a>
+        <a href="{{ url_for('inspection_management.summary') }}" class="btn btn-primary">
+            <i class="fas fa-file-alt"></i> Executive Summary
+        </a>
+    </div>
+</div>
+{% endblock %}

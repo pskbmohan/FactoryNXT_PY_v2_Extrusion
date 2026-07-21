@@ -1,0 +1,135 @@
+{% extends "base.html" %}
+
+{% block title %}Parameter Violations Analysis{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-12 d-flex justify-content-between align-items-center">
+            <h3><i class="fas fa-exclamation-triangle"></i> Parameter Violations Analysis</h3>
+            <form method="GET" class="d-inline">
+                <input type="date" name="start" value="{{ start_date }}" class="form-control form-control-sm me-2" style="width: auto;">
+                <input type="date" name="end" value="{{ end_date }}" class="form-control form-control-sm me-2" style="width: auto;">
+                <button type="submit" class="btn btn-primary btn-sm">Apply</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Violation Summary Cards -->
+    {% if violations %}
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-danger text-white h-100">
+                <div class="card-body text-center">
+                    <h5 class="card-title"><i class="fas fa-bomb"></i> Total Violations</h5>
+                    <h2>{{ violation_counts.total_violations }}</h2>
+                    <p class="mb-0 text-white-50">Parameters outside limits</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="card bg-warning text-dark h-100">
+                <div class="card-body text-center">
+                    <h5 class="card-title"><i class="fas fa-project-diagram"></i> Runs Affected</h5>
+                    <h2>{{ violation_counts.unique_runs_affected }}</h2>
+                    <p class="mb-0 text-dark-50">Unique extrusion runs</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="card bg-info text-white h-100">
+                <div class="card-body text-center">
+                    <h5 class="card-title"><i class="fas fa-calendar"></i> Period</h5>
+                    <p class="mb-0 text-white-50">{{ start_date }} to {{ end_date }}</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="card bg-success text-white h-100">
+                <div class="card-body text-center">
+                    <h5 class="card-title"><i class="fas fa-check-double"></i> Within Limits</h5>
+                    {% set total = violation_counts.total_violations + (violation_counts.unique_runs_affected * 100) %}
+                    <h2>{{ '%.1f'|format((total - violation_counts.total_violations) / total * 100 if total > 0 else 100) }}%</h2>
+                    <p class="mb-0 text-white-50">Parameters compliant</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Violations List -->
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0"><i class="fas fa-list"></i> Parameter Violations (Last 30 Days)</h5>
+                </div>
+                <div class="card-body p-0">
+                    <table class="table table-sm table-striped mb-0">
+                        <thead class="table-light text-nowrap">
+                            <tr>
+                                <th>#</th>
+                                <th>Timestamp</th>
+                                <th>Run ID</th>
+                                <th>Billet Temp</th>
+                                <th>Die Temp</th>
+                                <th>Ram Speed</th>
+                                <th>Pressure</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for violation in violations[:50] %}
+                            <tr class="{% if not violation.within_limits %}table-danger{% endif %}">
+                                <td>{{ loop.index }}</td>
+                                <td>{{ violation.timestamp }}</td>
+                                <td><a href="{{ url_for('parameter_monitoring.run_details', run_id=violation.run_id) }}">#{{ violation.run_id }}</a></td>
+                                <td>{% if violation.billet_temp_violation %}<span class="badge bg-danger">Violation</span>{% else %}-{% endif %}</td>
+                                <td>-</td>
+                                <td>-</td>
+                                <td>-</td>
+                                <td><span class="badge badge-{{ 'danger' if not violation.within_limits else 'success' }}">{{ 'Violation' if not violation.within_limits else 'OK' }}</span></td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+
+                    {% if violations|length > 50 %}
+                    <div class="alert alert-warning mt-3 mb-0">
+                        Showing first 50 of {{ violations|length }} violations. Use date filters to narrow results.
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% else %}
+    <div class="row">
+        <div class="col-md-12">
+            <div class="alert alert-success">
+                <i class="fas fa-check-circle"></i> No parameter violations recorded for the selected period. Excellent process control!
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+</div>
+
+<!-- Action Buttons -->
+<div class="row mt-4 mb-5">
+    <div class="col-12 d-flex justify-content-end gap-2">
+        <a href="{{ url_for('parameter_monitoring.index') }}" class="btn btn-outline-primary">
+            <i class="fas fa-arrow-left"></i> Back to Dashboard
+        </a>
+        <a href="{{ url_for('parameter_monitoring.trends') }}" class="btn btn-outline-info">
+            <i class="fas fa-chart-line"></i> Parameter Trends
+        </a>
+        <a href="{{ url_for('parameter_monitoring.summary') }}" class="btn btn-success">
+            <i class="fas fa-file-alt"></i> Executive Summary
+        </a>
+    </div>
+</div>
+{% endblock %}

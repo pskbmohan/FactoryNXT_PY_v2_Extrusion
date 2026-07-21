@@ -1,0 +1,178 @@
+{% extends "base.html" %}
+
+{% block title %}Parameter Monitoring Executive Summary{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-12 d-flex justify-content-between align-items-center">
+            <h3><i class="fas fa-file-alt"></i> Parameter Monitoring Executive Summary</h3>
+            <a href="{{ url_for('parameter_monitoring.index') }}" class="btn btn-outline-primary btn-sm">
+                <i class="fas fa-arrow-left"></i> Back to Dashboard
+            </a>
+        </div>
+    </div>
+
+    <!-- Period Comparison -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card bg-primary text-white h-100">
+                <div class="card-body text-center">
+                    <h5><i class="fas fa-calendar-alt"></i> Current Period (Last 30 Days)</h5>
+                    <p class="mb-0">{{ (date.today() - timedelta(days=30)).strftime('%Y-%m-%d') }} to {{ date.today().strftime('%Y-%m-%d') }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card bg-info text-white h-100">
+                <div class="card-body text-center">
+                    <h5><i class="fas fa-calendar-check"></i> Previous Period (30 Days Before)</h5>
+                    <p class="mb-0">{{ (date.today() - timedelta(days=60)).strftime('%Y-%m-%d') }} to {{ (date.today() - timedelta(days=30)).strftime('%Y-%m-%d') }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Current Period Overview -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0"><i class="fas fa-chart-bar"></i> Current Period Overview</h5>
+                </div>
+                <div class="card-body text-center">
+                    {% if current_stats.total_readings > 0 %}
+                    <div class="row">
+                        <div class="col-md-4">
+                            <p class="text-muted small">Total Readings Captured</p>
+                            <h3>{{ '%,d'|format(current_stats.total_readings) }}</h3>
+                        </div>
+                        <div class="col-md-4">
+                            <p class="text-muted small">Capture Rate (Within Limits)</p>
+                            <h3 class="{% if current_stats.capture_rate_pct >= 95 %}text-success{% elif current_stats.capture_rate_pct >= 80 %}text-warning{% else %}text-danger{% endif %}">{{ '%.1f'|format(current_stats.capture_rate_pct) }}%</h3>
+                        </div>
+                        <div class="col-md-4">
+                            <p class="text-muted small">Within Limit Count</p>
+                            <h3>{{ current_stats.within_limit_count }}</h3>
+                        </div>
+                    </div>
+
+                    {% if previous_stats and previous_stats.total_readings > 0 %}
+                    <hr class="my-4">
+                    <h6><i class="fas fa-chart-compare"></i> Period-over-Period Comparison</h6>
+                    <div class="row text-center">
+                        <div class="col-md-3">
+                            <p class="text-muted small">Previous Readings</p>
+                            <strong>{{ '%,d'|format(previous_stats.total_readings) }}</strong>
+                        </div>
+                        <div class="col-md-3">
+                            <p class="text-muted small">Previous Capture Rate</p>
+                            <strong>{{ '%.1f'|format(previous_stats.capture_rate_pct) }}%</strong>
+                        </div>
+                        <div class="col-md-3">
+                            <p class="text-muted small">Reading Change</p>
+                            {% set reading_change = current_stats.total_readings - previous_stats.total_readings %}
+                            <span class="{% if reading_change >= 0 %}text-success{% else %}text-danger{% endif %}">
+                                {{ '%+d'|format(reading_change) }} ({{ '%.1f'|format(reading_change / previous_stats.total_readings * 100) if previous_stats.total_readings > 0 else 0 }}%)
+                            </span>
+                        </div>
+                        <div class="col-md-3">
+                            <p class="text-muted small">Capture Rate Change</p>
+                            {% set rate_change = current_stats.capture_rate_pct - previous_stats.capture_rate_pct %}
+                            <span class="{% if rate_change >= 0 %}text-success{% else %}text-danger{% endif %}">
+                                {{ '%+.1f'|format(rate_change) }}%
+                            </span>
+                        </div>
+                    </div>
+
+                    {% set improvement = current_stats.capture_rate_pct - previous_stats.capture_rate_pct %}
+                    <div class="mt-3 alert alert-{% if improvement >= 0 %}success{% elif abs(improvement) <= 2 %}warning{% else %}danger{% endif %}">
+                        <i class="fas fa-{{ 'check-circle' if improvement > 0 else ('exclamation-triangle' if abs(improvement) <= 2 else 'times-circle') }}"></i>
+                        {% if improvement >= 5 %}
+                        Significant improvement! Capture rate increased by {{ '%.1f'|format(improvement) }}%.
+                        {% elif improvement > 0 %}
+                        Slight improvement of {{ '%.1f'|format(improvement) }}% in capture rate.
+                        {% elif abs(improvement) <= 2 %}
+                        Capture rate stable ({{ '%.1f'|format(improvement) }}% change).
+                        {% else %}
+                        Concerning decrease of {{ '%.1f'|format(abs(improvement)) }}% in capture rate. Review data collection systems.
+                        {% endif %}
+                    </div>
+
+                    {% endif %}
+
+                    {% else %}
+                    <p class="text-muted">No parameter reading data available for current period.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Parameter Health Indicators -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card bg-light border-warning">
+                <div class="card-header text-warning">
+                    <h5 class="mb-0"><i class="fas fa-heartbeat"></i> Parameter Health Assessment</h5>
+                </div>
+                <div class="card-body">
+                    {% if current_stats.capture_rate_pct >= 98 %}
+                    <div class="alert alert-success mb-3">
+                        <strong><i class="fas fa-check-circle"></i> Excellent Process Control</strong><br>
+                        Capture rate of {{ '%.1f'|format(current_stats.capture_rate_pct) }}% indicates excellent data collection and parameter compliance. Continue current monitoring practices.
+                    </div>
+
+                    {% elif current_stats.capture_rate_pct >= 90 %}
+                    <div class="alert alert-success mb-3">
+                        <strong><i class="fas fa-check-circle"></i> Good Process Control</strong><br>
+                        Capture rate of {{ '%.1f'|format(current_stats.capture_rate_pct) }}% is within acceptable range. Minor improvements may be possible.
+                    </div>
+
+                    {% elif current_stats.capture_rate_pct >= 80 %}
+                    <div class="alert alert-warning mb-3">
+                        <strong><i class="fas fa-exclamation-triangle"></i> Moderate Process Control</strong><br>
+                        Capture rate of {{ '%.1f'|format(current_stats.capture_rate_pct) }}% indicates room for improvement. Review parameter limit configurations and data collection systems.
+                    </div>
+
+                    {% else %}
+                    <div class="alert alert-danger mb-3">
+                        <strong><i class="fas fa-times-circle"></i> Poor Process Control</strong><br>
+                        Capture rate of {{ '%.1f'|format(current_stats.capture_rate_pct) }}% is below target. Immediate investigation recommended for:
+                        <ul class="mb-0 mt-2">
+                            <li>Data collection system health</li>
+                            <li>Parameter limit configurations</li>
+                            <li>PLC communication status</li>
+                        </ul>
+                    </div>
+                    {% endif %}
+
+                    <!-- Recommendations -->
+                    <h6><i class="fas fa-lightbulb"></i> Recommendations:</h6>
+                    <ul>
+                        {% if current_stats.capture_rate_pct >= 95 %}
+                        <li>Maintain current monitoring practices and continue regular data collection.</li>
+                        <li>Consider expanding parameter capture to include additional sensors for enhanced visibility.</li>
+                        {% else %}
+                        <li>Review PLC communication logs for any disconnections or errors.</li>
+                        <li>Verify all parameter limit configurations are current and accurate.</li>
+                        <li>Check sensor calibration schedules for temperature, pressure, and speed measurements.</li>
+                        <li>Contact IT/OT team to investigate potential data collection bottlenecks.</li>
+                        {% endif %}
+
+                        {% if previous_stats and current_stats.capture_rate_pct > previous_stats.capture_rate_pct %}
+                        <li><strong>Positive Trend:</strong> Improvement from {{ '%.1f'|format(previous_stats.capture_rate_pct) }}% to {{ '%.1f'|format(current_stats.capture_rate_pct) }}%. Identify changes that led to improvement and maintain them.</li>
+                        {% elif previous_stats and current_stats.capture_rate_pct < previous_stats.capture_rate_pct %}
+                        <li><strong>Deteriorating Trend:</strong> Decline from {{ '%.1f'|format(previous_stats.capture_rate_pct) }}% to {{ '%.1f'|format(current_stats.capture_rate_pct) }}%. Investigate root cause of degradation.</li>
+                        {% endif %}
+
+                        <li>Schedule regular parameter monitoring reviews (weekly recommended).</li>
+                        <li>Set up automated alerts for capture rate drops below 85% threshold.</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+{% endblock %}
