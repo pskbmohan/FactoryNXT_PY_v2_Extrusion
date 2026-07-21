@@ -21,7 +21,7 @@ import sqlalchemy as sa
 
 
 revision = '20260715_add_customer_part_bom_wo_fields'
-down_revision = 'base_20260701'
+down_revision = '20260704_eav'
 branch_labels = None
 depends_on = None
 
