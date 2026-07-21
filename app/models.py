@@ -1866,8 +1866,14 @@ class DefectCode(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
-    # Relationships
-    quality_inspections = db.relationship("QualityInspection", backref="defect_code_ref")
+    # Note: quality_inspections is intentionally NOT declared as a relationship
+    # here.  The `quality_inspections` table has no FK to `defect_codes` —
+    # defect matching happens via the JSONB `results` column — so a SQLAlchemy
+    # relationship with no primaryjoin is unresolvable and breaks model import
+    # (and therefore the auto-seed path) with:
+    #   "Could not determine join condition between parent/child tables on
+    #    relationship DefectCode.quality_inspections - there are no foreign
+    #    keys linking these tables."
 
 
 class QualityParameter(db.Model):
@@ -1923,8 +1929,13 @@ class QualityParameter(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
-    # Relationships
-    parameter_readings = db.relationship("ParameterReading", backref="quality_parameter_ref")
+    # Note: no `parameter_readings` relationship is declared.  The
+    # `parameter_readings` table has no FK to `quality_parameters` — readings
+    # are linked to runs, not to parameter-limit rows — so a SQLAlchemy
+    # relationship with no primaryjoin breaks model import with:
+    #   "Could not determine join condition between parent/child tables on
+    #    relationship QualityParameter.parameter_readings - there are no
+    #    foreign keys linking these tables."
 
 
 class ParameterReading(db.Model):
@@ -1965,7 +1976,12 @@ class ParameterReading(db.Model):
 
     # Relationships
     process_run = db.relationship("ProcessRun", backref="parameter_readings")
-    alerts = db.relationship("ProcessParameterAlert", backref="parameter_reading_ref", lazy="dynamic")
+    # Note: no `alerts` backref declared.  `ProcessParameterAlert.run_id`
+    # points at `process_runs.id`, not at `parameter_readings.id`, so this
+    # relationship has no primaryjoin and would break model import with:
+    #   "Could not determine join condition between parent/child tables on
+    #    relationship ParameterReading.alerts - there are no foreign keys
+    #    linking these tables."
 
 
 class QualityInspection(db.Model):

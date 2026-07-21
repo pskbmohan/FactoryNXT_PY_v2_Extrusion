@@ -19,6 +19,7 @@ Also extends existing models (Die, KPIRecord) with quality-related fields.
 """
 from alembic import op
 import sqlalchemy as sa
+from sqlalchemy import inspect
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers
@@ -28,13 +29,54 @@ branch_labels = None
 depends_on = None
 
 
+# ---------------------------------------------------------------------------
+# Idempotency helpers
+# ---------------------------------------------------------------------------
+# The application calls `db.create_all()` at startup which materialises every
+# registered SQLAlchemy model in Postgres BEFORE Alembic migrations run.  On
+# a fresh container boot the tables this migration introduces may therefore
+# already exist when Alembic replays it.  Wrapping schema-mutating calls with
+# existence guards keeps the migration replayable without changing its
+# semantics for a DB that hasn't bootstrapped the models yet.
+
+def _has_table(inspector, name):
+    return name in inspector.get_table_names()
+
+
+def _has_column(inspector, table, column):
+    if not _has_table(inspector, table):
+        return False
+    return column in {c['name'] for c in inspector.get_columns(table)}
+
+
+def _has_index(inspector, table, index_name):
+    if not _has_table(inspector, table):
+        return False
+    return index_name in {idx['name'] for idx in inspector.get_indexes(table) if idx.get('name')}
+
+
+def _create_table_if_missing(inspector, name, *args, **kwargs):
+    if _has_table(inspector, name):
+        return
+    op.create_table(name, *args, **kwargs)
+
+
+def _create_index_if_missing(inspector, table, index_name, columns, unique=False):
+    if _has_index(inspector, table, index_name):
+        return
+    op.create_index(index_name, table, columns, unique=unique)
+
+
 def upgrade():
     """Create all quality-related tables and extend existing models."""
+    conn = op.get_bind()
+    inspector = inspect(conn)
 
     # -------------------------------------------------------------------------
     # 1. Create defect_codes master data table (needed early for FKs)
     # -------------------------------------------------------------------------
-    op.create_table(
+    _create_table_if_missing(
+        inspector,
         'defect_codes',
         sa.Column('id', sa.String(length=36), primary_key=True, default=lambda: str(__import__('uuid').uuid4())),
         sa.Column('code', sa.String(32), nullable=False, unique=True),
@@ -46,13 +88,16 @@ def upgrade():
         sa.Column('created_at', sa.DateTime, default=sa.func.now()),
         sa.Column('updated_at', sa.DateTime, default=sa.func.now(), onupdate=sa.func.now())
     )
-    op.create_index(op.f('ix_defect_codes_code'), 'defect_codes', ['code'], unique=False)
-    op.create_index(op.f('ix_defect_codes_category'), 'defect_codes', ['category'], unique=False)
+    inspector = inspect(conn)
+    _create_index_if_missing(inspector, 'defect_codes', 'ix_defect_codes_code', ['code'])
+    _create_index_if_missing(inspector, 'defect_codes', 'ix_defect_codes_category', ['category'])
 
     # -------------------------------------------------------------------------
     # 2. Create quality_parameters table (process parameter limits per profile/alloy)
     # -------------------------------------------------------------------------
-    op.create_table(
+    inspector = inspect(conn)
+    _create_table_if_missing(
+        inspector,
         'quality_parameters',
         sa.Column('id', sa.String(length=36), primary_key=True, default=lambda: str(__import__('uuid').uuid4())),
         sa.Column('profile_code', sa.String(128), nullable=False),
@@ -88,14 +133,17 @@ def upgrade():
         sa.Column('created_at', sa.DateTime, default=sa.func.now()),
         sa.Column('updated_at', sa.DateTime, default=sa.func.now(), onupdate=sa.func.now())
     )
-    op.create_index(op.f('ix_quality_parameters_profile_code'), 'quality_parameters', ['profile_code'], unique=False)
-    op.create_index(op.f('ix_quality_parameters_alloy'), 'quality_parameters', ['alloy'], unique=False)
-    op.create_index(op.f('ix_quality_parameters_is_active'), 'quality_parameters', ['is_active'], unique=False)
+    inspector = inspect(conn)
+    _create_index_if_missing(inspector, 'quality_parameters', 'ix_quality_parameters_profile_code', ['profile_code'])
+    _create_index_if_missing(inspector, 'quality_parameters', 'ix_quality_parameters_alloy', ['alloy'])
+    _create_index_if_missing(inspector, 'quality_parameters', 'ix_quality_parameters_is_active', ['is_active'])
 
     # -------------------------------------------------------------------------
     # 3. Create parameter_readings table (real-time PLC capture during extrusion)
     # -------------------------------------------------------------------------
-    op.create_table(
+    inspector = inspect(conn)
+    _create_table_if_missing(
+        inspector,
         'parameter_readings',
         sa.Column('id', sa.String(length=36), primary_key=True, default=lambda: str(__import__('uuid').uuid4())),
         sa.Column('run_id', sa.String(36), sa.ForeignKey('process_runs.id'), nullable=False),
@@ -118,14 +166,17 @@ def upgrade():
         sa.Column('violation_count', sa.Integer, default=0),
         sa.Column('created_at', sa.DateTime, default=sa.func.now())
     )
-    op.create_index(op.f('ix_parameter_readings_run_id'), 'parameter_readings', ['run_id'], unique=False)
-    op.create_index(op.f('ix_parameter_readings_timestamp'), 'parameter_readings', ['timestamp'], unique=False)
-    op.create_index(op.f('ix_parameter_readings_all_within_limits'), 'parameter_readings', ['all_within_limits'], unique=False)
+    inspector = inspect(conn)
+    _create_index_if_missing(inspector, 'parameter_readings', 'ix_parameter_readings_run_id', ['run_id'])
+    _create_index_if_missing(inspector, 'parameter_readings', 'ix_parameter_readings_timestamp', ['timestamp'])
+    _create_index_if_missing(inspector, 'parameter_readings', 'ix_parameter_readings_all_within_limits', ['all_within_limits'])
 
     # -------------------------------------------------------------------------
     # 4. Create quality_inspections table (unified inspection records)
     # -------------------------------------------------------------------------
-    op.create_table(
+    inspector = inspect(conn)
+    _create_table_if_missing(
+        inspector,
         'quality_inspections',
         sa.Column('id', sa.String(length=36), primary_key=True, default=lambda: str(__import__('uuid').uuid4())),
         sa.Column('inspection_type', sa.Enum('dimensional', 'visual', 'process_parameter', 'first_piece', name='inspection_types'), nullable=False),
@@ -150,16 +201,19 @@ def upgrade():
         sa.Column('erp_posted_at', sa.DateTime, nullable=True),
         sa.Column('created_at', sa.DateTime, default=sa.func.now())
     )
-    op.create_index(op.f('ix_quality_inspections_inspection_type'), 'quality_inspections', ['inspection_type'], unique=False)
-    op.create_index(op.f('ix_quality_inspections_stage'), 'quality_inspections', ['stage'], unique=False)
-    op.create_index(op.f('ix_quality_inspections_wo_id'), 'quality_inspections', ['wo_id'], unique=False)
-    op.create_index(op.f('ix_quality_inspections_die_id'), 'quality_inspections', ['die_id'], unique=False)
-    op.create_index(op.f('ix_quality_inspections_pass_fail'), 'quality_inspections', ['pass_fail'], unique=False)
+    inspector = inspect(conn)
+    _create_index_if_missing(inspector, 'quality_inspections', 'ix_quality_inspections_inspection_type', ['inspection_type'])
+    _create_index_if_missing(inspector, 'quality_inspections', 'ix_quality_inspections_stage', ['stage'])
+    _create_index_if_missing(inspector, 'quality_inspections', 'ix_quality_inspections_wo_id', ['wo_id'])
+    _create_index_if_missing(inspector, 'quality_inspections', 'ix_quality_inspections_die_id', ['die_id'])
+    _create_index_if_missing(inspector, 'quality_inspections', 'ix_quality_inspections_pass_fail', ['pass_fail'])
 
     # -------------------------------------------------------------------------
     # 5. Create test_events table (mechanical/NDT testing results)
     # -------------------------------------------------------------------------
-    op.create_table(
+    inspector = inspect(conn)
+    _create_table_if_missing(
+        inspector,
         'test_events',
         sa.Column('id', sa.String(length=36), primary_key=True, default=lambda: str(__import__('uuid').uuid4())),
         sa.Column('test_type', sa.Enum('webster', 'barcol', 'vickers', 'uts', 'ut', name='test_types'), nullable=False),
@@ -179,14 +233,17 @@ def upgrade():
         sa.Column('notes', sa.Text, nullable=True),
         sa.Column('created_at', sa.DateTime, default=sa.func.now())
     )
-    op.create_index(op.f('ix_test_events_test_type'), 'test_events', ['test_type'], unique=False)
-    op.create_index(op.f('ix_test_events_wo_id'), 'test_events', ['wo_id'], unique=False)
-    op.create_index(op.f('ix_test_events_passed'), 'test_events', ['passed'], unique=False)
+    inspector = inspect(conn)
+    _create_index_if_missing(inspector, 'test_events', 'ix_test_events_test_type', ['test_type'])
+    _create_index_if_missing(inspector, 'test_events', 'ix_test_events_wo_id', ['wo_id'])
+    _create_index_if_missing(inspector, 'test_events', 'ix_test_events_passed', ['passed'])
 
     # -------------------------------------------------------------------------
     # 6. Create alarm_breakdown_log table (machine alarm and downtime tracking)
     # -------------------------------------------------------------------------
-    op.create_table(
+    inspector = inspect(conn)
+    _create_table_if_missing(
+        inspector,
         'alarm_breakdown_log',
         sa.Column('id', sa.String(length=36), primary_key=True, default=lambda: str(__import__('uuid').uuid4())),
         sa.Column('machine_id', sa.String(36), nullable=False),
@@ -207,14 +264,17 @@ def upgrade():
         sa.Column('created_at', sa.DateTime, default=sa.func.now()),
         sa.UniqueConstraint('machine_id', 'alarm_code', 'started_at', name='uq_machine_alarm_start')
     )
-    op.create_index(op.f('ix_alarm_breakdown_log_machine_id'), 'alarm_breakdown_log', ['machine_id'], unique=False)
-    op.create_index(op.f('ix_alarm_breakdown_log_started_at'), 'alarm_breakdown_log', ['started_at'], unique=False)
-    op.create_index(op.f('ix_alarm_breakdown_log_is_recurring'), 'alarm_breakdown_log', ['is_recurring'], unique=False)
+    inspector = inspect(conn)
+    _create_index_if_missing(inspector, 'alarm_breakdown_log', 'ix_alarm_breakdown_log_machine_id', ['machine_id'])
+    _create_index_if_missing(inspector, 'alarm_breakdown_log', 'ix_alarm_breakdown_log_started_at', ['started_at'])
+    _create_index_if_missing(inspector, 'alarm_breakdown_log', 'ix_alarm_breakdown_log_is_recurring', ['is_recurring'])
 
     # -------------------------------------------------------------------------
     # 7. Create process_parameter_alerts table (auto-triggered violations)
     # -------------------------------------------------------------------------
-    op.create_table(
+    inspector = inspect(conn)
+    _create_table_if_missing(
+        inspector,
         'process_parameter_alerts',
         sa.Column('id', sa.String(length=36), primary_key=True, default=lambda: str(__import__('uuid').uuid4())),
         sa.Column('run_id', sa.String(36), sa.ForeignKey('process_runs.id'), nullable=False),
@@ -232,14 +292,17 @@ def upgrade():
         sa.Column('notes', sa.Text, nullable=True),
         sa.Column('created_at', sa.DateTime, default=sa.func.now())
     )
-    op.create_index(op.f('ix_process_parameter_alerts_run_id'), 'process_parameter_alerts', ['run_id'], unique=False)
-    op.create_index(op.f('ix_process_parameter_alerts_status'), 'process_parameter_alerts', ['status'], unique=False)
-    op.create_index(op.f('ix_process_parameter_alerts_auto_stop_triggered'), 'process_parameter_alerts', ['auto_stop_triggered'], unique=False)
+    inspector = inspect(conn)
+    _create_index_if_missing(inspector, 'process_parameter_alerts', 'ix_process_parameter_alerts_run_id', ['run_id'])
+    _create_index_if_missing(inspector, 'process_parameter_alerts', 'ix_process_parameter_alerts_status', ['status'])
+    _create_index_if_missing(inspector, 'process_parameter_alerts', 'ix_process_parameter_alerts_auto_stop_triggered', ['auto_stop_triggered'])
 
     # -------------------------------------------------------------------------
     # 8. Create spc_records table (SPC chart data points with shift grouping)
     # -------------------------------------------------------------------------
-    op.create_table(
+    inspector = inspect(conn)
+    _create_table_if_missing(
+        inspector,
         'spc_records',
         sa.Column('id', sa.String(length=36), primary_key=True, default=lambda: str(__import__('uuid').uuid4())),
         sa.Column('wo_id', sa.String(36), sa.ForeignKey('work_orders.id'), nullable=False),
@@ -263,15 +326,18 @@ def upgrade():
         sa.Column('notes', sa.Text, nullable=True),
         sa.Column('created_at', sa.DateTime, default=sa.func.now())
     )
-    op.create_index(op.f('ix_spc_records_wo_id'), 'spc_records', ['wo_id'], unique=False)
-    op.create_index(op.f('ix_spc_records_dimension_type'), 'spc_records', ['dimension_type'], unique=False)
-    op.create_index(op.f('ix_spc_records_shift_group'), 'spc_records', ['shift_group'], unique=False)
-    op.create_index(op.f('ix_spc_records_out_of_control'), 'spc_records', ['out_of_control'], unique=False)
+    inspector = inspect(conn)
+    _create_index_if_missing(inspector, 'spc_records', 'ix_spc_records_wo_id', ['wo_id'])
+    _create_index_if_missing(inspector, 'spc_records', 'ix_spc_records_dimension_type', ['dimension_type'])
+    _create_index_if_missing(inspector, 'spc_records', 'ix_spc_records_shift_group', ['shift_group'])
+    _create_index_if_missing(inspector, 'spc_records', 'ix_spc_records_out_of_control', ['out_of_control'])
 
     # -------------------------------------------------------------------------
     # 9. Create material_traceability table (end-to-end traceability chain)
     # -------------------------------------------------------------------------
-    op.create_table(
+    inspector = inspect(conn)
+    _create_table_if_missing(
+        inspector,
         'material_traceability',
         sa.Column('id', sa.String(length=36), primary_key=True, default=lambda: str(__import__('uuid').uuid4())),
         # Traceability identifiers
@@ -293,42 +359,60 @@ def upgrade():
         sa.Column('notes', sa.Text, nullable=True),
         sa.Column('created_at', sa.DateTime, default=sa.func.now())
     )
-    op.create_index(op.f('ix_material_traceability_batch_number'), 'material_traceability', ['batch_number'], unique=False)
-    op.create_index(op.f('ix_material_traceability_work_order_id'), 'material_traceability', ['work_order_id'], unique=False)
-    op.create_index(op.f('ix_material_traceability_heat_number'), 'material_traceability', ['heat_number'], unique=False)
+    inspector = inspect(conn)
+    _create_index_if_missing(inspector, 'material_traceability', 'ix_material_traceability_batch_number', ['batch_number'])
+    _create_index_if_missing(inspector, 'material_traceability', 'ix_material_traceability_work_order_id', ['work_order_id'])
+    _create_index_if_missing(inspector, 'material_traceability', 'ix_material_traceability_heat_number', ['heat_number'])
 
     # -------------------------------------------------------------------------
     # 10. Extend Die model with quality-related columns via ALTER TABLE
     # -------------------------------------------------------------------------
-    # Add computed/calculated fields for die lifecycle tracking
-    op.add_column('dies', sa.Column('die_life_cycles_remaining', sa.Integer, nullable=True))
-    op.add_column('dies', sa.Column('last_failure_reason', sa.Text, nullable=True))
-    op.add_column('dies', sa.Column('total_setup_time_minutes', sa.Float, default=0.0))
-    op.add_column('dies', sa.Column('average_setup_time_minutes', sa.Float, nullable=True))
+    inspector = inspect(conn)
+    die_quality_columns = [
+        ('die_life_cycles_remaining', sa.Integer, {}),
+        ('last_failure_reason',       sa.Text,   {}),
+        ('total_setup_time_minutes',  sa.Float,  {'default': 0.0}),
+        ('average_setup_time_minutes', sa.Float, {}),
+    ]
+    for col_name, col_type, col_kwargs in die_quality_columns:
+        if not _has_column(inspector, 'dies', col_name):
+            op.add_column('dies', sa.Column(col_name, col_type(**col_kwargs), nullable=True))
 
     # -------------------------------------------------------------------------
-    # 11. Extend KPIRecord model with new quality KPI types
+    # 11. Extend KPIRecord model with new quality KPI types (if the enum exists)
     # -------------------------------------------------------------------------
-    # Add new kpi_type values: FPY, PPM, COPQ, ENERGY_CONSUMPTION
-    op.execute("ALTER TYPE kpi_types ADD VALUE IF NOT EXISTS 'FPY'")
-    op.execute("ALTER TYPE kpi_types ADD VALUE IF NOT EXISTS 'PPM'")
-    op.execute("ALTER TYPE kpi_types ADD VALUE IF NOT EXISTS 'COPQ'")
-    op.execute("ALTER TYPE kpi_types ADD VALUE IF NOT EXISTS 'ENERGY_CONSUMPTION'")
+    # `KPIRecord.kpi_type` is currently a free-form `db.String(32)` in the
+    # model, and the `kpi_types` enum was never created in any prior
+    # migration.  If/when the column is migrated to a Postgres ENUM, these
+    # values extend it.  Until then we guard each ALTER so it becomes a safe
+    # no-op on deployments where the type is missing — the String column
+    # already accepts any value we'd want anyway.
+    conn = op.get_bind()
+    inspector = inspect(conn)
+    enums = inspector.get_enums()  # SQLAlchemy Inspector: list of enum metadata
+    # Inspector.get_enums() returns dicts with keys like {name, schema}.
+    enum_names = {e['name'] for e in enums if e.get('name')}
+    if 'kpi_types' in enum_names:
+        op.execute("ALTER TYPE kpi_types ADD VALUE IF NOT EXISTS 'FPY'")
+        op.execute("ALTER TYPE kpi_types ADD VALUE IF NOT EXISTS 'PPM'")
+        op.execute("ALTER TYPE kpi_types ADD VALUE IF NOT EXISTS 'COPQ'")
+        op.execute("ALTER TYPE kpi_types ADD VALUE IF NOT EXISTS 'ENERGY_CONSUMPTION'")
 
     # -------------------------------------------------------------------------
     # 12. Create additional indexes for performance
     # -------------------------------------------------------------------------
+    inspector = inspect(conn)
     # Composite index for quality_inspections (common query pattern)
-    op.create_index(
+    _create_index_if_missing(
+        inspector, 'quality_inspections',
         'ix_quality_inspections_wo_die_timestamp',
-        'quality_inspections',
         ['wo_id', 'die_id', 'timestamp']
     )
 
     # Composite index for parameter_readings (time-series queries)
-    op.create_index(
+    _create_index_if_missing(
+        inspector, 'parameter_readings',
         'ix_parameter_readings_run_timestamp',
-        'parameter_readings',
         ['run_id', 'timestamp']
     )
 

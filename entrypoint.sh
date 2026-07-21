@@ -64,6 +64,19 @@ with engine.begin() as conn:
         "CREATE TABLE IF NOT EXISTS alembic_version "
         "(version_num VARCHAR(32) NOT NULL PRIMARY KEY)"
     ))
+    # Widen `version_num` to accommodate long revision IDs.  The original
+    # schema (VARCHAR(32)) was enough for short marker revisions like
+    # `base_20260701`, but Alembic's auto-generated revision IDs look
+    # like `20260715_add_customer_part_bom_wo_fields` (43+ chars) and
+    # Postgres rejects them with "value too long for type character
+    # varying(32)".  Alembic itself defaults to VARCHAR(255) when it
+    # creates the table, but this entrypoint pre-creates it narrower,
+    # so we re-widen here every boot.  The ALTER is idempotent — a no-op
+    # if the column is already VARCHAR(255) or wider.
+    conn.execute(text(
+        "ALTER TABLE alembic_version "
+        "ALTER COLUMN version_num TYPE VARCHAR(255)"
+    ))
     rows = conn.execute(text(
         "SELECT version_num FROM alembic_version"
     )).fetchall()

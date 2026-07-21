@@ -18,6 +18,7 @@ Also patches WorkOrder table with BOM resolution fields:
 """
 from alembic import op
 import sqlalchemy as sa
+from sqlalchemy import inspect
 
 
 revision = '20260715_add_customer_part_bom_wo_fields'
@@ -26,9 +27,49 @@ branch_labels = None
 depends_on = None
 
 
+def _has_table(inspector, name):
+    """Check whether a table already exists in the target schema."""
+    return name in inspector.get_table_names()
+
+
+def _has_column(inspector, table, column):
+    """Check whether a column already exists on a table."""
+    if not _has_table(inspector, table):
+        return False
+    return column in {c['name'] for c in inspector.get_columns(table)}
+
+
+def _has_fk(inspector, table, constraint_name):
+    """Check whether a named FK constraint already exists on a table."""
+    if not _has_table(inspector, table):
+        return False
+    return constraint_name in {
+        fk['name'] for fk in inspector.get_foreign_keys(table) if fk.get('name')
+    }
+
+
+def _create_table_if_missing(inspector, name, *args, **kwargs):
+    """op.create_table(...) only if the table does not already exist.
+
+    The application calls `db.create_all()` at startup which materialises every
+    registered SQLAlchemy model BEFORE Alembic migrations run.  That means on
+    a fresh container boot the tables this migration introduces may already be
+    present when Alembic replays it.  Guarding with `has_table` keeps the
+    migration idempotent without changing semantics for a DB that hasn't
+    bootstrapped the models yet.
+    """
+    if _has_table(inspector, name):
+        return
+    op.create_table(name, *args, **kwargs)
+
+
 def upgrade():
+    conn = op.get_bind()
+    inspector = inspect(conn)
+
     # ─── customers table ──────────────────────────────────────────────────────
-    op.create_table(
+    _create_table_if_missing(
+        inspector,
         'customers',
         sa.Column('id', sa.String(36), primary_key=True),
         sa.Column('customer_code', sa.String(64), unique=True, nullable=False),
@@ -39,9 +80,12 @@ def upgrade():
         sa.Column('is_active', sa.Boolean, default=True),
         sa.Column('created_at', sa.DateTime, default=sa.func.now()),
     )
+    # Refresh inspector after a possible create so later lookups see the new table.
+    inspector = inspect(conn)
 
     # ─── part_numbers table ───────────────────────────────────────────────────
-    op.create_table(
+    _create_table_if_missing(
+        inspector,
         'part_numbers',
         sa.Column('id', sa.String(36), primary_key=True),
         sa.Column('part_code', sa.String(64), unique=True, nullable=False),
@@ -53,9 +97,11 @@ def upgrade():
         sa.Column('is_active', sa.Boolean, default=True),
         sa.Column('created_at', sa.DateTime, default=sa.func.now()),
     )
+    inspector = inspect(conn)
 
     # ─── customer_part_numbers table (junction) ──────────────────────────────
-    op.create_table(
+    _create_table_if_missing(
+        inspector,
         'customer_part_numbers',
         sa.Column('id', sa.String(36), primary_key=True),
         sa.Column('customer_id', sa.String(36), sa.ForeignKey('customers.id'), nullable=False),
@@ -65,9 +111,11 @@ def upgrade():
         sa.Column('created_at', sa.DateTime, default=sa.func.now()),
         sa.UniqueConstraint('customer_id', 'part_number_id', name='uq_customer_part'),
     )
+    inspector = inspect(conn)
 
     # ─── part_number_boms table ──────────────────────────────────────────────
-    op.create_table(
+    _create_table_if_missing(
+        inspector,
         'part_number_boms',
         sa.Column('id', sa.String(36), primary_key=True),
         sa.Column('part_number_id', sa.String(36), sa.ForeignKey('part_numbers.id'), nullable=False),
@@ -82,9 +130,11 @@ def upgrade():
         sa.Column('created_at', sa.DateTime, default=sa.func.now()),
         sa.Column('updated_at', sa.DateTime, default=sa.func.now(), onupdate=sa.func.now()),
     )
+    inspector = inspect(conn)
 
     # ─── customer_order_lines table ──────────────────────────────────────────
-    op.create_table(
+    _create_table_if_missing(
+        inspector,
         'customer_order_lines',
         sa.Column('id', sa.String(36), primary_key=True),
         sa.Column('order_id', sa.String(36), sa.ForeignKey('customer_orders.id'), nullable=False),
@@ -97,40 +147,39 @@ def upgrade():
         sa.Column('status', sa.String(32), nullable=False, default='OPEN'),
         sa.Column('created_at', sa.DateTime, default=sa.func.now()),
     )
+    inspector = inspect(conn)
 
     # ─── Patch work_orders table with BOM resolution fields ──────────────────
-    op.add_column('work_orders', sa.Column('customer_order_line_id', sa.String(36), nullable=True))
-    op.add_column('work_orders', sa.Column('part_number_id', sa.String(36), nullable=True))
-    op.add_column('work_orders', sa.Column('die_type_id', sa.String(36), nullable=True))
-    op.add_column('work_orders', sa.Column('billet_type_id', sa.String(36), nullable=True))
-    op.add_column('work_orders', sa.Column('bom_version_id', sa.String(36), nullable=True))
+    bom_columns = [
+        ('customer_order_line_id', sa.String(36)),
+        ('part_number_id',         sa.String(36)),
+        ('die_type_id',            sa.String(36)),
+        ('billet_type_id',         sa.String(36)),
+        ('bom_version_id',         sa.String(36)),
+    ]
+    for col_name, col_type in bom_columns:
+        if not _has_column(inspector, 'work_orders', col_name):
+            op.add_column('work_orders', sa.Column(col_name, col_type, nullable=True))
 
-    # Add foreign keys for the new columns
-    op.create_foreign_key(
-        'fk_work_order_customer_order_line',
-        'work_orders', 'customer_order_lines',
-        ['customer_order_line_id'], ['id']
-    )
-    op.create_foreign_key(
-        'fk_work_order_part_number',
-        'work_orders', 'part_numbers',
-        ['part_number_id'], ['id']
-    )
-    op.create_foreign_key(
-        'fk_work_order_die_type',
-        'work_orders', 'dies',
-        ['die_type_id'], ['id']
-    )
-    op.create_foreign_key(
-        'fk_work_order_billet_type',
-        'work_orders', 'billets',
-        ['billet_type_id'], ['id']
-    )
-    op.create_foreign_key(
-        'fk_work_order_bom_version',
-        'work_orders', 'part_number_boms',
-        ['bom_version_id'], ['id']
-    )
+    # Refresh inspector after adding columns so FK lookups are consistent.
+    inspector = inspect(conn)
+
+    # Add foreign keys for the new columns (idempotent by constraint name)
+    new_fks = [
+        ('fk_work_order_customer_order_line', 'work_orders', 'customer_order_lines',
+         ['customer_order_line_id'], ['id']),
+        ('fk_work_order_part_number', 'work_orders', 'part_numbers',
+         ['part_number_id'], ['id']),
+        ('fk_work_order_die_type', 'work_orders', 'dies',
+         ['die_type_id'], ['id']),
+        ('fk_work_order_billet_type', 'work_orders', 'billets',
+         ['billet_type_id'], ['id']),
+        ('fk_work_order_bom_version', 'work_orders', 'part_number_boms',
+         ['bom_version_id'], ['id']),
+    ]
+    for fk_name, src_table, ref_table, src_cols, ref_cols in new_fks:
+        if not _has_fk(inspector, src_table, fk_name):
+            op.create_foreign_key(fk_name, src_table, ref_table, src_cols, ref_cols)
 
 
 def downgrade():
