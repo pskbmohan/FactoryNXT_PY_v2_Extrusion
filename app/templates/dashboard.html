@@ -2,27 +2,12 @@
 {% block title %}Dashboard - FactoryNXT{% endblock %}
 
 {% block content %}
-<div class="kpi-hero mb-6">
-  <div class="kpi-card">
-    <div class="kpi-label">Plant OEE</div>
-    <div class="kpi-value">{{ '%.1f'|format((oee_today or 0) * 100) }}%</div>
-  </div>
-  <div class="kpi-card">
-    <div class="kpi-label">Open Alerts</div>
-    <div class="kpi-value">{{ active_alerts_count or 0 }}</div>
-  </div>
-  <div class="kpi-card">
-    <div class="kpi-label">ERP Sync OK</div>
-    <div class="kpi-value">{{ sync_health.erp_success if sync_health else 0 }}</div>
-  </div>
-</div>
-
 <div>
 <div class="space-y-6">
   <!-- Page Header -->
   <div class="flex items-center justify-between">
     <div>
-      <h1 class="text-2xl font-bold text-slate-900 dark:text-slate-50">Foundry Operations Dashboard</h1>
+      <h1 class="text-2xl font-bold text-slate-900 dark:text-slate-50">Extrusion Operations</h1>
       <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Real-time overview of aluminum extrusion plant performance</p>
     </div>
     <div class="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400 bg-white dark:bg-slate-800 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 shadow-sm">
@@ -31,6 +16,21 @@
         <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
       </span>
       <span class="font-medium text-slate-700 dark:text-slate-300">Live</span>
+    </div>
+  </div>
+
+  <div class="kpi-hero mb-6">
+    <div class="kpi-card">
+      <div class="kpi-label">Plant OEE</div>
+      <div class="kpi-value">{{ '%.2f'|format((oee_today or 0) * 100) }}%</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Open Alerts</div>
+      <div class="kpi-value">{{ active_alerts_count or 0 }}</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">ERP Sync OK</div>
+      <div class="kpi-value">{{ sync_health.erp_success if sync_health else 0 }}</div>
     </div>
   </div>
 
@@ -69,7 +69,7 @@
         </svg>
       </div>
       <div class="flex items-baseline gap-1">
-        <span class="text-4xl font-bold text-slate-900 dark:text-slate-50">{{ '%.1f'|format((oee_today or 0) * 100) }}</span>
+        <span class="text-4xl font-bold text-slate-900 dark:text-slate-50">{{ '%.2f'|format((oee_today or 0) * 100) }}</span>
         <span class="text-xl font-semibold text-emerald-500 dark:text-emerald-400">%</span>
       </div>
       <div class="w-full bg-slate-100 dark:bg-slate-700 rounded-full h-2 mt-3">

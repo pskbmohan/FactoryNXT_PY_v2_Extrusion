@@ -23,7 +23,7 @@
     <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-6 shadow-sm hover:shadow-md transition-shadow">
       <span class="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Overall OEE</span>
       <div class="flex items-baseline gap-2 mt-4">
-        <span class="text-5xl font-bold text-slate-900 dark:text-slate-50">{{ avg_oee }}</span>
+        <span class="text-5xl font-bold text-slate-900 dark:text-slate-50">{{ '%.2f'|format((avg_oee or 0) * 100) }}</span>
         <span class="text-2xl font-semibold text-emerald-500 dark:text-emerald-400">%</span>
       </div>
       <p class="text-xs text-emerald-600 dark:text-emerald-400 font-medium mt-3 flex items-center gap-1">
@@ -36,10 +36,10 @@
     <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-6 shadow-sm hover:shadow-md transition-shadow">
       <span class="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Availability</span>
       <div class="mt-4">
-        <span class="text-3xl font-bold text-slate-900 dark:text-slate-50">{{ avg_avail }}%</span>
+        <span class="text-3xl font-bold text-slate-900 dark:text-slate-50">{{ '%.1f'|format((avg_avail or 0) * 100) }}%</span>
       </div>
       <div class="w-full bg-slate-100 dark:bg-slate-700 rounded-full h-1.5 mt-4">
-        <div class="bg-emerald-500 dark:bg-emerald-500 h-1.5 rounded-full transition-all duration-500" style="width: {{ avg_avail }}%"></div>
+        <div class="bg-emerald-500 dark:bg-emerald-500 h-1.5 rounded-full transition-all duration-500" style="width: {{ (avg_avail or 0) * 100 }}%"></div>
       </div>
     </div>
 
@@ -47,10 +47,10 @@
     <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-6 shadow-sm hover:shadow-md transition-shadow">
       <span class="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Performance</span>
       <div class="mt-4">
-        <span class="text-3xl font-bold text-slate-900 dark:text-slate-50">{{ avg_perf }}%</span>
+        <span class="text-3xl font-bold text-slate-900 dark:text-slate-50">{{ '%.1f'|format((avg_perf or 0) * 100) }}%</span>
       </div>
       <div class="w-full bg-slate-100 dark:bg-slate-700 rounded-full h-1.5 mt-4">
-        <div class="bg-sky-500 dark:bg-sky-500 h-1.5 rounded-full transition-all duration-500" style="width: {{ avg_perf }}%"></div>
+        <div class="bg-sky-500 dark:bg-sky-500 h-1.5 rounded-full transition-all duration-500" style="width: {{ (avg_perf or 0) * 100 }}%"></div>
       </div>
     </div>
 
@@ -58,10 +58,10 @@
     <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-6 shadow-sm hover:shadow-md transition-shadow">
       <span class="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Quality</span>
       <div class="mt-4">
-        <span class="text-3xl font-bold text-emerald-600 dark:text-emerald-400">{{ avg_qual }}%</span>
+        <span class="text-3xl font-bold text-emerald-600 dark:text-emerald-400">{{ '%.1f'|format((avg_qual or 0) * 100) }}%</span>
       </div>
       <div class="w-full bg-slate-100 dark:bg-slate-700 rounded-full h-1.5 mt-4">
-        <div class="bg-cyan-500 dark:bg-cyan-500 h-1.5 rounded-full transition-all duration-500" style="width: {{ avg_qual }}%"></div>
+        <div class="bg-cyan-500 dark:bg-cyan-500 h-1.5 rounded-full transition-all duration-500" style="width: {{ (avg_qual or 0) * 100 }}%"></div>
       </div>
     </div>
   </div>
@@ -169,11 +169,11 @@
           <tr class="hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
             <td class="px-6 py-3 font-medium text-slate-900 dark:text-slate-50">{{ snap.shift_date.strftime('%Y-%m-%d') if snap.shift_date else 'N/A' }} <span class="text-slate-500 dark:text-slate-400 text-xs">({{ snap.shift_name }})</span></td>
             <td class="px-6 py-3 text-slate-700 dark:text-slate-300">{{ snap.smt_line.name if snap.smt_line else 'N/A' }}</td>
-            <td class="px-6 py-3 text-right text-slate-700 dark:text-slate-300">{{ (snap.availability or 0) | round(1) }}%</td>
-            <td class="px-6 py-3 text-right text-slate-700 dark:text-slate-300">{{ (snap.performance or 0) | round(1) }}%</td>
-            <td class="px-6 py-3 text-right text-slate-700 dark:text-slate-300">{{ (snap.quality or 0) | round(1) }}%</td>
-            <td class="px-6 py-3 text-right font-bold {% if snap.oee and snap.oee >= 85 %}text-emerald-600 dark:text-emerald-400{% elif snap.oee and snap.oee >= 75 %}text-amber-600 dark:text-amber-400{% else %}text-red-600 dark:text-red-400{% endif %}">
-              {{ (snap.oee or 0) | round(1) }}%
+            <td class="px-6 py-3 text-right text-slate-700 dark:text-slate-300">{{ '%.1f'|format((snap.availability or 0) * 100) }}%</td>
+            <td class="px-6 py-3 text-right text-slate-700 dark:text-slate-300">{{ '%.1f'|format((snap.performance or 0) * 100) }}%</td>
+            <td class="px-6 py-3 text-right text-slate-700 dark:text-slate-300">{{ '%.1f'|format((snap.quality or 0) * 100) }}%</td>
+            <td class="px-6 py-3 text-right font-bold {% if snap.oee and (snap.oee * 100) >= 85 %}text-emerald-600 dark:text-emerald-400{% elif snap.oee and (snap.oee * 100) >= 75 %}text-amber-600 dark:text-amber-400{% else %}text-red-600 dark:text-red-400{% endif %}">
+              {{ '%.1f'|format((snap.oee or 0) * 100) }}%
             </td>
           </tr>
           {% else %}

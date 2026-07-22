@@ -1,0 +1,284 @@
+{% extends "layout.html" %}
+
+{% block title %}Defect Codes - FactoryNXT{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto">
+  <div class="flex justify-between items-center mb-6">
+    <h1 class="text-2xl font-bold">Defect Codes</h1>
+    <button onclick="openModal()" class="bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-lg flex items-center gap-2">
+      <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+      </svg>
+      + New Defect Code
+    </button>
+  </div>
+
+  <!-- Defect Codes Table -->
+  <div class="bg-white dark:bg-slate-800 rounded-lg shadow border border-slate-200 dark:border-slate-700 overflow-hidden">
+    <table class="w-full text-sm">
+      <thead class="bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700">
+        <tr>
+          <th class="px-4 py-3 text-left font-semibold text-slate-700 dark:text-slate-300">Code</th>
+          <th class="px-4 py-3 text-left font-semibold text-slate-700 dark:text-slate-300">Name</th>
+          <th class="px-4 py-3 text-left font-semibold text-slate-700 dark:text-slate-300">Category</th>
+          <th class="px-4 py-3 text-center font-semibold text-slate-700 dark:text-slate-300">Severity</th>
+          <th class="px-4 py-3 text-center font-semibold text-slate-700 dark:text-slate-300">Status</th>
+          <th class="px-4 py-3 text-right font-semibold text-slate-700 dark:text-slate-300">Actions</th>
+        </tr>
+      </thead>
+      <tbody id="defect-codes-table-body" class="divide-y divide-slate-200 dark:divide-slate-700">
+        <!-- Rows loaded via fetch -->
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Loading State -->
+  <div id="loading" class="text-center py-8 text-slate-500">Loading defect codes...</div>
+
+  <!-- Modal for New/Edit Defect Code -->
+  <div id="defect-code-modal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
+    <div class="bg-white dark:bg-slate-800 rounded-lg shadow-xl w-full max-w-md mx-4">
+      <div class="flex justify-between items-center px-6 py-4 border-b border-slate-200 dark:border-slate-700">
+        <h2 id="modal-title" class="text-lg font-semibold">New Defect Code</h2>
+        <button onclick="closeModal()" class="text-slate-500 hover:text-slate-700 dark:hover:text-slate-300">&times;</button>
+      </div>
+      <form id="defect-code-form" onsubmit="saveDefectCode(event)" class="p-6">
+        <input type="hidden" id="edit-defect-code-id">
+        <div class="space-y-4">
+          <div>
+            <label class="block text-sm font-medium mb-1">Code *</label>
+            <input type="text" id="code" required class="w-full px-3 py-2 border rounded dark:bg-slate-700 dark:border-slate-600" placeholder="e.g., SCR-001">
+          </div>
+          <div>
+            <label class="block text-sm font-medium mb-1">Name *</label>
+            <input type="text" id="name" required class="w-full px-3 py-2 border rounded dark:bg-slate-700 dark:border-slate-600" placeholder="e.g., Scratch">
+          </div>
+          <div>
+            <label class="block text-sm font-medium mb-1">Category *</label>
+            <select id="category" required class="w-full px-3 py-2 border rounded dark:bg-slate-700 dark:border-slate-600">
+              <option value="surface">Surface</option>
+              <option value="dimensional">Dimensional</option>
+              <option value="functional">Functional</option>
+              <option value="aesthetic">Aesthetic</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-sm font-medium mb-1">Severity</label>
+            <select id="severity" class="w-full px-3 py-2 border rounded dark:bg-slate-700 dark:border-slate-600">
+              <option value="minor">Minor</option>
+              <option value="moderate" selected>Moderate</option>
+              <option value="major">Major</option>
+              <option value="critical">Critical</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-sm font-medium mb-1">Description</label>
+            <textarea id="description" rows="3" class="w-full px-3 py-2 border rounded dark:bg-slate-700 dark:border-slate-600" placeholder="Detailed description of the defect"></textarea>
+          </div>
+          <div id="is-active-container" class="hidden flex items-center gap-2">
+            <input type="checkbox" id="is_active" class="w-4 h-4 text-primary-600 border rounded">
+            <label for="is_active" class="text-sm font-medium">Active</label>
+          </div>
+        </div>
+        <div class="flex justify-end gap-2 mt-6">
+          <button type="button" onclick="closeModal()" class="px-4 py-2 border rounded hover:bg-slate-50 dark:hover:bg-slate-700">Cancel</button>
+          <button type="submit" id="save-btn" class="bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded">Save Defect Code</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Toast Notification -->
+  <div id="toast" class="hidden fixed top-25 right-5 z-50 px-6 py-3 rounded-lg shadow-lg transform transition-all duration-500">
+  </div>
+</div>
+
+<script>
+let defectCodes = [];
+let editingId = null;
+
+document.addEventListener("DOMContentLoaded", function() {
+    fetchDefectCodes();
+});
+
+async function fetchDefectCodes() {
+    document.getElementById('loading').classList.remove('hidden');
+    try {
+        const res = await fetch('/api/master/defect-codes');
+        defectCodes = await res.json();
+        renderTable();
+    } catch (err) {
+        showToast('Error loading defect codes', 'error');
+    } finally {
+        document.getElementById('loading').classList.add('hidden');
+    }
+}
+
+function severityClass(sev) {
+    const map = {
+        'minor': 'bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300',
+        'moderate': 'bg-yellow-100 dark:bg-yellow-900/50 text-yellow-700 dark:text-yellow-300',
+        'major': 'bg-orange-100 dark:bg-orange-900/50 text-orange-700 dark:text-orange-300',
+        'critical': 'bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300',
+    };
+    return map[sev] || 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-400';
+}
+
+function renderTable() {
+    const tbody = document.getElementById('defect-codes-table-body');
+    if (defectCodes.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" class="px-4 py-8 text-center text-slate-500">No defect codes found</td></tr>';
+        return;
+    }
+
+    tbody.innerHTML = defectCodes.map(d => {
+        const isActive = d.is_active !== false;
+        return `
+      <tr class="hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
+        <td class="px-4 py-3 font-medium text-slate-900 dark:text-slate-100">${escapeHtml(d.code || '')}</td>
+        <td class="px-4 py-3 text-slate-700 dark:text-slate-300">${escapeHtml(d.name || '')}</td>
+        <td class="px-4 py-3">
+            <span class="bg-primary-100 dark:bg-primary-900/50 text-primary-700 dark:text-primary-300 px-2 py-1 rounded-full text-xs font-medium">${escapeHtml(d.category || '')}</span>
+        </td>
+        <td class="px-4 py-3 text-center">
+            <span class="${severityClass(d.severity)} px-2 py-1 rounded-full text-xs font-medium">${escapeHtml(d.severity || 'moderate')}</span>
+        </td>
+        <td class="px-4 py-3 text-center">
+            <span class="${isActive ? 'bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-400'} px-2 py-1 rounded-full text-xs font-medium">${isActive ? 'Active' : 'Inactive'}</span>
+        </td>
+        <td class="px-4 py-3 text-right">
+            <button onclick='editDefectCode("${d.id}")' class="text-primary-600 hover:text-primary-700 dark:text-primary-400 mr-3">Edit</button>
+            ${!isActive ? `<button onclick='activateDefectCode("${d.id}")' class="text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 mr-3">Activate</button>` : ''}
+            <button onclick='deleteDefectCode("${d.id}")' class="text-red-600 hover:text-red-700 dark:text-red-400">Delete</button>
+        </td>
+      </tr>
+    `}).join('');
+}
+
+function openModal() {
+    editingId = null;
+    document.getElementById('modal-title').textContent = 'New Defect Code';
+    document.getElementById('defect-code-form').reset();
+    document.getElementById('edit-defect-code-id').value = '';
+    document.getElementById('save-btn').textContent = 'Save Defect Code';
+    document.getElementById('is-active-container').classList.add('hidden');
+    document.getElementById('defect-code-modal').classList.remove('hidden');
+}
+
+function closeModal() {
+    document.getElementById('defect-code-modal').classList.add('hidden');
+}
+
+async function saveDefectCode(event) {
+    event.preventDefault();
+    const data = {
+        code: document.getElementById('code').value,
+        name: document.getElementById('name').value,
+        category: document.getElementById('category').value,
+        severity: document.getElementById('severity').value,
+        description: document.getElementById('description').value || null,
+    };
+
+    if (editingId) {
+        data.is_active = document.getElementById('is_active').checked;
+    }
+
+    try {
+        const url = editingId ? `/api/master/defect-codes/${editingId}` : `/api/master/defect-codes`;
+        const method = editingId ? 'PUT' : 'POST';
+
+        const res = await fetch(url, {
+            method: method,
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+
+        if (!res.ok) {
+            const err = await res.json();
+            throw new Error(err.error || 'Failed to save defect code');
+        }
+
+        showToast('Defect code saved successfully', 'success');
+        closeModal();
+        fetchDefectCodes();
+    } catch (err) {
+        showToast(err.message, 'error');
+    }
+}
+
+async function editDefectCode(id) {
+    const item = defectCodes.find(d => d.id === id);
+    if (!item) return;
+
+    editingId = id;
+    document.getElementById('modal-title').textContent = 'Edit Defect Code';
+    document.getElementById('edit-defect-code-id').value = id;
+    document.getElementById('code').value = item.code || '';
+    document.getElementById('name').value = item.name || '';
+    document.getElementById('category').value = item.category || 'surface';
+    document.getElementById('severity').value = item.severity || 'moderate';
+    document.getElementById('description').value = item.description || '';
+    document.getElementById('is_active').checked = item.is_active !== false;
+    document.getElementById('is-active-container').classList.remove('hidden');
+    document.getElementById('save-btn').textContent = 'Update Defect Code';
+    document.getElementById('defect-code-modal').classList.remove('hidden');
+}
+
+async function activateDefectCode(id) {
+    if (!confirm('Activate this defect code?')) return;
+    try {
+        const res = await fetch(`/api/master/defect-codes/${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ is_active: true })
+        });
+        if (!res.ok) {
+            const err = await res.json();
+            throw new Error(err.error || 'Failed to activate');
+        }
+        showToast('Defect code activated', 'success');
+        fetchDefectCodes();
+    } catch (err) {
+        showToast(err.message, 'error');
+    }
+}
+
+async function deleteDefectCode(id) {
+    if (!confirm('Delete this defect code?')) return;
+    try {
+        const res = await fetch(`/api/master/defect-codes/${id}`, { method: 'DELETE' });
+        if (!res.ok) {
+            const err = await res.json();
+            throw new Error(err.error || 'Failed to delete');
+        }
+        showToast('Deleted successfully', 'success');
+        fetchDefectCodes();
+    } catch (err) {
+        showToast(err.message, 'error');
+    }
+}
+
+function showToast(message, type = 'info') {
+    const toast = document.getElementById('toast');
+    toast.textContent = message;
+    toast.className = `px-6 py-3 rounded-lg shadow-lg transform transition-all duration-500 ${
+        type === 'success' ? 'bg-emerald-500 text-white' :
+        type === 'error' ? 'bg-red-500 text-white' :
+        'bg-blue-500 text-white'
+    }`;
+    toast.classList.remove('hidden');
+
+    setTimeout(() => {
+        toast.classList.add('opacity-0', 'translate-y-[-10px]');
+        setTimeout(() => toast.classList.add('hidden'), 300);
+    }, 3000);
+}
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+</script>
+{% endblock %}

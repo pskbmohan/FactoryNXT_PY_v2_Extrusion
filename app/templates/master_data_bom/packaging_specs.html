@@ -1,0 +1,231 @@
+{% extends "layout.html" %}
+
+{% block title %}Packaging Specs - FactoryNXT{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto">
+  <div class="flex justify-between items-center mb-6">
+    <h1 class="text-2xl font-bold">Packaging Specs</h1>
+    <button onclick="openModal()" class="bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-lg flex items-center gap-2">
+      <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+      </svg>
+      + New Packaging Spec
+    </button>
+  </div>
+
+  <!-- Packaging Specs Table -->
+  <div class="bg-white dark:bg-slate-800 rounded-lg shadow border border-slate-200 dark:border-slate-700 overflow-hidden">
+    <table class="w-full text-sm">
+      <thead class="bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700">
+        <tr>
+          <th class="px-4 py-3 text-left font-semibold text-slate-700 dark:text-slate-300">Part Number</th>
+          <th class="px-4 py-3 text-left font-semibold text-slate-700 dark:text-slate-300">Packing Method</th>
+          <th class="px-4 py-3 text-center font-semibold text-slate-700 dark:text-slate-300">Units/Pack</th>
+          <th class="px-4 py-3 text-center font-semibold text-slate-700 dark:text-slate-300">Weight/Pack (kg)</th>
+          <th class="px-4 py-3 text-left font-semibold text-slate-700 dark:text-slate-300">Label Template</th>
+          <th class="px-4 py-3 text-right font-semibold text-slate-700 dark:text-slate-300">Actions</th>
+        </tr>
+      </thead>
+      <tbody id="packaging-specs-table-body" class="divide-y divide-slate-200 dark:divide-slate-700">
+        <!-- Rows loaded via fetch -->
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Loading State -->
+  <div id="loading" class="text-center py-8 text-slate-500">Loading packaging specs...</div>
+
+  <!-- Modal for New/Edit Packaging Spec -->
+  <div id="packaging-spec-modal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
+    <div class="bg-white dark:bg-slate-800 rounded-lg shadow-xl w-full max-w-md mx-4">
+      <div class="flex justify-between items-center px-6 py-4 border-b border-slate-200 dark:border-slate-700">
+        <h2 id="modal-title" class="text-lg font-semibold">New Packaging Spec</h2>
+        <button onclick="closeModal()" class="text-slate-500 hover:text-slate-700 dark:hover:text-slate-300">&times;</button>
+      </div>
+      <form id="packaging-spec-form" onsubmit="savePackagingSpec(event)" class="p-6">
+        <input type="hidden" id="edit-packaging-spec-id">
+        <div class="space-y-4">
+          <div>
+            <label class="block text-sm font-medium mb-1">Part Number *</label>
+            <input type="text" id="part_number" required class="w-full px-3 py-2 border rounded dark:bg-slate-700 dark:border-slate-600" placeholder="e.g., PRF-6063-001">
+          </div>
+          <div>
+            <label class="block text-sm font-medium mb-1">Packing Method</label>
+            <input type="text" id="packing_method" class="w-full px-3 py-2 border rounded dark:bg-slate-700 dark:border-slate-600" placeholder="e.g., Shrink wrap">
+          </div>
+          <div>
+            <label class="block text-sm font-medium mb-1">Units/Pack</label>
+            <input type="number" id="units_per_pack" class="w-full px-3 py-2 border rounded dark:bg-slate-700 dark:border-slate-600" placeholder="e.g., 10">
+          </div>
+          <div>
+            <label class="block text-sm font-medium mb-1">Theoretical Weight/Pack (kg)</label>
+            <input type="number" id="theoretical_weight_per_pack_kg" step="0.01" class="w-full px-3 py-2 border rounded dark:bg-slate-700 dark:border-slate-600" placeholder="e.g., 25.50">
+          </div>
+          <div>
+            <label class="block text-sm font-medium mb-1">Label Template</label>
+            <input type="text" id="label_template" class="w-full px-3 py-2 border rounded dark:bg-slate-700 dark:border-slate-600" placeholder="e.g., STD-LABEL-A4">
+          </div>
+          <div>
+            <label class="block text-sm font-medium mb-1">Special Instructions</label>
+            <textarea id="special_instructions" rows="3" class="w-full px-3 py-2 border rounded dark:bg-slate-700 dark:border-slate-600" placeholder="Any special handling or packaging instructions"></textarea>
+          </div>
+        </div>
+        <div class="flex justify-end gap-2 mt-6">
+          <button type="button" onclick="closeModal()" class="px-4 py-2 border rounded hover:bg-slate-50 dark:hover:bg-slate-700">Cancel</button>
+          <button type="submit" id="save-btn" class="bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded">Save Packaging Spec</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Toast Notification -->
+  <div id="toast" class="hidden fixed top-25 right-5 z-50 px-6 py-3 rounded-lg shadow-lg transform transition-all duration-500">
+  </div>
+</div>
+
+<script>
+let packagingSpecs = [];
+let editingId = null;
+
+document.addEventListener("DOMContentLoaded", function() {
+    fetchPackagingSpecs();
+});
+
+async function fetchPackagingSpecs() {
+    document.getElementById('loading').classList.remove('hidden');
+    try {
+        const res = await fetch('/api/master/packaging-specs');
+        packagingSpecs = await res.json();
+        renderTable();
+    } catch (err) {
+        showToast('Error loading packaging specs', 'error');
+    } finally {
+        document.getElementById('loading').classList.add('hidden');
+    }
+}
+
+function renderTable() {
+    const tbody = document.getElementById('packaging-specs-table-body');
+    if (packagingSpecs.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" class="px-4 py-8 text-center text-slate-500">No packaging specs found</td></tr>';
+        return;
+    }
+
+    tbody.innerHTML = packagingSpecs.map(p => `
+      <tr class="hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
+        <td class="px-4 py-3 font-medium text-slate-900 dark:text-slate-100">${escapeHtml(p.part_number || '')}</td>
+        <td class="px-4 py-3 text-slate-700 dark:text-slate-300">${escapeHtml(p.packing_method || '')}</td>
+        <td class="px-4 py-3 text-center text-slate-600 dark:text-slate-400">${p.units_per_pack !== null && p.units_per_pack !== undefined ? p.units_per_pack : ''}</td>
+        <td class="px-4 py-3 text-center text-slate-600 dark:text-slate-400">${p.theoretical_weight_per_pack_kg !== null && p.theoretical_weight_per_pack_kg !== undefined ? p.theoretical_weight_per_pack_kg : ''}</td>
+        <td class="px-4 py-3 text-slate-600 dark:text-slate-400">${escapeHtml(p.label_template || '')}</td>
+        <td class="px-4 py-3 text-right">
+            <button onclick='editPackagingSpec("${p.id}")' class="text-primary-600 hover:text-primary-700 dark:text-primary-400 mr-3">Edit</button>
+            <button onclick='deletePackagingSpec("${p.id}")' class="text-red-600 hover:text-red-700 dark:text-red-400">Delete</button>
+        </td>
+      </tr>
+    `).join('');
+}
+
+function openModal() {
+    editingId = null;
+    document.getElementById('modal-title').textContent = 'New Packaging Spec';
+    document.getElementById('packaging-spec-form').reset();
+    document.getElementById('edit-packaging-spec-id').value = '';
+    document.getElementById('save-btn').textContent = 'Save Packaging Spec';
+    document.getElementById('packaging-spec-modal').classList.remove('hidden');
+}
+
+function closeModal() {
+    document.getElementById('packaging-spec-modal').classList.add('hidden');
+}
+
+async function savePackagingSpec(event) {
+    event.preventDefault();
+    const data = {
+        part_number: document.getElementById('part_number').value,
+        packing_method: document.getElementById('packing_method').value || null,
+        units_per_pack: document.getElementById('units_per_pack').value ? parseInt(document.getElementById('units_per_pack').value) : null,
+        theoretical_weight_per_pack_kg: document.getElementById('theoretical_weight_per_pack_kg').value ? parseFloat(document.getElementById('theoretical_weight_per_pack_kg').value) : null,
+        label_template: document.getElementById('label_template').value || null,
+        special_instructions: document.getElementById('special_instructions').value || null,
+    };
+
+    try {
+        const url = editingId ? `/api/master/packaging-specs/${editingId}` : `/api/master/packaging-specs`;
+        const method = editingId ? 'PUT' : 'POST';
+
+        const res = await fetch(url, {
+            method: method,
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+
+        if (!res.ok) {
+            const err = await res.json();
+            throw new Error(err.error || 'Failed to save packaging spec');
+        }
+
+        showToast('Packaging spec saved successfully', 'success');
+        closeModal();
+        fetchPackagingSpecs();
+    } catch (err) {
+        showToast(err.message, 'error');
+    }
+}
+
+async function editPackagingSpec(id) {
+    const item = packagingSpecs.find(p => p.id === id);
+    if (!item) return;
+
+    editingId = id;
+    document.getElementById('modal-title').textContent = 'Edit Packaging Spec';
+    document.getElementById('edit-packaging-spec-id').value = id;
+    document.getElementById('part_number').value = item.part_number || '';
+    document.getElementById('packing_method').value = item.packing_method || '';
+    document.getElementById('units_per_pack').value = item.units_per_pack !== null && item.units_per_pack !== undefined ? item.units_per_pack : '';
+    document.getElementById('theoretical_weight_per_pack_kg').value = item.theoretical_weight_per_pack_kg !== null && item.theoretical_weight_per_pack_kg !== undefined ? item.theoretical_weight_per_pack_kg : '';
+    document.getElementById('label_template').value = item.label_template || '';
+    document.getElementById('special_instructions').value = item.special_instructions || '';
+    document.getElementById('save-btn').textContent = 'Update Packaging Spec';
+    document.getElementById('packaging-spec-modal').classList.remove('hidden');
+}
+
+async function deletePackagingSpec(id) {
+    if (!confirm('Delete this packaging spec?')) return;
+    try {
+        const res = await fetch(`/api/master/packaging-specs/${id}`, { method: 'DELETE' });
+        if (!res.ok) {
+            const err = await res.json();
+            throw new Error(err.error || 'Failed to delete');
+        }
+        showToast('Deleted successfully', 'success');
+        fetchPackagingSpecs();
+    } catch (err) {
+        showToast(err.message, 'error');
+    }
+}
+
+function showToast(message, type = 'info') {
+    const toast = document.getElementById('toast');
+    toast.textContent = message;
+    toast.className = `px-6 py-3 rounded-lg shadow-lg transform transition-all duration-500 ${
+        type === 'success' ? 'bg-emerald-500 text-white' :
+        type === 'error' ? 'bg-red-500 text-white' :
+        'bg-blue-500 text-white'
+    }`;
+    toast.classList.remove('hidden');
+
+    setTimeout(() => {
+        toast.classList.add('opacity-0', 'translate-y-[-10px]');
+        setTimeout(() => toast.classList.add('hidden'), 300);
+    }, 3000);
+}
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+</script>
+{% endblock %}

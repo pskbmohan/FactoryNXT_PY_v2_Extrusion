@@ -88,21 +88,24 @@ def detailed():
     snapshots = OeeSnapshot.query.order_by(OeeSnapshot.shift_date.desc()).limit(7).all()
     downtime_events = DowntimeEvent.query.order_by(DowntimeEvent.started_at.desc()).limit(20).all()
 
-    # Calculate aggregate metrics for display (mocked logic if empty)
-    avg_oee = sum(s.oee or 0 for s in snapshots) / len(snapshots) if snapshots else 87.4
-    avg_avail = sum(s.availability or 0 for s in snapshots) / len(snapshots) if snapshots else 96.1
-    avg_perf = sum(s.performance or 0 for s in snapshots) / len(snapshots) if snapshots else 91.8
-    avg_qual = sum(s.quality or 0 for s in snapshots) / len(snapshots) if snapshots else 99.7
+    # Calculate aggregate metrics for display
+    # Values are stored as fractions (0.85-0.98) in the database; templates
+    # multiply by 100 for display as percentages. Fallbacks must also be
+    # fractions to maintain consistency.
+    avg_oee = sum(s.oee or 0 for s in snapshots) / len(snapshots) if snapshots else 0.874
+    avg_avail = sum(s.availability or 0 for s in snapshots) / len(snapshots) if snapshots else 0.961
+    avg_perf = sum(s.performance or 0 for s in snapshots) / len(snapshots) if snapshots else 0.918
+    avg_qual = sum(s.quality or 0 for s in snapshots) / len(snapshots) if snapshots else 0.997
     total_downtime_hrs = sum((s.downtime_min or 0) for s in snapshots) / 60 if snapshots else 3.2
 
     return render_template(
         'oee/detailed.html',
         snapshots=snapshots,
         downtime_events=downtime_events,
-        avg_oee=round(avg_oee, 1),
-        avg_avail=round(avg_avail, 1),
-        avg_perf=round(avg_perf, 1),
-        avg_qual=round(avg_qual, 1),
+        avg_oee=round(avg_oee, 4),
+        avg_avail=round(avg_avail, 4),
+        avg_perf=round(avg_perf, 4),
+        avg_qual=round(avg_qual, 4),
         total_downtime_hrs=round(total_downtime_hrs, 1),
     )
 

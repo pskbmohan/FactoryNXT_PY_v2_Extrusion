@@ -19,6 +19,13 @@ from ..models import (
     PartNumberBOM,
     Die,
     Billet,
+    CoatingColor,
+    RawMaterialType,
+    AlloyComposition,
+    FinishingProcessType,
+    PackagingSpec,
+    DefectCode,
+    QualityParameter,
 )
 
 bp = Blueprint("master_data_bom", __name__, url_prefix="/api/master")
@@ -26,7 +33,7 @@ bp = Blueprint("master_data_bom", __name__, url_prefix="/api/master")
 
 # ──────────────────────── Customers Endpoints ────────────────────────────────
 
-@bp.route("/customers", methods=["GET"])
+@bp.route("/customers", methods=["GET"], endpoint="customers_list")
 def customers_list():
     """List all active customers with their part number mapping counts."""
     customers = Customer.query.filter_by(is_active=True).order_by(Customer.customer_name).all()
@@ -416,36 +423,6 @@ def activate_bom(bom_id):
         return jsonify({"error": str(e)}), 500
 
 
-# ──────────────────────── Page Rendering Routes (for S3 UI) ─────────────────
-
-@bp.route("/customers")
-def customers_page():
-    """Render Customers master data page."""
-    from flask import render_template
-    return render_template("master_data_bom/customers.html")
-
-
-@bp.route("/part-numbers")
-def part_numbers_page():
-    """Render Part Numbers master data page."""
-    from flask import render_template
-    return render_template("master_data_bom/part_numbers.html")
-
-
-@bp.route("/boms")
-def boms_page():
-    """Render BOM management page."""
-    from flask import render_template
-    return render_template("master_data_bom/boms.html")
-
-
-@bp.route("/customer-part-map")
-def customer_part_map_page():
-    """Render Customer-Part Mapping page."""
-    from flask import render_template
-    return render_template("master_data_bom/customer_part_map.html")
-
-
 # ──────────────────────── Die & Billet List APIs (for BOM dropdowns) ─────────
 
 @bp.route("/dies", methods=["GET"])
@@ -479,3 +456,791 @@ def billets_list():
         "alloy": b.alloy,
         "diameter_mm": b.diameter_mm,
     } for b in billets])
+
+
+# ──────────────────────── Coating Colors Endpoints ───────────────────────────
+
+@bp.route("/coating-colors", methods=["GET"], endpoint="coating_colors_list")
+def coating_colors_list():
+    """List all coating colors."""
+    colors = CoatingColor.query.order_by(CoatingColor.color_name).all()
+    return jsonify([{
+        "id": c.id,
+        "color_code": c.color_code,
+        "color_name": c.color_name,
+        "hex_value": c.hex_value,
+        "clean_time_minutes": c.clean_time_minutes,
+        "ral_code": c.ral_code,
+    } for c in colors])
+
+
+@bp.route("/coating-colors", methods=["POST"])
+def create_coating_color():
+    """Create a new coating color record."""
+    data = request.get_json()
+
+    if not data.get("color_code") or not data.get("color_name"):
+        return jsonify({"error": "color_code and color_name are required"}), 400
+
+    try:
+        color = CoatingColor(
+            id=str(uuid.uuid4()),
+            color_code=data["color_code"],
+            color_name=data["color_name"],
+            hex_value=data.get("hex_value"),
+            clean_time_minutes=int(data.get("clean_time_minutes", 30)),
+            ral_code=data.get("ral_code"),
+        )
+        db.session.add(color)
+        db.session.commit()
+
+        return jsonify({
+            "id": color.id,
+            "color_code": color.color_code,
+            "color_name": color.color_name,
+            "message": "Coating color created successfully"
+        }), 201
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 500
+
+
+@bp.route("/coating-colors/<color_id>", methods=["GET"])
+def get_coating_color(color_id):
+    """Get a single coating color by id."""
+    color = CoatingColor.query.get_or_404(color_id)
+    return jsonify({
+        "id": color.id,
+        "color_code": color.color_code,
+        "color_name": color.color_name,
+        "hex_value": color.hex_value,
+        "clean_time_minutes": color.clean_time_minutes,
+        "ral_code": color.ral_code,
+    })
+
+
+@bp.route("/coating-colors/<color_id>", methods=["PUT"])
+def update_coating_color(color_id):
+    """Update an existing coating color."""
+    color = CoatingColor.query.get_or_404(color_id)
+    data = request.get_json()
+
+    try:
+        if "color_code" in data:
+            color.color_code = data["color_code"]
+        if "color_name" in data:
+            color.color_name = data["color_name"]
+        if "hex_value" in data:
+            color.hex_value = data["hex_value"]
+        if "clean_time_minutes" in data:
+            color.clean_time_minutes = int(data["clean_time_minutes"])
+        if "ral_code" in data:
+            color.ral_code = data["ral_code"]
+
+        db.session.commit()
+
+        return jsonify({
+            "id": color.id,
+            "color_code": color.color_code,
+            "color_name": color.color_name,
+            "message": "Coating color updated successfully"
+        }), 200
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 500
+
+
+@bp.route("/coating-colors/<color_id>", methods=["DELETE"])
+def delete_coating_color(color_id):
+    """Hard-delete a coating color (no is_active column)."""
+    try:
+        color = CoatingColor.query.get_or_404(color_id)
+        db.session.delete(color)
+        db.session.commit()
+        return jsonify({"message": "Coating color deleted successfully"})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 500
+
+
+# ──────────────────────── Raw Material Types Endpoints ───────────────────────
+
+@bp.route("/raw-material-types", methods=["GET"], endpoint="raw_material_types_list")
+def raw_material_types_list():
+    """List all raw material types."""
+    types = RawMaterialType.query.order_by(RawMaterialType.name).all()
+    return jsonify([{
+        "id": t.id,
+        "code": t.code,
+        "name": t.name,
+        "category": t.category,
+        "uom": t.uom,
+    } for t in types])
+
+
+@bp.route("/raw-material-types", methods=["POST"])
+def create_raw_material_type():
+    """Create a new raw material type record."""
+    data = request.get_json()
+
+    if not data.get("code") or not data.get("name"):
+        return jsonify({"error": "code and name are required"}), 400
+
+    try:
+        rmt = RawMaterialType(
+            id=str(uuid.uuid4()),
+            code=data["code"],
+            name=data["name"],
+            category=data.get("category"),
+            uom=data.get("uom", "KG"),
+        )
+        db.session.add(rmt)
+        db.session.commit()
+
+        return jsonify({
+            "id": rmt.id,
+            "code": rmt.code,
+            "name": rmt.name,
+            "message": "Raw material type created successfully"
+        }), 201
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 500
+
+
+@bp.route("/raw-material-types/<rmt_id>", methods=["GET"])
+def get_raw_material_type(rmt_id):
+    """Get a single raw material type by id."""
+    rmt = RawMaterialType.query.get_or_404(rmt_id)
+    return jsonify({
+        "id": rmt.id,
+        "code": rmt.code,
+        "name": rmt.name,
+        "category": rmt.category,
+        "uom": rmt.uom,
+    })
+
+
+@bp.route("/raw-material-types/<rmt_id>", methods=["PUT"])
+def update_raw_material_type(rmt_id):
+    """Update an existing raw material type."""
+    rmt = RawMaterialType.query.get_or_404(rmt_id)
+    data = request.get_json()
+
+    try:
+        if "code" in data:
+            rmt.code = data["code"]
+        if "name" in data:
+            rmt.name = data["name"]
+        if "category" in data:
+            rmt.category = data["category"]
+        if "uom" in data:
+            rmt.uom = data["uom"]
+
+        db.session.commit()
+
+        return jsonify({
+            "id": rmt.id,
+            "code": rmt.code,
+            "name": rmt.name,
+            "message": "Raw material type updated successfully"
+        }), 200
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 500
+
+
+@bp.route("/raw-material-types/<rmt_id>", methods=["DELETE"])
+def delete_raw_material_type(rmt_id):
+    """Hard-delete a raw material type (no is_active column)."""
+    try:
+        rmt = RawMaterialType.query.get_or_404(rmt_id)
+        db.session.delete(rmt)
+        db.session.commit()
+        return jsonify({"message": "Raw material type deleted successfully"})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 500
+
+
+# ──────────────────────── Alloy Compositions Endpoints ───────────────────────
+
+@bp.route("/alloy-compositions", methods=["GET"], endpoint="alloy_compositions_list")
+def alloy_compositions_list():
+    """List all alloy compositions."""
+    alloys = AlloyComposition.query.order_by(AlloyComposition.alloy_code).all()
+    return jsonify([{
+        "id": a.id,
+        "alloy_code": a.alloy_code,
+        "alloy_name": a.alloy_name,
+        "composition": a.composition,
+        "standard": a.standard,
+        "created_at": a.created_at.isoformat() if a.created_at else None,
+    } for a in alloys])
+
+
+@bp.route("/alloy-compositions", methods=["POST"])
+def create_alloy_composition():
+    """Create a new alloy composition record."""
+    data = request.get_json()
+
+    if not data.get("alloy_code") or not data.get("alloy_name"):
+        return jsonify({"error": "alloy_code and alloy_name are required"}), 400
+
+    try:
+        alloy = AlloyComposition(
+            id=str(uuid.uuid4()),
+            alloy_code=data["alloy_code"],
+            alloy_name=data["alloy_name"],
+            composition=data.get("composition", {}),
+            standard=data.get("standard"),
+        )
+        db.session.add(alloy)
+        db.session.commit()
+
+        return jsonify({
+            "id": alloy.id,
+            "alloy_code": alloy.alloy_code,
+            "alloy_name": alloy.alloy_name,
+            "message": "Alloy composition created successfully"
+        }), 201
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 500
+
+
+@bp.route("/alloy-compositions/<alloy_id>", methods=["GET"])
+def get_alloy_composition(alloy_id):
+    """Get a single alloy composition by id."""
+    alloy = AlloyComposition.query.get_or_404(alloy_id)
+    return jsonify({
+        "id": alloy.id,
+        "alloy_code": alloy.alloy_code,
+        "alloy_name": alloy.alloy_name,
+        "composition": alloy.composition,
+        "standard": alloy.standard,
+        "created_at": alloy.created_at.isoformat() if alloy.created_at else None,
+    })
+
+
+@bp.route("/alloy-compositions/<alloy_id>", methods=["PUT"])
+def update_alloy_composition(alloy_id):
+    """Update an existing alloy composition."""
+    alloy = AlloyComposition.query.get_or_404(alloy_id)
+    data = request.get_json()
+
+    try:
+        if "alloy_code" in data:
+            alloy.alloy_code = data["alloy_code"]
+        if "alloy_name" in data:
+            alloy.alloy_name = data["alloy_name"]
+        if "composition" in data:
+            alloy.composition = data["composition"]
+        if "standard" in data:
+            alloy.standard = data["standard"]
+
+        db.session.commit()
+
+        return jsonify({
+            "id": alloy.id,
+            "alloy_code": alloy.alloy_code,
+            "alloy_name": alloy.alloy_name,
+            "message": "Alloy composition updated successfully"
+        }), 200
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 500
+
+
+@bp.route("/alloy-compositions/<alloy_id>", methods=["DELETE"])
+def delete_alloy_composition(alloy_id):
+    """Hard-delete an alloy composition (no is_active column)."""
+    try:
+        alloy = AlloyComposition.query.get_or_404(alloy_id)
+        db.session.delete(alloy)
+        db.session.commit()
+        return jsonify({"message": "Alloy composition deleted successfully"})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 500
+
+
+# ──────────────────────── Finishing Process Types Endpoints ──────────────────
+
+@bp.route("/finishing-process-types", methods=["GET"], endpoint="finishing_process_types_list")
+def finishing_process_types_list():
+    """List all finishing process types."""
+    types = FinishingProcessType.query.order_by(FinishingProcessType.name).all()
+    return jsonify([{
+        "id": t.id,
+        "code": t.code,
+        "name": t.name,
+        "description": t.description,
+        "requires_plc_instruction": t.requires_plc_instruction,
+        "default_parameters": t.default_parameters,
+    } for t in types])
+
+
+@bp.route("/finishing-process-types", methods=["POST"])
+def create_finishing_process_type():
+    """Create a new finishing process type record."""
+    data = request.get_json()
+
+    if not data.get("code") or not data.get("name"):
+        return jsonify({"error": "code and name are required"}), 400
+
+    try:
+        fpt = FinishingProcessType(
+            id=str(uuid.uuid4()),
+            code=data["code"],
+            name=data["name"],
+            description=data.get("description"),
+            requires_plc_instruction=bool(data.get("requires_plc_instruction", False)),
+            default_parameters=data.get("default_parameters", {}),
+        )
+        db.session.add(fpt)
+        db.session.commit()
+
+        return jsonify({
+            "id": fpt.id,
+            "code": fpt.code,
+            "name": fpt.name,
+            "message": "Finishing process type created successfully"
+        }), 201
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 500
+
+
+@bp.route("/finishing-process-types/<fpt_id>", methods=["GET"])
+def get_finishing_process_type(fpt_id):
+    """Get a single finishing process type by id."""
+    fpt = FinishingProcessType.query.get_or_404(fpt_id)
+    return jsonify({
+        "id": fpt.id,
+        "code": fpt.code,
+        "name": fpt.name,
+        "description": fpt.description,
+        "requires_plc_instruction": fpt.requires_plc_instruction,
+        "default_parameters": fpt.default_parameters,
+    })
+
+
+@bp.route("/finishing-process-types/<fpt_id>", methods=["PUT"])
+def update_finishing_process_type(fpt_id):
+    """Update an existing finishing process type."""
+    fpt = FinishingProcessType.query.get_or_404(fpt_id)
+    data = request.get_json()
+
+    try:
+        if "code" in data:
+            fpt.code = data["code"]
+        if "name" in data:
+            fpt.name = data["name"]
+        if "description" in data:
+            fpt.description = data["description"]
+        if "requires_plc_instruction" in data:
+            fpt.requires_plc_instruction = bool(data["requires_plc_instruction"])
+        if "default_parameters" in data:
+            fpt.default_parameters = data["default_parameters"]
+
+        db.session.commit()
+
+        return jsonify({
+            "id": fpt.id,
+            "code": fpt.code,
+            "name": fpt.name,
+            "message": "Finishing process type updated successfully"
+        }), 200
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 500
+
+
+@bp.route("/finishing-process-types/<fpt_id>", methods=["DELETE"])
+def delete_finishing_process_type(fpt_id):
+    """Hard-delete a finishing process type (no is_active column)."""
+    try:
+        fpt = FinishingProcessType.query.get_or_404(fpt_id)
+        db.session.delete(fpt)
+        db.session.commit()
+        return jsonify({"message": "Finishing process type deleted successfully"})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 500
+
+
+# ──────────────────────── Packaging Specs Endpoints ──────────────────────────
+
+@bp.route("/packaging-specs", methods=["GET"], endpoint="packaging_specs_list")
+def packaging_specs_list():
+    """List all packaging specs."""
+    specs = PackagingSpec.query.order_by(PackagingSpec.part_number).all()
+    return jsonify([{
+        "id": s.id,
+        "part_number": s.part_number,
+        "packing_method": s.packing_method,
+        "units_per_pack": s.units_per_pack,
+        "theoretical_weight_per_pack_kg": s.theoretical_weight_per_pack_kg,
+        "label_template": s.label_template,
+        "special_instructions": s.special_instructions,
+        "created_at": s.created_at.isoformat() if s.created_at else None,
+    } for s in specs])
+
+
+@bp.route("/packaging-specs", methods=["POST"])
+def create_packaging_spec():
+    """Create a new packaging spec record."""
+    data = request.get_json()
+
+    if not data.get("part_number"):
+        return jsonify({"error": "part_number is required"}), 400
+
+    try:
+        spec = PackagingSpec(
+            id=str(uuid.uuid4()),
+            part_number=data["part_number"],
+            packing_method=data.get("packing_method"),
+            units_per_pack=int(data.get("units_per_pack")) if data.get("units_per_pack") is not None else None,
+            theoretical_weight_per_pack_kg=float(data.get("theoretical_weight_per_pack_kg")) if data.get("theoretical_weight_per_pack_kg") is not None else None,
+            label_template=data.get("label_template"),
+            special_instructions=data.get("special_instructions"),
+        )
+        db.session.add(spec)
+        db.session.commit()
+
+        return jsonify({
+            "id": spec.id,
+            "part_number": spec.part_number,
+            "message": "Packaging spec created successfully"
+        }), 201
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 500
+
+
+@bp.route("/packaging-specs/<spec_id>", methods=["GET"])
+def get_packaging_spec(spec_id):
+    """Get a single packaging spec by id."""
+    spec = PackagingSpec.query.get_or_404(spec_id)
+    return jsonify({
+        "id": spec.id,
+        "part_number": spec.part_number,
+        "packing_method": spec.packing_method,
+        "units_per_pack": spec.units_per_pack,
+        "theoretical_weight_per_pack_kg": spec.theoretical_weight_per_pack_kg,
+        "label_template": spec.label_template,
+        "special_instructions": spec.special_instructions,
+        "created_at": spec.created_at.isoformat() if spec.created_at else None,
+    })
+
+
+@bp.route("/packaging-specs/<spec_id>", methods=["PUT"])
+def update_packaging_spec(spec_id):
+    """Update an existing packaging spec."""
+    spec = PackagingSpec.query.get_or_404(spec_id)
+    data = request.get_json()
+
+    try:
+        if "part_number" in data:
+            spec.part_number = data["part_number"]
+        if "packing_method" in data:
+            spec.packing_method = data["packing_method"]
+        if "units_per_pack" in data:
+            spec.units_per_pack = int(data["units_per_pack"]) if data["units_per_pack"] is not None else None
+        if "theoretical_weight_per_pack_kg" in data:
+            spec.theoretical_weight_per_pack_kg = float(data["theoretical_weight_per_pack_kg"]) if data["theoretical_weight_per_pack_kg"] is not None else None
+        if "label_template" in data:
+            spec.label_template = data["label_template"]
+        if "special_instructions" in data:
+            spec.special_instructions = data["special_instructions"]
+
+        db.session.commit()
+
+        return jsonify({
+            "id": spec.id,
+            "part_number": spec.part_number,
+            "message": "Packaging spec updated successfully"
+        }), 200
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 500
+
+
+@bp.route("/packaging-specs/<spec_id>", methods=["DELETE"])
+def delete_packaging_spec(spec_id):
+    """Hard-delete a packaging spec (no is_active column)."""
+    try:
+        spec = PackagingSpec.query.get_or_404(spec_id)
+        db.session.delete(spec)
+        db.session.commit()
+        return jsonify({"message": "Packaging spec deleted successfully"})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 500
+
+
+# ──────────────────────── Defect Codes Endpoints ─────────────────────────────
+
+@bp.route("/defect-codes", methods=["GET"], endpoint="defect_codes_list")
+def defect_codes_list():
+    """List all active defect codes."""
+    codes = DefectCode.query.filter_by(is_active=True).order_by(DefectCode.code).all()
+    return jsonify([{
+        "id": d.id,
+        "code": d.code,
+        "name": d.name,
+        "category": d.category,
+        "severity": d.severity,
+        "is_active": d.is_active,
+        "description": d.description,
+    } for d in codes])
+
+
+@bp.route("/defect-codes", methods=["POST"])
+def create_defect_code():
+    """Create a new defect code record."""
+    data = request.get_json()
+
+    if not data.get("code") or not data.get("name") or not data.get("category"):
+        return jsonify({"error": "code, name, and category are required"}), 400
+
+    valid_categories = ("surface", "dimensional", "functional", "aesthetic")
+    valid_severities = ("minor", "moderate", "major", "critical")
+
+    if data["category"] not in valid_categories:
+        return jsonify({"error": f"category must be one of: {', '.join(valid_categories)}"}), 400
+
+    severity = data.get("severity", "moderate")
+    if severity not in valid_severities:
+        return jsonify({"error": f"severity must be one of: {', '.join(valid_severities)}"}), 400
+
+    try:
+        defect = DefectCode(
+            id=str(uuid.uuid4()),
+            code=data["code"],
+            name=data["name"],
+            category=data["category"],
+            severity=severity,
+            is_active=True,
+            description=data.get("description"),
+        )
+        db.session.add(defect)
+        db.session.commit()
+
+        return jsonify({
+            "id": defect.id,
+            "code": defect.code,
+            "name": defect.name,
+            "message": "Defect code created successfully"
+        }), 201
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 500
+
+
+@bp.route("/defect-codes/<defect_id>", methods=["GET"])
+def get_defect_code(defect_id):
+    """Get a single defect code by id."""
+    defect = DefectCode.query.get_or_404(defect_id)
+    return jsonify({
+        "id": defect.id,
+        "code": defect.code,
+        "name": defect.name,
+        "category": defect.category,
+        "severity": defect.severity,
+        "is_active": defect.is_active,
+        "description": defect.description,
+    })
+
+
+@bp.route("/defect-codes/<defect_id>", methods=["PUT"])
+def update_defect_code(defect_id):
+    """Update an existing defect code."""
+    defect = DefectCode.query.get_or_404(defect_id)
+    data = request.get_json()
+
+    valid_categories = ("surface", "dimensional", "functional", "aesthetic")
+    valid_severities = ("minor", "moderate", "major", "critical")
+
+    try:
+        if "code" in data:
+            defect.code = data["code"]
+        if "name" in data:
+            defect.name = data["name"]
+        if "category" in data:
+            if data["category"] not in valid_categories:
+                return jsonify({"error": f"category must be one of: {', '.join(valid_categories)}"}), 400
+            defect.category = data["category"]
+        if "severity" in data:
+            if data["severity"] not in valid_severities:
+                return jsonify({"error": f"severity must be one of: {', '.join(valid_severities)}"}), 400
+            defect.severity = data["severity"]
+        if "is_active" in data:
+            defect.is_active = bool(data["is_active"])
+        if "description" in data:
+            defect.description = data["description"]
+
+        db.session.commit()
+
+        return jsonify({
+            "id": defect.id,
+            "code": defect.code,
+            "name": defect.name,
+            "message": "Defect code updated successfully"
+        }), 200
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 500
+
+
+@bp.route("/defect-codes/<defect_id>", methods=["DELETE"])
+def delete_defect_code(defect_id):
+    """Soft-delete a defect code (sets is_active=False)."""
+    try:
+        defect = DefectCode.query.get_or_404(defect_id)
+        defect.is_active = False
+        db.session.commit()
+        return jsonify({"message": "Defect code deactivated successfully"})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 500
+
+
+# ──────────────────────── Quality Parameters Endpoints ───────────────────────
+
+def _qp_to_dict(qp):
+    """Serialize a QualityParameter record to a dict."""
+    return {
+        "id": qp.id,
+        "profile_code": qp.profile_code,
+        "alloy": qp.alloy,
+        "billet_temp_min": qp.billet_temp_min,
+        "billet_temp_max": qp.billet_temp_max,
+        "container_temp_min": qp.container_temp_min,
+        "container_temp_max": qp.container_temp_max,
+        "die_temp_min": qp.die_temp_min,
+        "die_temp_max": qp.die_temp_max,
+        "exit_temp_min": qp.exit_temp_min,
+        "exit_temp_max": qp.exit_temp_max,
+        "ram_speed_min": qp.ram_speed_min,
+        "ram_speed_max": qp.ram_speed_max,
+        "pressure_min": qp.pressure_min,
+        "pressure_max": qp.pressure_max,
+        "force_min": qp.force_min,
+        "force_max": qp.force_max,
+        "cycle_time_min": qp.cycle_time_min,
+        "cycle_time_max": qp.cycle_time_max,
+    }
+
+
+_QP_FLOAT_FIELDS = [
+    "billet_temp_min", "billet_temp_max",
+    "container_temp_min", "container_temp_max",
+    "die_temp_min", "die_temp_max",
+    "exit_temp_min", "exit_temp_max",
+    "ram_speed_min", "ram_speed_max",
+    "pressure_min", "pressure_max",
+    "force_min", "force_max",
+    "cycle_time_min", "cycle_time_max",
+]
+
+
+def _apply_qp_data(qp, data):
+    """Apply request data fields to a QualityParameter instance."""
+    if "profile_code" in data:
+        qp.profile_code = data["profile_code"]
+    if "alloy" in data:
+        qp.alloy = data["alloy"]
+    for field in _QP_FLOAT_FIELDS:
+        if field in data:
+            val = data[field]
+            setattr(qp, field, float(val) if val is not None else None)
+
+
+@bp.route("/quality-parameters", methods=["GET"], endpoint="quality_parameters_list")
+def quality_parameters_list():
+    """List all active quality parameters."""
+    params = QualityParameter.query.filter_by(is_active=True).order_by(
+        QualityParameter.profile_code, QualityParameter.alloy
+    ).all()
+    return jsonify([_qp_to_dict(p) for p in params])
+
+
+@bp.route("/quality-parameters", methods=["POST"])
+def create_quality_parameter():
+    """Create a new quality parameter record."""
+    data = request.get_json()
+
+    if not data.get("profile_code") or not data.get("alloy"):
+        return jsonify({"error": "profile_code and alloy are required"}), 400
+
+    try:
+        qp = QualityParameter(
+            id=str(uuid.uuid4()),
+            profile_code=data["profile_code"],
+            alloy=data["alloy"],
+            is_active=True,
+        )
+        _apply_qp_data(qp, data)
+        db.session.add(qp)
+        db.session.commit()
+
+        result = _qp_to_dict(qp)
+        result["message"] = "Quality parameter created successfully"
+        return jsonify(result), 201
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 500
+
+
+@bp.route("/quality-parameters/<qp_id>", methods=["GET"])
+def get_quality_parameter(qp_id):
+    """Get a single quality parameter by id."""
+    qp = QualityParameter.query.get_or_404(qp_id)
+    return jsonify(_qp_to_dict(qp))
+
+
+@bp.route("/quality-parameters/<qp_id>", methods=["PUT"])
+def update_quality_parameter(qp_id):
+    """Update an existing quality parameter."""
+    qp = QualityParameter.query.get_or_404(qp_id)
+    data = request.get_json()
+
+    try:
+        _apply_qp_data(qp, data)
+        db.session.commit()
+
+        result = _qp_to_dict(qp)
+        result["message"] = "Quality parameter updated successfully"
+        return jsonify(result), 200
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 500
+
+
+@bp.route("/quality-parameters/<qp_id>", methods=["DELETE"])
+def delete_quality_parameter(qp_id):
+    """Soft-delete a quality parameter (sets is_active=False)."""
+    try:
+        qp = QualityParameter.query.get_or_404(qp_id)
+        qp.is_active = False
+        db.session.commit()
+        return jsonify({"message": "Quality parameter deactivated successfully"})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 500

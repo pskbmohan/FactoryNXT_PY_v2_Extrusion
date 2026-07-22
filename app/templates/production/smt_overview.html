@@ -32,7 +32,7 @@
         </td>
         <td class="py-3 px-4 text-slate-600">{{ snap.shift_date if snap else '-' }}</td>
         <td class="py-3 px-4 text-slate-600">{{ snap.shift_name if snap else '-' }}</td>
-        <td class="py-3 px-4 font-semibold text-blue-600">{{ '%.1f'|format(snap.oee) if snap and snap.oee is not none else '-' }}</td>
+        <td class="py-3 px-4 font-semibold text-blue-600">{{ '%.1f'|format((snap.oee or 0) * 100) }}%</td>
       </tr>
       {% endfor %}
     </tbody>

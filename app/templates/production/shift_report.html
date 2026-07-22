@@ -41,9 +41,9 @@
         <td class="py-3 px-4">{{ r.shift_name or '-' }}</td>
         <td class="py-3 px-4">{{ r.planned_production_time_min or '-' }}</td>
         <td class="py-3 px-4">{{ r.downtime_min or '-' }}</td>
-        <td class="py-3 px-4 font-semibold text-blue-600">{{ '%.1f'|format(r.oee) if r.oee is not none else '-' }}</td>
-        <td class="py-3 px-4">{{ '%.1f'|format(r.availability) if r.availability is not none else '-' }}</td>
-        <td class="py-3 px-4">{{ '%.1f'|format(r.performance) if r.performance is not none else '-' }}</td>
+        <td class="py-3 px-4 font-semibold text-blue-600">{{ '%.1f'|format((r.oee or 0) * 100) }}%</td>
+        <td class="py-3 px-4">{{ '%.1f'|format((r.availability or 0) * 100) }}%</td>
+        <td class="py-3 px-4">{{ '%.1f'|format((r.performance or 0) * 100) }}%</td>
         <td class="py-3 px-4">{{ '%.1f'|format(r.quality) if r.quality is not none else '-' }}</td>
         <td class="py-3 px-4">{{ r.units_produced or '-' }}</td>
         <td class="py-3 px-4 text-red-600">{{ r.units_defective or '-' }}</td>

@@ -573,12 +573,16 @@ def seed_kpi_records():
     for day_offset in range(7):
         d = today - timedelta(days=day_offset)
         for m_id in running_machines:
+            # OEE is stored as a fraction in [0, 1] — the dashboard template
+            # multiplies by 100 for display.  Seeding 0.70-0.92 renders as
+            # 70%-92%, not 7000%-9200%.  Same convention for the three pillar
+            # sub-metrics in `details`.
             kpis.append(KPIRecord(id=_u(), kpi_type="OEE", machine_id=str(m_id),
-                                  shift_date=d, value=round(random.uniform(70, 92), 1),
+                                  shift_date=d, value=round(random.uniform(0.70, 0.92), 4),
                                   unit="%",
-                                  details={"availability": round(random.uniform(85, 98), 1),
-                                           "performance": round(random.uniform(80, 95), 1),
-                                           "quality": round(random.uniform(95, 99.5), 1)}))
+                                  details={"availability": round(random.uniform(0.85, 0.98), 4),
+                                           "performance": round(random.uniform(0.80, 0.95), 4),
+                                           "quality": round(random.uniform(0.95, 0.995), 4)}))
         # One throughput record per line/day
         kpis.append(KPIRecord(id=_u(), kpi_type="THROUGHPUT", machine_id=None,
                               shift_date=d, value=round(random.uniform(4.5, 7.5), 2),

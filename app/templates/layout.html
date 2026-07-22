@@ -274,8 +274,8 @@
 
   <div class="sidebar-label">Operations</div>
 
-  <!-- Master Data (BOM-driven) -->
-  <div class="nav-group {% if request.blueprint == 'master_data_bom' %}open{% endif %}">
+  <!-- Master Data -->
+  <div class="nav-group {% if request.blueprint == 'master_data_pages' %}open{% endif %}">
     <div class="group-header" data-tip="Master Data">
       <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
         <path stroke-linecap="round" stroke-linejoin="round" d="M20.25 6.375c0 2.278-3.694 4.125-8.25 4.125S3.75 8.653 3.75 6.375m16.5 0c0-2.278-3.694-4.125-8.25-4.125S3.75 4.097 3.75 6.375m16.5 0v11.25c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125V6.375m16.5 5.625c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125" />
@@ -286,21 +286,50 @@
       </svg>
     </div>
     <div class="nav-children">
-      <a href="{{ url_for('master_data_bom.customers_list') }}"
-         class="{% if request.endpoint == 'master_data_bom.customers_list' %}active{% endif %}">
+      <a href="{{ url_for('master_data_pages.customers_page') }}"
+         class="{% if request.endpoint == 'master_data_pages.customers_page' %}active{% endif %}">
         Customers
       </a>
-      <a href="{{ url_for('master_data_bom.part_numbers_list') }}"
-         class="{% if request.endpoint == 'master_data_bom.part_numbers_list' %}active{% endif %}">
+      <a href="{{ url_for('master_data_pages.part_numbers_page') }}"
+         class="{% if request.endpoint == 'master_data_pages.part_numbers_page' %}active{% endif %}">
         Part Numbers
       </a>
-      <a href="{{ url_for('master_data_bom.boms_list') }}"
-         class="{% if request.endpoint == 'master_data_bom.boms_list' %}active{% endif %}">
+      <a href="{{ url_for('master_data_pages.boms_page') }}"
+         class="{% if request.endpoint == 'master_data_pages.boms_page' %}active{% endif %}">
         Part Number BOM
       </a>
-      <a href="{{ url_for('master_data_bom.customer_part_map') }}"
-         class="{% if request.endpoint == 'master_data_bom.customer_part_map' %}active{% endif %}">
+      <a href="{{ url_for('master_data_pages.customer_part_map_page') }}"
+         class="{% if request.endpoint == 'master_data_pages.customer_part_map_page' %}active{% endif %}">
         Customer-Part Mapping
+      </a>
+      <hr class="my-1 border-slate-300 dark:border-slate-600">
+      <a href="{{ url_for('master_data_pages.coating_colors_page') }}"
+         class="{% if request.endpoint == 'master_data_pages.coating_colors_page' %}active{% endif %}">
+        Coating Colors
+      </a>
+      <a href="{{ url_for('master_data_pages.raw_material_types_page') }}"
+         class="{% if request.endpoint == 'master_data_pages.raw_material_types_page' %}active{% endif %}">
+        Raw Material Types
+      </a>
+      <a href="{{ url_for('master_data_pages.alloy_compositions_page') }}"
+         class="{% if request.endpoint == 'master_data_pages.alloy_compositions_page' %}active{% endif %}">
+        Alloy Compositions
+      </a>
+      <a href="{{ url_for('master_data_pages.finishing_process_types_page') }}"
+         class="{% if request.endpoint == 'master_data_pages.finishing_process_types_page' %}active{% endif %}">
+        Finishing Process Types
+      </a>
+      <a href="{{ url_for('master_data_pages.packaging_specs_page') }}"
+         class="{% if request.endpoint == 'master_data_pages.packaging_specs_page' %}active{% endif %}">
+        Packaging Specs
+      </a>
+      <a href="{{ url_for('master_data_pages.defect_codes_page') }}"
+         class="{% if request.endpoint == 'master_data_pages.defect_codes_page' %}active{% endif %}">
+        Defect Codes
+      </a>
+      <a href="{{ url_for('master_data_pages.quality_parameters_page') }}"
+         class="{% if request.endpoint == 'master_data_pages.quality_parameters_page' %}active{% endif %}">
+        Quality Parameters
       </a>
     </div>
   </div>

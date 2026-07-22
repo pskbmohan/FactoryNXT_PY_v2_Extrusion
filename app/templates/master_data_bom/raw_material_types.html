@@ -1,0 +1,220 @@
+{% extends "layout.html" %}
+
+{% block title %}Raw Material Types - FactoryNXT{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto">
+  <div class="flex justify-between items-center mb-6">
+    <h1 class="text-2xl font-bold">Raw Material Types</h1>
+    <button onclick="openModal()" class="bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-lg flex items-center gap-2">
+      <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+      </svg>
+      + New Raw Material Type
+    </button>
+  </div>
+
+  <!-- Raw Material Types Table -->
+  <div class="bg-white dark:bg-slate-800 rounded-lg shadow border border-slate-200 dark:border-slate-700 overflow-hidden">
+    <table class="w-full text-sm">
+      <thead class="bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700">
+        <tr>
+          <th class="px-4 py-3 text-left font-semibold text-slate-700 dark:text-slate-300">Code</th>
+          <th class="px-4 py-3 text-left font-semibold text-slate-700 dark:text-slate-300">Name</th>
+          <th class="px-4 py-3 text-left font-semibold text-slate-700 dark:text-slate-300">Category</th>
+          <th class="px-4 py-3 text-left font-semibold text-slate-700 dark:text-slate-300">UOM</th>
+          <th class="px-4 py-3 text-right font-semibold text-slate-700 dark:text-slate-300">Actions</th>
+        </tr>
+      </thead>
+      <tbody id="raw-material-types-table-body" class="divide-y divide-slate-200 dark:divide-slate-700">
+        <!-- Rows loaded via fetch -->
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Loading State -->
+  <div id="loading" class="text-center py-8 text-slate-500">Loading raw material types...</div>
+
+  <!-- Modal for New/Edit Raw Material Type -->
+  <div id="raw-material-type-modal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
+    <div class="bg-white dark:bg-slate-800 rounded-lg shadow-xl w-full max-w-md mx-4">
+      <div class="flex justify-between items-center px-6 py-4 border-b border-slate-200 dark:border-slate-700">
+        <h2 id="modal-title" class="text-lg font-semibold">New Raw Material Type</h2>
+        <button onclick="closeModal()" class="text-slate-500 hover:text-slate-700 dark:hover:text-slate-300">&times;</button>
+      </div>
+      <form id="raw-material-type-form" onsubmit="saveRawMaterialType(event)" class="p-6">
+        <input type="hidden" id="edit-raw-material-type-id">
+        <div class="space-y-4">
+          <div>
+            <label class="block text-sm font-medium mb-1">Code *</label>
+            <input type="text" id="code" required class="w-full px-3 py-2 border rounded dark:bg-slate-700 dark:border-slate-600" placeholder="e.g., AL-6063">
+          </div>
+          <div>
+            <label class="block text-sm font-medium mb-1">Name *</label>
+            <input type="text" id="name" required class="w-full px-3 py-2 border rounded dark:bg-slate-700 dark:border-slate-600" placeholder="e.g., Aluminium 6063">
+          </div>
+          <div>
+            <label class="block text-sm font-medium mb-1">Category</label>
+            <select id="category" class="w-full px-3 py-2 border rounded dark:bg-slate-700 dark:border-slate-600">
+              <option value="alloy">Alloy</option>
+              <option value="billet">Billet</option>
+              <option value="ingot">Ingot</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-sm font-medium mb-1">UOM</label>
+            <input type="text" id="uom" value="KG" class="w-full px-3 py-2 border rounded dark:bg-slate-700 dark:border-slate-600" placeholder="e.g., KG">
+          </div>
+        </div>
+        <div class="flex justify-end gap-2 mt-6">
+          <button type="button" onclick="closeModal()" class="px-4 py-2 border rounded hover:bg-slate-50 dark:hover:bg-slate-700">Cancel</button>
+          <button type="submit" id="save-btn" class="bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded">Save Raw Material Type</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Toast Notification -->
+  <div id="toast" class="hidden fixed top-25 right-5 z-50 px-6 py-3 rounded-lg shadow-lg transform transition-all duration-500">
+  </div>
+</div>
+
+<script>
+let rawMaterialTypes = [];
+let editingId = null;
+
+document.addEventListener("DOMContentLoaded", function() {
+    fetchRawMaterialTypes();
+});
+
+async function fetchRawMaterialTypes() {
+    document.getElementById('loading').classList.remove('hidden');
+    try {
+        const res = await fetch('/api/master/raw-material-types');
+        rawMaterialTypes = await res.json();
+        renderTable();
+    } catch (err) {
+        showToast('Error loading raw material types', 'error');
+    } finally {
+        document.getElementById('loading').classList.add('hidden');
+    }
+}
+
+function renderTable() {
+    const tbody = document.getElementById('raw-material-types-table-body');
+    if (rawMaterialTypes.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" class="px-4 py-8 text-center text-slate-500">No raw material types found</td></tr>';
+        return;
+    }
+
+    tbody.innerHTML = rawMaterialTypes.map(r => `
+      <tr class="hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
+        <td class="px-4 py-3 font-medium text-slate-900 dark:text-slate-100">${escapeHtml(r.code || '')}</td>
+        <td class="px-4 py-3 text-slate-700 dark:text-slate-300">${escapeHtml(r.name || '')}</td>
+        <td class="px-4 py-3">
+            <span class="bg-primary-100 dark:bg-primary-900/50 text-primary-700 dark:text-primary-300 px-2 py-1 rounded-full text-xs font-medium">${escapeHtml(r.category || '')}</span>
+        </td>
+        <td class="px-4 py-3 text-slate-600 dark:text-slate-400">${escapeHtml(r.uom || 'KG')}</td>
+        <td class="px-4 py-3 text-right">
+            <button onclick='editRawMaterialType("${r.id}", "${escapeHtml(r.code || '')}", "${escapeHtml(r.name || '')}", "${escapeHtml(r.category || 'alloy')}", "${escapeHtml(r.uom || 'KG')}")' class="text-primary-600 hover:text-primary-700 dark:text-primary-400 mr-3">Edit</button>
+            <button onclick='deleteRawMaterialType("${r.id}")' class="text-red-600 hover:text-red-700 dark:text-red-400">Delete</button>
+        </td>
+      </tr>
+    `).join('');
+}
+
+function openModal() {
+    editingId = null;
+    document.getElementById('modal-title').textContent = 'New Raw Material Type';
+    document.getElementById('raw-material-type-form').reset();
+    document.getElementById('edit-raw-material-type-id').value = '';
+    document.getElementById('save-btn').textContent = 'Save Raw Material Type';
+    document.getElementById('raw-material-type-modal').classList.remove('hidden');
+}
+
+function closeModal() {
+    document.getElementById('raw-material-type-modal').classList.add('hidden');
+}
+
+async function saveRawMaterialType(event) {
+    event.preventDefault();
+    const data = {
+        code: document.getElementById('code').value,
+        name: document.getElementById('name').value,
+        category: document.getElementById('category').value,
+        uom: document.getElementById('uom').value || 'KG',
+    };
+
+    try {
+        const url = editingId ? `/api/master/raw-material-types/${editingId}` : `/api/master/raw-material-types`;
+        const method = editingId ? 'PUT' : 'POST';
+
+        const res = await fetch(url, {
+            method: method,
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+
+        if (!res.ok) {
+            const err = await res.json();
+            throw new Error(err.error || 'Failed to save raw material type');
+        }
+
+        showToast('Raw material type saved successfully', 'success');
+        closeModal();
+        fetchRawMaterialTypes();
+    } catch (err) {
+        showToast(err.message, 'error');
+    }
+}
+
+function editRawMaterialType(id, code, name, category, uom) {
+    editingId = id;
+    document.getElementById('modal-title').textContent = 'Edit Raw Material Type';
+    document.getElementById('edit-raw-material-type-id').value = id;
+    document.getElementById('code').value = code;
+    document.getElementById('name').value = name;
+    document.getElementById('category').value = category;
+    document.getElementById('uom').value = uom;
+    document.getElementById('save-btn').textContent = 'Update Raw Material Type';
+    document.getElementById('raw-material-type-modal').classList.remove('hidden');
+}
+
+async function deleteRawMaterialType(id) {
+    if (!confirm('Delete this raw material type?')) return;
+    try {
+        const res = await fetch(`/api/master/raw-material-types/${id}`, { method: 'DELETE' });
+        if (!res.ok) {
+            const err = await res.json();
+            throw new Error(err.error || 'Failed to delete');
+        }
+        showToast('Deleted successfully', 'success');
+        fetchRawMaterialTypes();
+    } catch (err) {
+        showToast(err.message, 'error');
+    }
+}
+
+function showToast(message, type = 'info') {
+    const toast = document.getElementById('toast');
+    toast.textContent = message;
+    toast.className = `px-6 py-3 rounded-lg shadow-lg transform transition-all duration-500 ${
+        type === 'success' ? 'bg-emerald-500 text-white' :
+        type === 'error' ? 'bg-red-500 text-white' :
+        'bg-blue-500 text-white'
+    }`;
+    toast.classList.remove('hidden');
+
+    setTimeout(() => {
+        toast.classList.add('opacity-0', 'translate-y-[-10px]');
+        setTimeout(() => toast.classList.add('hidden'), 300);
+    }, 3000);
+}
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+</script>
+{% endblock %}

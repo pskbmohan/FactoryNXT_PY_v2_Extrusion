@@ -1,0 +1,238 @@
+{% extends "layout.html" %}
+
+{% block title %}Finishing Process Types - FactoryNXT{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto">
+  <div class="flex justify-between items-center mb-6">
+    <h1 class="text-2xl font-bold">Finishing Process Types</h1>
+    <button onclick="openModal()" class="bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-lg flex items-center gap-2">
+      <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+      </svg>
+      + New Finishing Process Type
+    </button>
+  </div>
+
+  <!-- Finishing Process Types Table -->
+  <div class="bg-white dark:bg-slate-800 rounded-lg shadow border border-slate-200 dark:border-slate-700 overflow-hidden">
+    <table class="w-full text-sm">
+      <thead class="bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700">
+        <tr>
+          <th class="px-4 py-3 text-left font-semibold text-slate-700 dark:text-slate-300">Code</th>
+          <th class="px-4 py-3 text-left font-semibold text-slate-700 dark:text-slate-300">Name</th>
+          <th class="px-4 py-3 text-left font-semibold text-slate-700 dark:text-slate-300">Description</th>
+          <th class="px-4 py-3 text-center font-semibold text-slate-700 dark:text-slate-300">Requires PLC</th>
+          <th class="px-4 py-3 text-right font-semibold text-slate-700 dark:text-slate-300">Actions</th>
+        </tr>
+      </thead>
+      <tbody id="finishing-process-types-table-body" class="divide-y divide-slate-200 dark:divide-slate-700">
+        <!-- Rows loaded via fetch -->
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Loading State -->
+  <div id="loading" class="text-center py-8 text-slate-500">Loading finishing process types...</div>
+
+  <!-- Modal for New/Edit Finishing Process Type -->
+  <div id="finishing-process-type-modal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
+    <div class="bg-white dark:bg-slate-800 rounded-lg shadow-xl w-full max-w-lg mx-4">
+      <div class="flex justify-between items-center px-6 py-4 border-b border-slate-200 dark:border-slate-700">
+        <h2 id="modal-title" class="text-lg font-semibold">New Finishing Process Type</h2>
+        <button onclick="closeModal()" class="text-slate-500 hover:text-slate-700 dark:hover:text-slate-300">&times;</button>
+      </div>
+      <form id="finishing-process-type-form" onsubmit="saveFinishingProcessType(event)" class="p-6">
+        <input type="hidden" id="edit-finishing-process-type-id">
+        <div class="space-y-4">
+          <div>
+            <label class="block text-sm font-medium mb-1">Code *</label>
+            <input type="text" id="code" required class="w-full px-3 py-2 border rounded dark:bg-slate-700 dark:border-slate-600" placeholder="e.g., ANODIZE">
+          </div>
+          <div>
+            <label class="block text-sm font-medium mb-1">Name *</label>
+            <input type="text" id="name" required class="w-full px-3 py-2 border rounded dark:bg-slate-700 dark:border-slate-600" placeholder="e.g., Anodizing">
+          </div>
+          <div>
+            <label class="block text-sm font-medium mb-1">Description</label>
+            <textarea id="description" rows="3" class="w-full px-3 py-2 border rounded dark:bg-slate-700 dark:border-slate-600" placeholder="Process description"></textarea>
+          </div>
+          <div class="flex items-center gap-2">
+            <input type="checkbox" id="requires_plc_instruction" class="w-4 h-4 text-primary-600 border rounded">
+            <label for="requires_plc_instruction" class="text-sm font-medium">Requires PLC Instruction</label>
+          </div>
+          <div>
+            <label class="block text-sm font-medium mb-1">Default Parameters (JSON, optional)</label>
+            <textarea id="default_parameters" rows="5" class="w-full px-3 py-2 border rounded dark:bg-slate-700 dark:border-slate-600 font-mono text-xs" placeholder='{"speed": 10, "temperature": 25}'></textarea>
+          </div>
+        </div>
+        <div class="flex justify-end gap-2 mt-6">
+          <button type="button" onclick="closeModal()" class="px-4 py-2 border rounded hover:bg-slate-50 dark:hover:bg-slate-700">Cancel</button>
+          <button type="submit" id="save-btn" class="bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded">Save Finishing Process Type</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Toast Notification -->
+  <div id="toast" class="hidden fixed top-25 right-5 z-50 px-6 py-3 rounded-lg shadow-lg transform transition-all duration-500">
+  </div>
+</div>
+
+<script>
+let finishingProcessTypes = [];
+let editingId = null;
+
+document.addEventListener("DOMContentLoaded", function() {
+    fetchFinishingProcessTypes();
+});
+
+async function fetchFinishingProcessTypes() {
+    document.getElementById('loading').classList.remove('hidden');
+    try {
+        const res = await fetch('/api/master/finishing-process-types');
+        finishingProcessTypes = await res.json();
+        renderTable();
+    } catch (err) {
+        showToast('Error loading finishing process types', 'error');
+    } finally {
+        document.getElementById('loading').classList.add('hidden');
+    }
+}
+
+function renderTable() {
+    const tbody = document.getElementById('finishing-process-types-table-body');
+    if (finishingProcessTypes.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" class="px-4 py-8 text-center text-slate-500">No finishing process types found</td></tr>';
+        return;
+    }
+
+    tbody.innerHTML = finishingProcessTypes.map(f => `
+      <tr class="hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
+        <td class="px-4 py-3 font-medium text-slate-900 dark:text-slate-100">${escapeHtml(f.code || '')}</td>
+        <td class="px-4 py-3 text-slate-700 dark:text-slate-300">${escapeHtml(f.name || '')}</td>
+        <td class="px-4 py-3 text-slate-600 dark:text-slate-400 max-w-xs truncate">${escapeHtml(f.description || '')}</td>
+        <td class="px-4 py-3 text-center">
+            <span class="${f.requires_plc_instruction ? 'bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-400'} px-2 py-1 rounded-full text-xs font-medium">${f.requires_plc_instruction ? 'Yes' : 'No'}</span>
+        </td>
+        <td class="px-4 py-3 text-right">
+            <button onclick='editFinishingProcessType("${f.id}")' class="text-primary-600 hover:text-primary-700 dark:text-primary-400 mr-3">Edit</button>
+            <button onclick='deleteFinishingProcessType("${f.id}")' class="text-red-600 hover:text-red-700 dark:text-red-400">Delete</button>
+        </td>
+      </tr>
+    `).join('');
+}
+
+function openModal() {
+    editingId = null;
+    document.getElementById('modal-title').textContent = 'New Finishing Process Type';
+    document.getElementById('finishing-process-type-form').reset();
+    document.getElementById('edit-finishing-process-type-id').value = '';
+    document.getElementById('save-btn').textContent = 'Save Finishing Process Type';
+    document.getElementById('finishing-process-type-modal').classList.remove('hidden');
+}
+
+function closeModal() {
+    document.getElementById('finishing-process-type-modal').classList.add('hidden');
+}
+
+async function saveFinishingProcessType(event) {
+    event.preventDefault();
+
+    const defaultParamsRaw = document.getElementById('default_parameters').value.trim();
+    let defaultParameters = null;
+    if (defaultParamsRaw) {
+        try {
+            defaultParameters = JSON.parse(defaultParamsRaw);
+        } catch (e) {
+            showToast('Default Parameters must be valid JSON', 'error');
+            return;
+        }
+    }
+
+    const data = {
+        code: document.getElementById('code').value,
+        name: document.getElementById('name').value,
+        description: document.getElementById('description').value || null,
+        requires_plc_instruction: document.getElementById('requires_plc_instruction').checked,
+        default_parameters: defaultParameters,
+    };
+
+    try {
+        const url = editingId ? `/api/master/finishing-process-types/${editingId}` : `/api/master/finishing-process-types`;
+        const method = editingId ? 'PUT' : 'POST';
+
+        const res = await fetch(url, {
+            method: method,
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+
+        if (!res.ok) {
+            const err = await res.json();
+            throw new Error(err.error || 'Failed to save finishing process type');
+        }
+
+        showToast('Finishing process type saved successfully', 'success');
+        closeModal();
+        fetchFinishingProcessTypes();
+    } catch (err) {
+        showToast(err.message, 'error');
+    }
+}
+
+async function editFinishingProcessType(id) {
+    const item = finishingProcessTypes.find(f => f.id === id);
+    if (!item) return;
+
+    editingId = id;
+    document.getElementById('modal-title').textContent = 'Edit Finishing Process Type';
+    document.getElementById('edit-finishing-process-type-id').value = id;
+    document.getElementById('code').value = item.code || '';
+    document.getElementById('name').value = item.name || '';
+    document.getElementById('description').value = item.description || '';
+    document.getElementById('requires_plc_instruction').checked = !!item.requires_plc_instruction;
+    const params = item.default_parameters;
+    document.getElementById('default_parameters').value = params ? (typeof params === 'object' ? JSON.stringify(params, null, 2) : params) : '';
+    document.getElementById('save-btn').textContent = 'Update Finishing Process Type';
+    document.getElementById('finishing-process-type-modal').classList.remove('hidden');
+}
+
+async function deleteFinishingProcessType(id) {
+    if (!confirm('Delete this finishing process type?')) return;
+    try {
+        const res = await fetch(`/api/master/finishing-process-types/${id}`, { method: 'DELETE' });
+        if (!res.ok) {
+            const err = await res.json();
+            throw new Error(err.error || 'Failed to delete');
+        }
+        showToast('Deleted successfully', 'success');
+        fetchFinishingProcessTypes();
+    } catch (err) {
+        showToast(err.message, 'error');
+    }
+}
+
+function showToast(message, type = 'info') {
+    const toast = document.getElementById('toast');
+    toast.textContent = message;
+    toast.className = `px-6 py-3 rounded-lg shadow-lg transform transition-all duration-500 ${
+        type === 'success' ? 'bg-emerald-500 text-white' :
+        type === 'error' ? 'bg-red-500 text-white' :
+        'bg-blue-500 text-white'
+    }`;
+    toast.classList.remove('hidden');
+
+    setTimeout(() => {
+        toast.classList.add('opacity-0', 'translate-y-[-10px]');
+        setTimeout(() => toast.classList.add('hidden'), 300);
+    }, 3000);
+}
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+</script>
+{% endblock %}

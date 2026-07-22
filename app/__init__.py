@@ -49,6 +49,7 @@ def create_app(config_class=Config):
 
     # Import BOM-driven order blueprints (S2 deliverable)
     from app.routes.master_data_bom import bp as master_data_bom_bp
+    from app.routes.master_data_pages import bp as master_data_pages_bp
     from app.routes.customer_orders_bom import bp as customer_orders_bom_bp
 
     # ── Extrusion add-on modules (cost price, dies, furnace, etc.) ──────
@@ -129,6 +130,7 @@ def create_app(config_class=Config):
 
     # Register BOM-driven order blueprints (S2 deliverable)
     app.register_blueprint(master_data_bom_bp, url_prefix="/api/master")
+    app.register_blueprint(master_data_pages_bp)   # /master-data/* - HTML pages
     app.register_blueprint(customer_orders_bom_bp, url_prefix="/api/orders")
 
     # ── Extrusion add-on modules ───────────────────────────────────────

@@ -1,0 +1,224 @@
+{% extends "layout.html" %}
+
+{% block title %}Coating Colors - FactoryNXT{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto">
+  <div class="flex justify-between items-center mb-6">
+    <h1 class="text-2xl font-bold">Coating Colors</h1>
+    <button onclick="openModal()" class="bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-lg flex items-center gap-2">
+      <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+      </svg>
+      + New Coating Color
+    </button>
+  </div>
+
+  <!-- Coating Colors Table -->
+  <div class="bg-white dark:bg-slate-800 rounded-lg shadow border border-slate-200 dark:border-slate-700 overflow-hidden">
+    <table class="w-full text-sm">
+      <thead class="bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700">
+        <tr>
+          <th class="px-4 py-3 text-left font-semibold text-slate-700 dark:text-slate-300">Color Code</th>
+          <th class="px-4 py-3 text-left font-semibold text-slate-700 dark:text-slate-300">Color Name</th>
+          <th class="px-4 py-3 text-left font-semibold text-slate-700 dark:text-slate-300">Hex</th>
+          <th class="px-4 py-3 text-center font-semibold text-slate-700 dark:text-slate-300">Clean Time (min)</th>
+          <th class="px-4 py-3 text-left font-semibold text-slate-700 dark:text-slate-300">RAL Code</th>
+          <th class="px-4 py-3 text-right font-semibold text-slate-700 dark:text-slate-300">Actions</th>
+        </tr>
+      </thead>
+      <tbody id="coating-colors-table-body" class="divide-y divide-slate-200 dark:divide-slate-700">
+        <!-- Rows loaded via fetch -->
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Loading State -->
+  <div id="loading" class="text-center py-8 text-slate-500">Loading coating colors...</div>
+
+  <!-- Modal for New/Edit Coating Color -->
+  <div id="coating-color-modal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
+    <div class="bg-white dark:bg-slate-800 rounded-lg shadow-xl w-full max-w-md mx-4">
+      <div class="flex justify-between items-center px-6 py-4 border-b border-slate-200 dark:border-slate-700">
+        <h2 id="modal-title" class="text-lg font-semibold">New Coating Color</h2>
+        <button onclick="closeModal()" class="text-slate-500 hover:text-slate-700 dark:hover:text-slate-300">&times;</button>
+      </div>
+      <form id="coating-color-form" onsubmit="saveCoatingColor(event)" class="p-6">
+        <input type="hidden" id="edit-coating-color-id">
+        <div class="space-y-4">
+          <div>
+            <label class="block text-sm font-medium mb-1">Color Code *</label>
+            <input type="text" id="color_code" required class="w-full px-3 py-2 border rounded dark:bg-slate-700 dark:border-slate-600" placeholder="e.g., RAL-9010">
+          </div>
+          <div>
+            <label class="block text-sm font-medium mb-1">Color Name *</label>
+            <input type="text" id="color_name" required class="w-full px-3 py-2 border rounded dark:bg-slate-700 dark:border-slate-600" placeholder="e.g., Pure White">
+          </div>
+          <div>
+            <label class="block text-sm font-medium mb-1">Hex Value</label>
+            <input type="text" id="hex_value" class="w-full px-3 py-2 border rounded dark:bg-slate-700 dark:border-slate-600" placeholder="e.g., #FFFFFF">
+          </div>
+          <div>
+            <label class="block text-sm font-medium mb-1">Clean Time (minutes)</label>
+            <input type="number" id="clean_time_minutes" value="30" class="w-full px-3 py-2 border rounded dark:bg-slate-700 dark:border-slate-600" placeholder="30">
+          </div>
+          <div>
+            <label class="block text-sm font-medium mb-1">RAL Code</label>
+            <input type="text" id="ral_code" class="w-full px-3 py-2 border rounded dark:bg-slate-700 dark:border-slate-600" placeholder="e.g., RAL 9010">
+          </div>
+        </div>
+        <div class="flex justify-end gap-2 mt-6">
+          <button type="button" onclick="closeModal()" class="px-4 py-2 border rounded hover:bg-slate-50 dark:hover:bg-slate-700">Cancel</button>
+          <button type="submit" id="save-btn" class="bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded">Save Coating Color</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Toast Notification -->
+  <div id="toast" class="hidden fixed top-25 right-5 z-50 px-6 py-3 rounded-lg shadow-lg transform transition-all duration-500">
+  </div>
+</div>
+
+<script>
+let coatingColors = [];
+let editingId = null;
+
+document.addEventListener("DOMContentLoaded", function() {
+    fetchCoatingColors();
+});
+
+async function fetchCoatingColors() {
+    document.getElementById('loading').classList.remove('hidden');
+    try {
+        const res = await fetch('/api/master/coating-colors');
+        coatingColors = await res.json();
+        renderTable();
+    } catch (err) {
+        showToast('Error loading coating colors', 'error');
+    } finally {
+        document.getElementById('loading').classList.add('hidden');
+    }
+}
+
+function renderTable() {
+    const tbody = document.getElementById('coating-colors-table-body');
+    if (coatingColors.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" class="px-4 py-8 text-center text-slate-500">No coating colors found</td></tr>';
+        return;
+    }
+
+    tbody.innerHTML = coatingColors.map(c => `
+      <tr class="hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
+        <td class="px-4 py-3 font-medium text-slate-900 dark:text-slate-100">${escapeHtml(c.color_code || '')}</td>
+        <td class="px-4 py-3 text-slate-700 dark:text-slate-300">${escapeHtml(c.color_name || '')}</td>
+        <td class="px-4 py-3 text-slate-600 dark:text-slate-400">
+            ${c.hex_value ? `<span style="background:${escapeHtml(c.hex_value)};width:16px;height:16px;display:inline-block;border-radius:4px;"></span>` : ''}
+        </td>
+        <td class="px-4 py-3 text-center text-slate-600 dark:text-slate-400">${c.clean_time_minutes || 30}</td>
+        <td class="px-4 py-3 text-slate-600 dark:text-slate-400">${escapeHtml(c.ral_code || '')}</td>
+        <td class="px-4 py-3 text-right">
+            <button onclick='editCoatingColor("${c.id}", "${escapeHtml(c.color_code || '')}", "${escapeHtml(c.color_name || '')}", "${escapeHtml(c.hex_value || '')}", "${c.clean_time_minutes || 30}", "${escapeHtml(c.ral_code || '')}")' class="text-primary-600 hover:text-primary-700 dark:text-primary-400 mr-3">Edit</button>
+            <button onclick='deleteCoatingColor("${c.id}")' class="text-red-600 hover:text-red-700 dark:text-red-400">Delete</button>
+        </td>
+      </tr>
+    `).join('');
+}
+
+function openModal() {
+    editingId = null;
+    document.getElementById('modal-title').textContent = 'New Coating Color';
+    document.getElementById('coating-color-form').reset();
+    document.getElementById('edit-coating-color-id').value = '';
+    document.getElementById('save-btn').textContent = 'Save Coating Color';
+    document.getElementById('coating-color-modal').classList.remove('hidden');
+}
+
+function closeModal() {
+    document.getElementById('coating-color-modal').classList.add('hidden');
+}
+
+async function saveCoatingColor(event) {
+    event.preventDefault();
+    const data = {
+        color_code: document.getElementById('color_code').value,
+        color_name: document.getElementById('color_name').value,
+        hex_value: document.getElementById('hex_value').value || null,
+        clean_time_minutes: parseInt(document.getElementById('clean_time_minutes').value) || 30,
+        ral_code: document.getElementById('ral_code').value || null,
+    };
+
+    try {
+        const url = editingId ? `/api/master/coating-colors/${editingId}` : `/api/master/coating-colors`;
+        const method = editingId ? 'PUT' : 'POST';
+
+        const res = await fetch(url, {
+            method: method,
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+
+        if (!res.ok) {
+            const err = await res.json();
+            throw new Error(err.error || 'Failed to save coating color');
+        }
+
+        showToast('Coating color saved successfully', 'success');
+        closeModal();
+        fetchCoatingColors();
+    } catch (err) {
+        showToast(err.message, 'error');
+    }
+}
+
+function editCoatingColor(id, code, name, hex, cleanTime, ralCode) {
+    editingId = id;
+    document.getElementById('modal-title').textContent = 'Edit Coating Color';
+    document.getElementById('edit-coating-color-id').value = id;
+    document.getElementById('color_code').value = code;
+    document.getElementById('color_name').value = name;
+    document.getElementById('hex_value').value = hex;
+    document.getElementById('clean_time_minutes').value = cleanTime;
+    document.getElementById('ral_code').value = ralCode;
+    document.getElementById('save-btn').textContent = 'Update Coating Color';
+    document.getElementById('coating-color-modal').classList.remove('hidden');
+}
+
+async function deleteCoatingColor(id) {
+    if (!confirm('Delete this coating color?')) return;
+    try {
+        const res = await fetch(`/api/master/coating-colors/${id}`, { method: 'DELETE' });
+        if (!res.ok) {
+            const err = await res.json();
+            throw new Error(err.error || 'Failed to delete');
+        }
+        showToast('Deleted successfully', 'success');
+        fetchCoatingColors();
+    } catch (err) {
+        showToast(err.message, 'error');
+    }
+}
+
+function showToast(message, type = 'info') {
+    const toast = document.getElementById('toast');
+    toast.textContent = message;
+    toast.className = `px-6 py-3 rounded-lg shadow-lg transform transition-all duration-500 ${
+        type === 'success' ? 'bg-emerald-500 text-white' :
+        type === 'error' ? 'bg-red-500 text-white' :
+        'bg-blue-500 text-white'
+    }`;
+    toast.classList.remove('hidden');
+
+    setTimeout(() => {
+        toast.classList.add('opacity-0', 'translate-y-[-10px]');
+        setTimeout(() => toast.classList.add('hidden'), 300);
+    }, 3000);
+}
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+</script>
+{% endblock %}

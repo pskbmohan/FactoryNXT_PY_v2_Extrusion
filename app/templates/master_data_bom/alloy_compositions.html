@@ -1,0 +1,248 @@
+{% extends "layout.html" %}
+
+{% block title %}Alloy Compositions - FactoryNXT{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto">
+  <div class="flex justify-between items-center mb-6">
+    <h1 class="text-2xl font-bold">Alloy Compositions</h1>
+    <button onclick="openModal()" class="bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-lg flex items-center gap-2">
+      <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+      </svg>
+      + New Alloy Composition
+    </button>
+  </div>
+
+  <!-- Alloy Compositions Table -->
+  <div class="bg-white dark:bg-slate-800 rounded-lg shadow border border-slate-200 dark:border-slate-700 overflow-hidden">
+    <table class="w-full text-sm">
+      <thead class="bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700">
+        <tr>
+          <th class="px-4 py-3 text-left font-semibold text-slate-700 dark:text-slate-300">Alloy Code</th>
+          <th class="px-4 py-3 text-left font-semibold text-slate-700 dark:text-slate-300">Alloy Name</th>
+          <th class="px-4 py-3 text-left font-semibold text-slate-700 dark:text-slate-300">Standard</th>
+          <th class="px-4 py-3 text-left font-semibold text-slate-700 dark:text-slate-300">Composition</th>
+          <th class="px-4 py-3 text-left font-semibold text-slate-700 dark:text-slate-300">Created</th>
+          <th class="px-4 py-3 text-right font-semibold text-slate-700 dark:text-slate-300">Actions</th>
+        </tr>
+      </thead>
+      <tbody id="alloy-compositions-table-body" class="divide-y divide-slate-200 dark:divide-slate-700">
+        <!-- Rows loaded via fetch -->
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Loading State -->
+  <div id="loading" class="text-center py-8 text-slate-500">Loading alloy compositions...</div>
+
+  <!-- Modal for New/Edit Alloy Composition -->
+  <div id="alloy-composition-modal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
+    <div class="bg-white dark:bg-slate-800 rounded-lg shadow-xl w-full max-w-lg mx-4">
+      <div class="flex justify-between items-center px-6 py-4 border-b border-slate-200 dark:border-slate-700">
+        <h2 id="modal-title" class="text-lg font-semibold">New Alloy Composition</h2>
+        <button onclick="closeModal()" class="text-slate-500 hover:text-slate-700 dark:hover:text-slate-300">&times;</button>
+      </div>
+      <form id="alloy-composition-form" onsubmit="saveAlloyComposition(event)" class="p-6">
+        <input type="hidden" id="edit-alloy-composition-id">
+        <div class="space-y-4">
+          <div>
+            <label class="block text-sm font-medium mb-1">Alloy Code *</label>
+            <input type="text" id="alloy_code" required class="w-full px-3 py-2 border rounded dark:bg-slate-700 dark:border-slate-600" placeholder="e.g., 6063">
+          </div>
+          <div>
+            <label class="block text-sm font-medium mb-1">Alloy Name *</label>
+            <input type="text" id="alloy_name" required class="w-full px-3 py-2 border rounded dark:bg-slate-700 dark:border-slate-600" placeholder="e.g., 6063-T5">
+          </div>
+          <div>
+            <label class="block text-sm font-medium mb-1">Standard</label>
+            <input type="text" id="standard" class="w-full px-3 py-2 border rounded dark:bg-slate-700 dark:border-slate-600" placeholder="e.g., ASTM B221">
+          </div>
+          <div>
+            <label class="block text-sm font-medium mb-1">Composition (JSON)</label>
+            <textarea id="composition" rows="6" class="w-full px-3 py-2 border rounded dark:bg-slate-700 dark:border-slate-600 font-mono text-xs" placeholder='{"Si":{"min":0.2,"max":0.6},"Mg":{"min":0.45,"max":0.9}}'></textarea>
+          </div>
+        </div>
+        <div class="flex justify-end gap-2 mt-6">
+          <button type="button" onclick="closeModal()" class="px-4 py-2 border rounded hover:bg-slate-50 dark:hover:bg-slate-700">Cancel</button>
+          <button type="submit" id="save-btn" class="bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded">Save Alloy Composition</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Toast Notification -->
+  <div id="toast" class="hidden fixed top-25 right-5 z-50 px-6 py-3 rounded-lg shadow-lg transform transition-all duration-500">
+  </div>
+</div>
+
+<script>
+let alloyCompositions = [];
+let editingId = null;
+
+document.addEventListener("DOMContentLoaded", function() {
+    fetchAlloyCompositions();
+});
+
+async function fetchAlloyCompositions() {
+    document.getElementById('loading').classList.remove('hidden');
+    try {
+        const res = await fetch('/api/master/alloy-compositions');
+        alloyCompositions = await res.json();
+        renderTable();
+    } catch (err) {
+        showToast('Error loading alloy compositions', 'error');
+    } finally {
+        document.getElementById('loading').classList.add('hidden');
+    }
+}
+
+function formatComposition(comp) {
+    if (!comp) return '';
+    if (typeof comp === 'string') {
+        try {
+            comp = JSON.parse(comp);
+        } catch (e) {
+            return escapeHtml(comp.substring(0, 60));
+        }
+    }
+    const str = JSON.stringify(comp);
+    return str.length > 60 ? str.substring(0, 57) + '...' : str;
+}
+
+function renderTable() {
+    const tbody = document.getElementById('alloy-compositions-table-body');
+    if (alloyCompositions.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" class="px-4 py-8 text-center text-slate-500">No alloy compositions found</td></tr>';
+        return;
+    }
+
+    tbody.innerHTML = alloyCompositions.map(a => {
+        const created = a.created_at ? new Date(a.created_at).toLocaleDateString() : '';
+        const compDisplay = formatComposition(a.composition);
+        return `
+      <tr class="hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
+        <td class="px-4 py-3 font-medium text-slate-900 dark:text-slate-100">${escapeHtml(a.alloy_code || '')}</td>
+        <td class="px-4 py-3 text-slate-700 dark:text-slate-300">${escapeHtml(a.alloy_name || '')}</td>
+        <td class="px-4 py-3 text-slate-600 dark:text-slate-400">${escapeHtml(a.standard || '')}</td>
+        <td class="px-4 py-3 text-slate-600 dark:text-slate-400 font-mono text-xs" title='${escapeHtml(typeof a.composition === "object" ? JSON.stringify(a.composition) : (a.composition || ""))}'>${escapeHtml(compDisplay)}</td>
+        <td class="px-4 py-3 text-slate-600 dark:text-slate-400 text-xs">${escapeHtml(created)}</td>
+        <td class="px-4 py-3 text-right">
+            <button onclick='editAlloyComposition("${a.id}")' class="text-primary-600 hover:text-primary-700 dark:text-primary-400 mr-3">Edit</button>
+            <button onclick='deleteAlloyComposition("${a.id}")' class="text-red-600 hover:text-red-700 dark:text-red-400">Delete</button>
+        </td>
+      </tr>
+    `}).join('');
+}
+
+function openModal() {
+    editingId = null;
+    document.getElementById('modal-title').textContent = 'New Alloy Composition';
+    document.getElementById('alloy-composition-form').reset();
+    document.getElementById('edit-alloy-composition-id').value = '';
+    document.getElementById('save-btn').textContent = 'Save Alloy Composition';
+    document.getElementById('alloy-composition-modal').classList.remove('hidden');
+}
+
+function closeModal() {
+    document.getElementById('alloy-composition-modal').classList.add('hidden');
+}
+
+async function saveAlloyComposition(event) {
+    event.preventDefault();
+
+    const compositionRaw = document.getElementById('composition').value.trim();
+    let composition = null;
+    if (compositionRaw) {
+        try {
+            composition = JSON.parse(compositionRaw);
+        } catch (e) {
+            showToast('Composition must be valid JSON', 'error');
+            return;
+        }
+    }
+
+    const data = {
+        alloy_code: document.getElementById('alloy_code').value,
+        alloy_name: document.getElementById('alloy_name').value,
+        standard: document.getElementById('standard').value || null,
+        composition: composition,
+    };
+
+    try {
+        const url = editingId ? `/api/master/alloy-compositions/${editingId}` : `/api/master/alloy-compositions`;
+        const method = editingId ? 'PUT' : 'POST';
+
+        const res = await fetch(url, {
+            method: method,
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+
+        if (!res.ok) {
+            const err = await res.json();
+            throw new Error(err.error || 'Failed to save alloy composition');
+        }
+
+        showToast('Alloy composition saved successfully', 'success');
+        closeModal();
+        fetchAlloyCompositions();
+    } catch (err) {
+        showToast(err.message, 'error');
+    }
+}
+
+async function editAlloyComposition(id) {
+    const item = alloyCompositions.find(a => a.id === id);
+    if (!item) return;
+
+    editingId = id;
+    document.getElementById('modal-title').textContent = 'Edit Alloy Composition';
+    document.getElementById('edit-alloy-composition-id').value = id;
+    document.getElementById('alloy_code').value = item.alloy_code || '';
+    document.getElementById('alloy_name').value = item.alloy_name || '';
+    document.getElementById('standard').value = item.standard || '';
+    const comp = item.composition;
+    document.getElementById('composition').value = comp ? (typeof comp === 'object' ? JSON.stringify(comp, null, 2) : comp) : '';
+    document.getElementById('save-btn').textContent = 'Update Alloy Composition';
+    document.getElementById('alloy-composition-modal').classList.remove('hidden');
+}
+
+async function deleteAlloyComposition(id) {
+    if (!confirm('Delete this alloy composition?')) return;
+    try {
+        const res = await fetch(`/api/master/alloy-compositions/${id}`, { method: 'DELETE' });
+        if (!res.ok) {
+            const err = await res.json();
+            throw new Error(err.error || 'Failed to delete');
+        }
+        showToast('Deleted successfully', 'success');
+        fetchAlloyCompositions();
+    } catch (err) {
+        showToast(err.message, 'error');
+    }
+}
+
+function showToast(message, type = 'info') {
+    const toast = document.getElementById('toast');
+    toast.textContent = message;
+    toast.className = `px-6 py-3 rounded-lg shadow-lg transform transition-all duration-500 ${
+        type === 'success' ? 'bg-emerald-500 text-white' :
+        type === 'error' ? 'bg-red-500 text-white' :
+        'bg-blue-500 text-white'
+    }`;
+    toast.classList.remove('hidden');
+
+    setTimeout(() => {
+        toast.classList.add('opacity-0', 'translate-y-[-10px]');
+        setTimeout(() => toast.classList.add('hidden'), 300);
+    }, 3000);
+}
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+</script>
+{% endblock %}
