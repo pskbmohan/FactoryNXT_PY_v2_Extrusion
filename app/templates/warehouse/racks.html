@@ -1,0 +1,431 @@
+{% extends "layout.html" %}
+{% block title %}Rack Management{% endblock %}
+
+{% block content %}
+<!-- ─── Header ─────────────────────────────────────────────────────── -->
+<div class="flex items-center justify-between mb-6">
+  <div>
+    <h1 class="text-2xl font-bold text-slate-900 dark:text-slate-50">Rack Management</h1>
+    <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">
+      Organize extrusion dies across storage and press locations
+    </p>
+  </div>
+  <a href="{{ url_for('warehouse.create_rack_page') }}"
+     class="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 shadow-sm">
+    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
+    </svg>
+    New Rack
+  </a>
+</div>
+
+<!-- ─── Filters Row ────────────────────────────────────────────────── -->
+<div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm p-4 mb-6">
+  <div class="flex flex-wrap items-end gap-x-8 gap-y-4">
+    <!-- Rack Type pills -->
+    <div class="flex flex-col gap-2">
+      <div class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Type</div>
+      <div class="flex flex-wrap gap-2" id="filter-type">
+        <button data-type="ALL"
+                class="filter-pill px-3 py-1 rounded-full text-xs font-medium
+                       bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-200
+                       ring-1 ring-indigo-300 dark:ring-indigo-700">All</button>
+        <button data-type="STORAGE_RACK"
+                class="filter-pill px-3 py-1 rounded-full text-xs font-medium
+                       bg-slate-100 dark:bg-slate-700/50 text-slate-600 dark:text-slate-300
+                       hover:bg-slate-200 dark:hover:bg-slate-700">
+          <svg class="w-3 h-3 inline -mt-0.5 mr-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M20.25 7.5l-.625 10.917a2.25 2.25 0 01-2.093 2.116L11.25 21H4.468a2.25 2.25 0 01-2.093-2.116L1.75 7.5m18.5 0H2.25m2.25 0v-3.75m13.5 3.75v-3.75m-9 3.75v-3.75"/>
+          </svg>
+          Storage
+        </button>
+        <button data-type="QUICK_CHANGE_RACK"
+                class="filter-pill px-3 py-1 rounded-full text-xs font-medium
+                       bg-slate-100 dark:bg-slate-700/50 text-slate-600 dark:text-slate-300
+                       hover:bg-slate-200 dark:hover:bg-slate-700">
+          <svg class="w-3 h-3 inline -mt-0.5 mr-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z"/>
+          </svg>
+          Quick Change
+        </button>
+        <button data-type="INPRESS_RACK"
+                class="filter-pill px-3 py-1 rounded-full text-xs font-medium
+                       bg-slate-100 dark:bg-slate-700/50 text-slate-600 dark:text-slate-300
+                       hover:bg-slate-200 dark:hover:bg-slate-700">
+          <svg class="w-3 h-3 inline -mt-0.5 mr-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 21h16.5M4.5 3h15M5.25 3v18m13.5-18v18M9 7.5h6M9 12h6m-6 4.5h6"/>
+          </svg>
+          In Press
+        </button>
+      </div>
+    </div>
+
+    <!-- Status pills -->
+    <div class="flex flex-col gap-2">
+      <div class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Status</div>
+      <div class="flex flex-wrap gap-2" id="filter-status">
+        <button data-status="ALL"
+                class="filter-pill px-3 py-1 rounded-full text-xs font-medium
+                       bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-200
+                       ring-1 ring-indigo-300 dark:ring-indigo-700">All</button>
+        <button data-status="AVAILABLE"
+                class="filter-pill px-3 py-1 rounded-full text-xs font-medium
+                       bg-slate-100 dark:bg-slate-700/50 text-slate-600 dark:text-slate-300
+                       hover:bg-slate-200 dark:hover:bg-slate-700">Available</button>
+        <button data-status="IN_USE"
+                class="filter-pill px-3 py-1 rounded-full text-xs font-medium
+                       bg-slate-100 dark:bg-slate-700/50 text-slate-600 dark:text-slate-300
+                       hover:bg-slate-200 dark:hover:bg-slate-700">In Use</button>
+        <button data-status="MAINTENANCE"
+                class="filter-pill px-3 py-1 rounded-full text-xs font-medium
+                       bg-slate-100 dark:bg-slate-700/50 text-slate-600 dark:text-slate-300
+                       hover:bg-slate-200 dark:hover:bg-slate-700">Maintenance</button>
+      </div>
+    </div>
+
+    <!-- Search -->
+    <div class="flex flex-col gap-2 ml-auto">
+      <div class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Search</div>
+      <div class="relative">
+        <svg class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+             fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round"
+                d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"/>
+        </svg>
+        <input type="text" id="search-input" autocomplete="off"
+               placeholder="Search by code or name..."
+               class="w-full sm:w-64 pl-9 pr-3 py-1.5 text-sm
+                      bg-white dark:bg-slate-700
+                      border border-slate-200 dark:border-slate-600 rounded-lg
+                      text-slate-900 dark:text-slate-100
+                      placeholder-slate-400 dark:placeholder-slate-500
+                      focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-400">
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ─── Racks Table ────────────────────────────────────────────────── -->
+{% set racks = racks_data|default([]) %}
+{% if racks %}
+<div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
+  <div class="overflow-x-auto">
+    <table class="min-w-full divide-y divide-slate-200 dark:divide-slate-700">
+      <thead class="bg-slate-50 dark:bg-slate-900/50">
+        <tr>
+          <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase">Rack Code</th>
+          <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase">Name</th>
+          <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase">Type</th>
+          <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase">Zone</th>
+          <th class="px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase">Slots</th>
+          <th class="px-4 py-3 text-center text-xs font-semibold text-slate-500 uppercase">Status</th>
+          <th class="px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase">Actions</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-slate-200 dark:divide-slate-700">
+        {% for r in racks %}
+        {% set pct = (((r.filled_slots or 0) / (r.total_slots or 1)) * 100)|round(0)|int %}
+        <tr class="rack-row hover:bg-slate-50 dark:hover:bg-slate-700/50"
+            data-rack-id="{{ r.id }}"
+            data-type="{{ r.rack_type }}"
+            data-status="{{ r.status }}"
+            data-search="{{ (r.rack_code ~ ' ' ~ r.rack_name ~ ' ' ~ (r.location_zone or ''))|lower }}">
+          <!-- Rack Code -->
+          <td class="px-4 py-3 text-sm font-semibold text-slate-900 dark:text-slate-50 font-mono">
+            {{ r.rack_code }}
+          </td>
+          <!-- Name -->
+          <td class="px-4 py-3 text-sm text-slate-600 dark:text-slate-400">
+            {{ r.rack_name }}
+          </td>
+          <!-- Type badge -->
+          <td class="px-4 py-3 text-sm">
+            {% if r.rack_type == 'STORAGE_RACK' %}
+              <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium
+                           bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300">
+                <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round"
+                        d="M20.25 7.5l-.625 10.917a2.25 2.25 0 01-2.093 2.116L11.25 21H4.468a2.25 2.25 0 01-2.093-2.116L1.75 7.5m18.5 0H2.25"/>
+                </svg>
+                Storage
+              </span>
+            {% elif r.rack_type == 'QUICK_CHANGE_RACK' %}
+              <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium
+                           bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300">
+                <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z"/>
+                </svg>
+                Quick Change
+              </span>
+            {% elif r.rack_type == 'INPRESS_RACK' %}
+              <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium
+                           bg-sky-100 dark:bg-sky-900/30 text-sky-700 dark:text-sky-300">
+                <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round"
+                        d="M3.75 21h16.5M4.5 3h15M5.25 3v18m13.5-18v18M9 7.5h6M9 12h6m-6 4.5h6"/>
+                </svg>
+                In Press
+              </span>
+            {% else %}
+              <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium
+                           bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300">
+                {{ r.rack_type or '—' }}
+              </span>
+            {% endif %}
+          </td>
+          <!-- Zone -->
+          <td class="px-4 py-3 text-sm text-slate-600 dark:text-slate-400">
+            {{ r.location_zone or '—' }}
+          </td>
+          <!-- Slots (used / total) with mini progress bar -->
+          <td class="px-4 py-3 text-sm text-right">
+            <div class="flex flex-col items-end gap-1">
+              <div class="text-slate-700 dark:text-slate-200 font-medium tabular-nums">
+                {{ r.filled_slots or 0 }}<span class="text-slate-400"> / {{ r.total_slots or 0 }}</span>
+              </div>
+              <div class="w-24 bg-slate-100 dark:bg-slate-700 rounded-full h-1.5">
+                {% set sColor = 'bg-emerald-500' %}
+                {% if pct > 85 %}{% set sColor = 'bg-red-500' %}{% elif pct > 60 %}{% set sColor = 'bg-amber-500' %}{% endif %}
+                <div class="{{ sColor }} h-1.5 rounded-full transition-all" style="width: {{ pct }}%"></div>
+              </div>
+            </div>
+          </td>
+          <!-- Status badge -->
+          <td class="px-4 py-3 text-center">
+            {% if r.status == 'AVAILABLE' %}
+              <span class="px-2 py-0.5 rounded-full text-xs font-medium
+                           bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300">Available</span>
+            {% elif r.status == 'IN_USE' %}
+              <span class="px-2 py-0.5 rounded-full text-xs font-medium
+                           bg-sky-100 dark:bg-sky-900/30 text-sky-700 dark:text-sky-300">In Use</span>
+            {% elif r.status == 'MAINTENANCE' %}
+              <span class="px-2 py-0.5 rounded-full text-xs font-medium
+                           bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300">Maintenance</span>
+            {% else %}
+              <span class="px-2 py-0.5 rounded-full text-xs font-medium
+                           bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-400">{{ r.status or '—' }}</span>
+            {% endif %}
+          </td>
+          <!-- Actions -->
+          <td class="px-4 py-3 text-right">
+            <div class="inline-flex items-center gap-2">
+              <a href="{{ url_for('warehouse.rack_detail', rack_id=r.id) }}"
+                 class="text-indigo-600 dark:text-indigo-400 hover:underline text-sm font-medium">
+                View
+              </a>
+              {% if r.status == 'AVAILABLE' %}
+                <button type="button"
+                        class="status-action-btn text-xs px-2 py-1
+                               bg-sky-100 dark:bg-sky-900/30 text-sky-700 dark:text-sky-300
+                               hover:bg-sky-200 dark:hover:bg-sky-900/50 rounded-md font-medium"
+                        data-rack-id="{{ r.id }}" data-target-status="IN_USE"
+                        title="Mark this rack as In Use">
+                  <svg class="w-3 h-3 inline -mt-0.5 mr-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/>
+                  </svg>
+                  Use
+                </button>
+              {% elif r.status == 'IN_USE' %}
+                <button type="button"
+                        class="status-action-btn text-xs px-2 py-1
+                               bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300
+                               hover:bg-emerald-200 dark:hover:bg-emerald-900/50 rounded-md font-medium"
+                        data-rack-id="{{ r.id }}" data-target-status="AVAILABLE"
+                        title="Return this rack to Available">
+                  Free
+                </button>
+                <button type="button"
+                        class="status-action-btn text-xs px-2 py-1
+                               bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300
+                               hover:bg-red-200 dark:hover:bg-red-900/50 rounded-md font-medium"
+                        data-rack-id="{{ r.id }}" data-target-status="MAINTENANCE"
+                        title="Send this rack to Maintenance">
+                  Maintain
+                </button>
+              {% elif r.status == 'MAINTENANCE' %}
+                <button type="button"
+                        class="status-action-btn text-xs px-2 py-1
+                               bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300
+                               hover:bg-emerald-200 dark:hover:bg-emerald-900/50 rounded-md font-medium"
+                        data-rack-id="{{ r.id }}" data-target-status="AVAILABLE"
+                        title="Return this rack to service">
+                  Restore
+                </button>
+              {% else %}
+                <button type="button"
+                        class="status-action-btn text-xs px-2 py-1
+                               bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300
+                               hover:bg-emerald-200 dark:hover:bg-emerald-900/50 rounded-md font-medium"
+                        data-rack-id="{{ r.id }}" data-target-status="AVAILABLE"
+                        title="Set Available">
+                  Free
+                </button>
+              {% endif %}
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- "No matches" message (shown only when filters hide all rows) -->
+<div id="no-racks-msg" class="hidden bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-12 text-center mt-0">
+  <svg class="w-12 h-12 mx-auto text-slate-300 dark:text-slate-600 mb-3" fill="none"
+       viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+    <path stroke-linecap="round" stroke-linejoin="round"
+          d="M20.25 7.5l-.625 10.917a2.25 2.25 0 01-2.093 2.116L11.25 21H4.468a2.25 2.25 0 01-2.093-2.116L1.75 7.5M2.25 7.5h19.5M7.5 11.25v-3.75m3.75 3.75v-3.75"/>
+  </svg>
+  <h3 class="text-lg font-medium text-slate-900 dark:text-slate-50">No matching racks</h3>
+  <p class="mt-2 text-sm text-slate-500 dark:text-slate-400">
+    Try adjusting the filters or
+    <a href="{{ url_for('warehouse.create_rack_page') }}" class="text-indigo-600 dark:text-indigo-400 hover:underline">create a new rack</a>.
+  </p>
+</div>
+
+{% else %}
+<!-- ─── Empty state: no racks at all ─────────────────────────────── -->
+<div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-12 text-center">
+  <svg class="w-12 h-12 mx-auto text-slate-300 dark:text-slate-600 mb-3" fill="none"
+       viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+    <path stroke-linecap="round" stroke-linejoin="round"
+          d="M20.25 7.5l-.625 10.917a2.25 2.25 0 01-2.093 2.116L11.25 21H4.468a2.25 2.25 0 01-2.093-2.116L1.75 7.5M2.25 7.5h19.5M7.5 11.25v-3.75m3.75 3.75v-3.75"/>
+  </svg>
+  <h3 class="text-lg font-medium text-slate-900 dark:text-slate-50">No racks yet</h3>
+  <p class="mt-2 text-sm text-slate-500 dark:text-slate-400">
+    Create your first rack to start organizing extrusion dies.
+  </p>
+  <a href="{{ url_for('warehouse.create_rack_page') }}"
+     class="inline-flex items-center gap-2 mt-4 px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 shadow-sm">
+    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
+    </svg>
+    New Rack
+  </a>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block head_extra %}
+<script>
+(function () {
+  'use strict';
+
+  // ── Client-side filtering state ────────────────────────────────────
+  const state = { type: 'ALL', status: 'ALL', search: '' };
+
+  function bindPills(groupId, stateKey, dataAttr) {
+    const group = document.getElementById(groupId);
+    if (!group) return;
+    const idleClasses = ['bg-slate-100','dark:bg-slate-700/50','text-slate-600','dark:text-slate-300','hover:bg-slate-200','dark:hover:bg-slate-700'];
+    const activeClasses = ['bg-indigo-100','dark:bg-indigo-900/40','text-indigo-700','dark:text-indigo-200','ring-1','ring-indigo-300','dark:ring-indigo-700'];
+
+    group.addEventListener('click', (e) => {
+      const btn = e.target.closest('button[' + dataAttr + ']');
+      if (!btn) return;
+      state[stateKey] = btn.getAttribute(dataAttr);
+
+      group.querySelectorAll('button').forEach((b) => {
+        activeClasses.forEach((c) => b.classList.remove(c));
+        idleClasses.forEach((c) => b.classList.add(c));
+      });
+      idleClasses.forEach((c) => btn.classList.remove(c));
+      activeClasses.forEach((c) => btn.classList.add(c));
+
+      applyFilters();
+    });
+  }
+
+  function applyFilters() {
+    const rows = document.querySelectorAll('.rack-row');
+    let visible = 0;
+    rows.forEach((row) => {
+      const okType   = state.type   === 'ALL' || row.dataset.type   === state.type;
+      const okStatus = state.status === 'ALL' || row.dataset.status === state.status;
+      const okSearch = !state.search || (row.dataset.search || '').includes(state.search);
+      const show = okType && okStatus && okSearch;
+      row.style.display = show ? '' : 'none';
+      if (show) visible++;
+    });
+    const msg = document.getElementById('no-racks-msg');
+    if (msg) msg.classList.toggle('hidden', visible > 0);
+  }
+
+  // Defer DOM-dependent setup until the page is fully parsed.
+  function initFilters() {
+    bindPills('filter-type',   'type',   'data-type');
+    bindPills('filter-status', 'status', 'data-status');
+
+    const search = document.getElementById('search-input');
+    if (search) {
+      search.addEventListener('input', () => {
+        state.search = search.value.trim().toLowerCase();
+        applyFilters();
+      });
+    }
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initFilters);
+  } else {
+    initFilters();
+  }
+
+  // ── Status transition (API) ────────────────────────────────────────
+  const CONFIRM_LABELS = {
+    'IN_USE':      'Mark this rack as In Use?',
+    'AVAILABLE':   'Mark this rack as Available?',
+    'MAINTENANCE': 'Send this rack to Maintenance?'
+  };
+
+  function toast(kind, message) {
+    const el = document.createElement('div');
+    const color = kind === 'success'
+      ? 'bg-emerald-500 border-emerald-500/30'
+      : 'bg-red-500 border-red-500/30';
+    el.className = 'fixed top-24 right-5 z-50 flex items-center justify-between p-4 rounded-lg shadow-xl border text-white font-medium text-sm ' + color;
+    el.innerHTML =
+      '<span>' + String(message).replace(/</g, '&lt;') + '</span>' +
+      '<button onclick="this.parentElement.remove()" class="text-white/80 hover:text-white font-bold text-lg leading-none ml-4" aria-label="Dismiss">&times;</button>';
+    document.body.appendChild(el);
+    setTimeout(() => { if (el.parentElement) el.remove(); }, 4000);
+  }
+
+  document.addEventListener('click', (e) => {
+    const btn = e.target.closest('.status-action-btn');
+    if (!btn) return;
+    const rackId = btn.dataset.rackId;
+    const target = btn.dataset.targetStatus;
+    if (!rackId || !target) return;
+    if (!window.confirm(CONFIRM_LABELS[target] || 'Continue?')) return;
+
+    const orig = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = '...';
+
+    fetch('/warehouse/api/racks/' + encodeURIComponent(rackId) + '/status', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: target })
+    })
+    .then((r) => r.json())
+    .then((data) => {
+      if (data && data.success) {
+        toast('success', data.message || 'Status updated');
+        setTimeout(() => location.reload(), 900);
+      } else {
+        toast('error', (data && data.error) || 'Failed to update status');
+        btn.disabled = false;
+        btn.textContent = orig;
+      }
+    })
+    .catch((err) => {
+      toast('error', 'Network error: ' + err.message);
+      btn.disabled = false;
+      btn.textContent = orig;
+    });
+  });
+})();
+</script>
+{% endblock %}

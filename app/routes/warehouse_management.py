@@ -13,7 +13,7 @@ from datetime import datetime, timedelta
 from ..services.warehouse_service import (
     warehouse_service, location_service, transaction_service, search_service
 )
-from ..models import db, ToolRoomRack, DieRackAssignment, RackTransaction
+from ..models import db, ToolRoomRack, DieRackAssignment, RackTransaction, DieLocationIndex
 
 bp = Blueprint('warehouse', __name__, url_prefix='/warehouse')
 
@@ -144,12 +144,62 @@ def search_dies():
 
     available_alloys = [a[0] for a in alloys_query.all() if a[0]]
 
+    # Get available profiles
+    profiles = [r.profile_code for r in db.session.query(distinct(DieLocationIndex.profile_code))
+                .filter(DieLocationIndex.profile_code.isnot(None)).all() if r.profile_code]
+
+    # Get rack types
+    rack_types = [r.rack_type for r in db.session.query(distinct(ToolRoomRack.rack_type)).all()]
+
+    # Perform search if query parameters provided
+    results = []
+    search_performed = bool(search_term or profile_code or alloy_filter)
+    if search_performed:
+        query = db.session.query(DieLocationIndex).filter_by(status='IN_STOCK')
+
+        if search_term:
+            term = '%' + search_term.upper() + '%'
+            query = query.filter(
+                db.or_(
+                    DieLocationIndex.die_code.ilike(term),
+                    DieLocationIndex.profile_code.ilike(term)
+                )
+            )
+
+        if profile_code:
+            query = query.filter(DieLocationIndex.profile_code == profile_code.upper())
+
+        if alloy_filter:
+            query = query.filter(DieLocationIndex.alloy == alloy_filter.upper())
+
+        locations = query.limit(100).all()
+
+        # Build results with rack info
+        for loc in locations:
+            rack = ToolRoomRack.query.get(loc.rack_id) if loc.rack_id else None
+            results.append({
+                'die_code': loc.die_code,
+                'profile_code': loc.profile_code,
+                'alloy': loc.alloy,
+                'rack_id': loc.rack_id,
+                'rack_code': rack.rack_code if rack else None,
+                'rack_name': rack.rack_name if rack else None,
+                'slot_id': loc.slot_number,
+                'status': loc.status,
+                'updated_at': loc.last_updated_at
+            })
+
     return render_template(
         'warehouse/search.html',
         current_search=search_term,
         current_profile=profile_code,
         current_alloy=alloy_filter,
         available_alloys=available_alloys,
+        alloys=available_alloys,
+        profiles=profiles,
+        rack_types=rack_types,
+        results=results,
+        search_performed=search_performed,
         page_title='Search Die Locations'
     )
 
@@ -213,10 +263,12 @@ def api_get_racks():
     """Get all racks with optional filtering."""
     status_filter = request.args.get('status', '')
     zone_filter = request.args.get('zone', '')
+    type_filter = request.args.get('rack_type', '')
 
     result = warehouse_service.get_all_racks(
         status_filter=status_filter,
-        zone_filter=zone_filter
+        zone_filter=zone_filter,
+        rack_type_filter=type_filter or None
     )
 
     return jsonify({
@@ -520,6 +572,29 @@ def api_get_transactions():
         end_date=end_date,
         limit=limit
     )
+
+    # Enrich transactions with human-readable rack codes so the UI shows
+    # rack names instead of raw UUIDs.
+    if result.get('success') and result.get('transactions'):
+        rack_ids = set()
+        for t in result['transactions']:
+            for key in ('rack_id', 'from_rack_id', 'to_rack_id'):
+                if t.get(key):
+                    rack_ids.add(t[key])
+        rack_cache = {}
+        if rack_ids:
+            racks = ToolRoomRack.query.filter(ToolRoomRack.id.in_(rack_ids)).all()
+            rack_cache = {r.id: {'code': r.rack_code, 'name': r.rack_name} for r in racks}
+        for t in result['transactions']:
+            for key, code_key, name_key in [
+                ('rack_id', 'rack_code', 'rack_name'),
+                ('from_rack_id', 'from_rack_code', 'from_rack_name'),
+                ('to_rack_id', 'to_rack_code', 'to_rack_name'),
+            ]:
+                rid = t.get(key)
+                info = rack_cache.get(rid) if rid else None
+                t[code_key] = info['code'] if info else None
+                t[name_key] = info['name'] if info else None
 
     return jsonify(result)
 

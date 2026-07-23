@@ -1773,7 +1773,12 @@ class ToolRoomRack(db.Model):
 
     # Relationships
     assignments = db.relationship('DieRackAssignment', backref='rack', lazy='dynamic', cascade='all, delete-orphan')
-    transactions = db.relationship('RackTransaction', backref='rack_ref', lazy='dynamic')
+    transactions = db.relationship(
+        'RackTransaction',
+        foreign_keys='[RackTransaction.rack_id]',
+        backref='rack_ref',
+        lazy='dynamic',
+    )
 
     def to_dict(self):
         return {

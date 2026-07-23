@@ -1937,6 +1937,173 @@ def seed_cost_price_module():
         print("  skipped")
         return
 
+
+def seed_warehouse_data():
+    """Seed the warehouse management system with sample racks, die assignments,
+    location index, and transaction history.
+
+    Safe to call repeatedly: skips silently if racks or transactions already exist.
+    """
+    from app.models import ToolRoomRack, DieRackAssignment, RackTransaction, DieLocationIndex
+
+    print("[27] Seeding warehouse management (tool-room racks) ...")
+
+    # Skip if already seeded (use transaction history as the most reliable signal).
+    if RackTransaction.query.first() or ToolRoomRack.query.first():
+        print("  skipped")
+        return
+
+    # Use dies that the earlier seed_dies_and_workflow() step created.
+    dies = Die.query.limit(50).all()
+    if not dies:
+        print("  skipped (no dies available)")
+        return
+
+    operator_id = "system"
+    zones = ["ZONE_A", "ZONE_B", "TOOL_ROOM_1"]
+    rack_spec = [
+        # (rack_type, total_slots, description)
+        ("STORAGE_RACK", 20, "General storage rack for die inventory"),
+        ("QUICK_CHANGE_RACK", 10, "Quick change rack near press for fast swaps"),
+        ("INPRESS_RACK", 5, "In-press rack for dies currently in use"),
+    ]
+
+    # --- 1. Create racks -----------------------------------------------
+    created_racks = []
+    rack_counter = {z: 1 for z in zones}
+    for zone in zones:
+        for rack_type, total_slots, description in rack_spec:
+            rack = ToolRoomRack(
+                id=_u(),
+                rack_code=f"RACK-{zone}-{rack_counter[zone]:03d}",
+                rack_name=f"{rack_type.replace('_', ' ').title()} - {zone}",
+                rack_type=rack_type,
+                location_zone=zone,
+                total_slots=total_slots,
+                available_slots=total_slots,
+                status="AVAILABLE",
+                description=description,
+                is_active=True,
+                created_by=operator_id,
+                created_at=datetime.utcnow(),
+                updated_at=datetime.utcnow(),
+            )
+            db.session.add(rack)
+            created_racks.append(rack)
+            rack_counter[zone] += 1
+    db.session.flush()
+
+    # --- 2. Assign dies to slot locations ------------------------------
+    # Round-robin across racks; each rack has its own slot counter.
+    slot_counter = {r.id: 1 for r in created_racks}
+    assignments_created = 0
+
+    for idx, die in enumerate(dies):
+        rack = created_racks[idx % len(created_racks)]
+        slot_num = slot_counter[rack.id]
+        if slot_num > rack.total_slots:
+            # Rack full; skip to next die (we'll still use remaining racks).
+            continue
+
+        assignment = DieRackAssignment(
+            id=_u(),
+            rack_id=rack.id,
+            slot_number=slot_num,
+            die_code=die.die_code,
+            die_id=die.id,
+            profile_code=die.profile_code,
+            alloy=die.alloy,
+            assignment_status="ASSIGNED",
+            assigned_by=operator_id,
+            last_accessed_at=datetime.utcnow(),
+            notes=f"Seed assignment #{assignments_created + 1}",
+        )
+        db.session.add(assignment)
+
+        # Also create the fast-lookup location index entry.
+        location = DieLocationIndex(
+            id=_u(),
+            die_code=die.die_code,
+            rack_id=rack.id,
+            slot_number=slot_num,
+            profile_code=die.profile_code,
+            alloy=die.alloy,
+            status="IN_STOCK",
+            last_updated_at=datetime.utcnow(),
+        )
+        db.session.add(location)
+
+        rack.available_slots -= 1
+        rack.updated_at = datetime.utcnow()
+        slot_counter[rack.id] = slot_num + 1
+        assignments_created += 1
+
+        # If a rack has reached 60%+ fill, mark it as IN_USE at runtime.
+        # (We defer the final status update until after the loop below.)
+
+    # --- 3. Update rack status based on fill level ---------------------
+    for rack in created_racks:
+        fill = rack.total_slots - rack.available_slots
+        if fill == 0:
+            rack.status = "AVAILABLE"
+        elif fill >= rack.total_slots:
+            rack.status = "IN_USE"
+        else:
+            rack.status = "AVAILABLE"
+
+    db.session.flush()
+
+    # --- 4. Generate transaction history (last 30 days) ----------------
+    trans_types = ["IN", "OUT", "TRANSFER", "ADJUSTMENT"]
+    trans_created = 0
+    now = datetime.utcnow()
+
+    for day_offset in range(30, 0, -1):
+        count_today = random.randint(3, 8)
+        for _ in range(count_today):
+            t = now - timedelta(days=day_offset, hours=random.randint(0, 23))
+            tt = random.choice(trans_types)
+            die = random.choice(dies)
+
+            from_rack_id = None
+            to_rack_id = None
+            target_rack = random.choice(created_racks)
+            slot_number = None
+
+            if tt == "IN":
+                to_rack_id = target_rack.id
+                slot_number = random.randint(1, target_rack.total_slots)
+            elif tt == "OUT":
+                from_rack_id = target_rack.id
+                slot_number = random.randint(1, target_rack.total_slots)
+            elif tt == "TRANSFER":
+                src, dst = random.sample(created_racks, 2)
+                from_rack_id = src.id
+                to_rack_id = dst.id
+                slot_number = random.randint(1, src.total_slots)
+
+            tx = RackTransaction(
+                id=_u(),
+                transaction_type=tt,
+                rack_id=target_rack.id,
+                slot_number=slot_number,
+                die_code=die.die_code,
+                die_id=die.id,
+                profile_code=die.profile_code,
+                alloy=die.alloy,
+                from_rack_id=from_rack_id,
+                to_rack_id=to_rack_id,
+                operator_id=f"user_{(day_offset % 5) + 1}",
+                transaction_time=t,
+                notes="Seed transaction" if day_offset > 15 else None,
+            )
+            db.session.add(tx)
+            trans_created += 1
+
+    db.session.commit()
+    print(f"  +{len(created_racks)} racks, +{assignments_created} assignments, "
+          f"+{trans_created} transactions")
+
     configs = []
     part_numbers = ["PROF-A1", "PROF-B2", "PROF-C3", "TUBE-D4", "PIPE-E5"]
 
@@ -2018,6 +2185,7 @@ def main():
         seed_finishing_module()
         seed_logistics_module()
         seed_cost_price_module()
+        seed_warehouse_data()
         db.session.commit()
 
         print()

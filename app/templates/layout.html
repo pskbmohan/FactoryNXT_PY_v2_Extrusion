@@ -442,6 +442,39 @@
     </div>
   </div>
 
+  <!-- Tool Room Warehouse -->
+  <div class="nav-group {% if request.blueprint == 'warehouse' %}open{% endif %}">
+    <div class="group-header" data-tip="Warehouse">
+      <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M20.25 7.5l-.625 10.917a2.25 2.25 0 01-2.093 2.116L11.25 21 4.468 20.533a2.25 2.25 0 01-2.093-2.116L1.75 7.5M2.25 7.5h19.5M7.5 11.25v-3.75m3.75 3.75v-3.75" />
+      </svg>
+      <span class="label-text">Warehouse</span>
+    </div>
+    <div class="nav-children">
+      <a href="{{ url_for('warehouse.warehouse_dashboard') }}"
+         class="{% if request.endpoint == 'warehouse.warehouse_dashboard' %}active{% endif %}">
+        Dashboard
+      </a>
+      <a href="{{ url_for('warehouse.racks_list') }}"
+         class="{% if request.endpoint == 'warehouse.racks_list' %}active{% endif %}">
+        Racks
+      </a>
+      <a href="/warehouse/racks/create"
+         class="{% if request.path == '/warehouse/racks/create' %}active{% endif %}">
+        + Add Rack
+      </a>
+
+      <a href="{{ url_for('warehouse.search_dies') }}"
+         class="{% if request.endpoint == 'warehouse.search_dies' %}active{% endif %}">
+        Die Search
+      </a>
+      <a href="{{ url_for('warehouse.transactions_history') }}"
+         class="{% if request.endpoint == 'warehouse.transactions_history' %}active{% endif %}">
+        History
+      </a>
+    </div>
+  </div>
+
   <!-- Process Line -->
   <div class="nav-group {% if request.blueprint == 'process_line' %}open{% endif %}">
     <div class="group-header" data-tip="Process Line">

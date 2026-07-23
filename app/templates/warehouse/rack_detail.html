@@ -1,0 +1,346 @@
+{% extends "layout.html" %}
+{% block title %}Rack Details{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto" data-rack-id="{{ rack_identifier }}">
+  <!-- Header -->
+  <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
+    <div class="min-w-0">
+      <div class="flex items-center gap-2 flex-wrap">
+        <h1 class="text-2xl font-bold text-slate-900 dark:text-slate-50 truncate" id="hdr-name">Rack Details</h1>
+        <span id="hdr-type-badge" class="hidden px-2.5 py-0.5 rounded-full text-xs font-semibold bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300"></span>
+      </div>
+      <p class="text-sm text-slate-500 dark:text-slate-400 mt-1 truncate" id="hdr-code">Loading…</p>
+    </div>
+    <div class="flex items-center gap-2">
+      <div class="relative" id="status-dropdown-wrap">
+        <button id="status-dropdown-btn" type="button"
+                class="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg shadow-sm disabled:opacity-50"
+                onclick="toggleStatusMenu()">
+          <span id="status-dropdown-label">Status</span>
+          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+        </button>
+        <div id="status-menu" class="hidden absolute right-0 mt-2 w-48 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-lg z-20 py-1">
+          <button class="w-full text-left px-3 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700" onclick="setRackStatus('AVAILABLE')">
+            <span class="inline-block w-2 h-2 rounded-full bg-emerald-500 mr-2"></span>Available
+          </button>
+          <button class="w-full text-left px-3 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700" onclick="setRackStatus('IN_USE')">
+            <span class="inline-block w-2 h-2 rounded-full bg-sky-500 mr-2"></span>In Use
+          </button>
+          <button class="w-full text-left px-3 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700" onclick="setRackStatus('MAINTENANCE')">
+            <span class="inline-block w-2 h-2 rounded-full bg-amber-500 mr-2"></span>Maintenance
+          </button>
+        </div>
+      </div>
+      <a href="{{ url_for('warehouse.racks_list') }}"
+         class="inline-flex items-center gap-1.5 px-4 py-2 text-slate-600 dark:text-slate-400 text-sm font-medium hover:underline">
+        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="m12 19-7-7 7-7"/></svg>
+        Back
+      </a>
+    </div>
+  </div>
+
+  <!-- KPI summary -->
+  <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+    <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-5 shadow-sm">
+      <div class="text-xs text-slate-500 uppercase font-medium">Status</div>
+      <div class="mt-1" id="kpi-status"><span class="text-slate-400">—</span></div>
+    </div>
+    <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-5 shadow-sm">
+      <div class="text-xs text-slate-500 uppercase font-medium">Total Slots</div>
+      <div class="text-3xl font-bold text-slate-900 dark:text-slate-50 mt-1" id="kpi-total">—</div>
+    </div>
+    <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-5 shadow-sm">
+      <div class="text-xs text-slate-500 uppercase font-medium">Slots in Use</div>
+      <div class="text-3xl font-bold text-slate-900 dark:text-slate-50 mt-1"><span id="kpi-used">—</span><span class="text-sm text-slate-400 font-normal" id="kpi-used-pct"></span></div>
+    </div>
+    <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-5 shadow-sm">
+      <div class="text-xs text-slate-500 uppercase font-medium">Location Zone</div>
+      <div class="mt-1 text-slate-700 dark:text-slate-300 font-medium truncate" id="kpi-zone">—</div>
+    </div>
+  </div>
+
+  <!-- Slot grid -->
+  <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden mb-6">
+    <div class="px-6 py-4 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between">
+      <h3 class="text-sm font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider flex items-center gap-2">
+        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+        Slot Layout
+      </h3>
+      <button onclick="loadSlots()" class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700">
+        <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 16h5v5"/></svg>
+        Refresh
+      </button>
+    </div>
+    <div class="p-6" id="slot-grid">
+      <div class="text-sm text-slate-500 dark:text-slate-400 text-center py-8">Loading slots…</div>
+    </div>
+  </div>
+
+  <!-- Assignments table -->
+  <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden mb-6">
+    <div class="px-6 py-4 border-b border-slate-200 dark:border-slate-700">
+      <h3 class="text-sm font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider">Assignments</h3>
+    </div>
+    <div id="assignments-wrap">
+      <div class="p-6 text-sm text-slate-500 dark:text-slate-400 text-center">Loading assignments…</div>
+    </div>
+  </div>
+
+  <!-- Action bar -->
+  <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
+    <div class="px-6 py-4 border-b border-slate-200 dark:border-slate-700">
+      <h3 class="text-sm font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider">Rack Actions</h3>
+    </div>
+    <div class="p-6 flex flex-wrap gap-2" id="action-bar">
+      <div class="text-sm text-slate-500 dark:text-slate-400">Loading actions…</div>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div id="toast" class="hidden fixed top-4 right-4 z-50 max-w-sm px-4 py-3 rounded-lg shadow-lg text-sm font-medium"></div>
+</div>
+{% endblock %}
+
+{% block head_extra %}
+<script>
+(function () {
+  const RACK_ID = document.querySelector('[data-rack-id]').dataset.rackId;
+  let currentRack = null;
+  let currentSlots = [];
+
+  const statusMeta = {
+    AVAILABLE:   { label: 'Available',   dot: 'bg-emerald-500',  chip: 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300' },
+    IN_USE:      { label: 'In Use',      dot: 'bg-sky-500',      chip: 'bg-sky-100 dark:bg-sky-900/30 text-sky-700 dark:text-sky-300' },
+    MAINTENANCE: { label: 'Maintenance', dot: 'bg-amber-500',    chip: 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300' }
+  };
+  const rackTypeMeta = {
+    STORAGE_RACK:     { label: 'Storage Rack' },
+    QUICK_CHANGE_RACK:{ label: 'Quick Change' },
+    INPRESS_RACK:     { label: 'In-Press' }
+  };
+
+  function fmtStatus(s) {
+    const m = statusMeta[s] || { label: s || '—', chip: 'bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200' };
+    return '<span class="inline-flex px-3 py-1 rounded-full text-sm font-semibold ' + m.chip + '">' + escapeHtml(m.label) + '</span>';
+  }
+
+  function escapeHtml(v) {
+    if (v == null) return '';
+    return String(v).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+
+  function toast(msg, kind) {
+    const el = document.getElementById('toast');
+    el.className = 'fixed top-4 right-4 z-50 max-w-sm px-4 py-3 rounded-lg shadow-lg text-sm font-medium ' +
+      (kind === 'error' ? 'bg-red-600 text-white' : 'bg-emerald-600 text-white');
+    el.textContent = msg;
+    el.classList.remove('hidden');
+    clearTimeout(window._tt);
+    window._tt = setTimeout(() => el.classList.add('hidden'), 2600);
+  }
+
+  async function loadRack() {
+    try {
+      const r = await fetch('/warehouse/api/racks/' + encodeURIComponent(RACK_ID));
+      const data = await r.json();
+      if (!data.success) throw new Error(data.error || 'Failed to load rack');
+      currentRack = data.rack;
+      renderHeader();
+      renderKpis();
+      renderActionBar();
+    } catch (e) {
+      document.getElementById('hdr-code').textContent = 'Error: ' + e.message;
+    }
+  }
+
+  async function loadSlots() {
+    try {
+      const r = await fetch('/warehouse/api/racks/' + encodeURIComponent(RACK_ID) + '/slots');
+      const data = await r.json();
+      if (!data.success) throw new Error(data.error || 'Failed to load slots');
+      currentSlots = data.slots || [];
+      renderSlotGrid();
+      renderAssignments();
+    } catch (e) {
+      document.getElementById('slot-grid').innerHTML =
+        '<div class="text-sm text-red-600 dark:text-red-400 text-center py-8">Error: ' + escapeHtml(e.message) + '</div>';
+      document.getElementById('assignments-wrap').innerHTML =
+        '<div class="p-6 text-sm text-red-600 dark:text-red-400 text-center">Error: ' + escapeHtml(e.message) + '</div>';
+    }
+  }
+
+  function renderHeader() {
+    const rack = currentRack;
+    document.getElementById('hdr-name').textContent = rack.rack_name || 'Rack';
+    document.getElementById('hdr-code').textContent = (rack.rack_code || '') + (rack.id ? ' · ' + rack.id : '');
+    const typeBadge = document.getElementById('hdr-type-badge');
+    const rt = rackTypeMeta[rack.rack_type] || { label: rack.rack_type || 'Rack' };
+    typeBadge.textContent = rt.label;
+    typeBadge.classList.remove('hidden');
+    document.getElementById('status-dropdown-label').textContent =
+      (statusMeta[rack.status] || { label: rack.status }).label;
+  }
+
+  function renderKpis() {
+    const rack = currentRack;
+    const total = rack.total_slots || 0;
+    const used = Math.max(0, total - (rack.available_slots || 0));
+    const pct = total ? Math.round((used / total) * 100) : 0;
+    document.getElementById('kpi-status').innerHTML = fmtStatus(rack.status);
+    document.getElementById('kpi-total').textContent = total;
+    document.getElementById('kpi-used').textContent = used;
+    document.getElementById('kpi-used-pct').textContent = ' / ' + total + ' (' + pct + '%)';
+    document.getElementById('kpi-zone').textContent = rack.location_zone || '—';
+  }
+
+  function renderSlotGrid() {
+    const host = document.getElementById('slot-grid');
+    if (!currentSlots.length) {
+      host.innerHTML = '<div class="text-sm text-slate-500 dark:text-slate-400 text-center py-8">No slots defined.</div>';
+      return;
+    }
+    // Adaptive column count based on total slots, capped for small cells
+    let cols = 6;
+    if (currentSlots.length <= 12) cols = 4;
+    else if (currentSlots.length <= 24) cols = 6;
+    else if (currentSlots.length <= 48) cols = 8;
+    else cols = 10;
+
+    let html = '<div class="grid gap-2" style="grid-template-columns: repeat(' + cols + ', minmax(0, 1fr));">';
+    for (const s of currentSlots) {
+      const occ = s.status === 'occupied' && s.die_code;
+      if (occ) {
+        html += '<div title="Slot ' + s.slot_number + ' · ' + escapeHtml(s.die_code) + '" ' +
+                'class="aspect-square rounded-lg border border-emerald-300 dark:border-emerald-700 bg-emerald-50 dark:bg-emerald-900/20 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 transition flex flex-col items-center justify-center px-1 text-center cursor-default select-none">' +
+                  '<div class="text-[10px] uppercase tracking-wide text-emerald-600 dark:text-emerald-400 font-semibold">S' + s.slot_number + '</div>' +
+                  '<div class="text-xs font-mono font-semibold text-emerald-800 dark:text-emerald-200 truncate w-full">' + escapeHtml(s.die_code) + '</div>' +
+                '</div>';
+      } else {
+        html += '<div title="Slot ' + s.slot_number + ' · empty" ' +
+                'class="aspect-square rounded-lg border-2 border-dashed border-slate-300 dark:border-slate-600 bg-slate-50/50 dark:bg-slate-900/20 flex flex-col items-center justify-center cursor-default select-none">' +
+                  '<div class="text-[10px] uppercase tracking-wide text-slate-400 dark:text-slate-500 font-semibold">S' + s.slot_number + '</div>' +
+                  '<div class="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5">empty</div>' +
+                '</div>';
+      }
+    }
+    html += '</div>';
+    host.innerHTML = html;
+  }
+
+  function renderAssignments() {
+    const host = document.getElementById('assignments-wrap');
+    const occupied = currentSlots.filter(s => s.status === 'occupied' && s.die_code);
+    if (!occupied.length) {
+      host.innerHTML = '<div class="p-6 text-sm text-slate-500 dark:text-slate-400 text-center">No dies assigned to this rack.</div>';
+      return;
+    }
+    const rows = occupied.map(s => {
+      const dt = s.assigned_at ? new Date(s.assigned_at).toLocaleString() : '—';
+      return '<tr class="hover:bg-slate-50 dark:hover:bg-slate-700/40">' +
+        '<td class="px-4 py-3 text-sm font-mono text-slate-900 dark:text-slate-100">' + escapeHtml(s.die_code) + '</td>' +
+        '<td class="px-4 py-3 text-sm text-slate-600 dark:text-slate-400 text-center">' + s.slot_number + '</td>' +
+        '<td class="px-4 py-3 text-center"><span class="inline-flex px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300">ASSIGNED</span></td>' +
+        '<td class="px-4 py-3 text-sm text-slate-600 dark:text-slate-400">' + dt + '</td>' +
+        '<td class="px-4 py-3 text-sm text-slate-500 dark:text-slate-400">—</td>' +
+        '<td class="px-4 py-3 text-sm font-mono text-slate-600 dark:text-slate-400">' + escapeHtml(s.profile_code || '—') + '</td>' +
+        '<td class="px-4 py-3 text-sm text-slate-600 dark:text-slate-400">' + escapeHtml(s.alloy || '—') + '</td>' +
+      '</tr>';
+    }).join('');
+
+    host.innerHTML =
+      '<div class="overflow-x-auto">' +
+        '<table class="min-w-full divide-y divide-slate-200 dark:divide-slate-700">' +
+          '<thead class="bg-slate-50 dark:bg-slate-900/50">' +
+            '<tr>' +
+              '<th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Die Code</th>' +
+              '<th class="px-4 py-3 text-center text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Slot</th>' +
+              '<th class="px-4 py-3 text-center text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Status</th>' +
+              '<th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Assigned At</th>' +
+              '<th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Assigned By</th>' +
+              '<th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Profile</th>' +
+              '<th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Alloy</th>' +
+            '</tr>' +
+          '</thead>' +
+          '<tbody class="divide-y divide-slate-200 dark:divide-slate-700">' + rows + '</tbody>' +
+        '</table>' +
+      '</div>';
+  }
+
+  function renderActionBar() {
+    const host = document.getElementById('action-bar');
+    const s = currentRack.status;
+    let html = '';
+    if (s === 'AVAILABLE') {
+      html +=
+        '<button class="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-lg text-white bg-sky-600 hover:bg-sky-700 shadow-sm" onclick="setRackStatus(\'IN_USE\')">' +
+          '<svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>' +
+          'Mark In Use' +
+        '</button>' +
+        '<button class="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-lg text-white bg-amber-500 hover:bg-amber-600 shadow-sm" onclick="setRackStatus(\'MAINTENANCE\')">' +
+          '<svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>' +
+          'Mark Maintenance' +
+        '</button>';
+    } else if (s === 'IN_USE') {
+      html +=
+        '<button class="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-lg text-white bg-emerald-600 hover:bg-emerald-700 shadow-sm" onclick="setRackStatus(\'AVAILABLE\')">' +
+          '<svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>' +
+          'Mark Available' +
+        '</button>' +
+        '<button class="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-lg text-white bg-amber-500 hover:bg-amber-600 shadow-sm" onclick="setRackStatus(\'MAINTENANCE\')">' +
+          '<svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>' +
+          'Mark Maintenance' +
+        '</button>';
+    } else if (s === 'MAINTENANCE') {
+      html +=
+        '<button class="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-lg text-white bg-emerald-600 hover:bg-emerald-700 shadow-sm" onclick="setRackStatus(\'AVAILABLE\')">' +
+          '<svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>' +
+          'Mark Available' +
+        '</button>';
+    } else {
+      html = '<div class="text-sm text-slate-500 dark:text-slate-400">No actions for status: ' + escapeHtml(s) + '</div>';
+    }
+    host.innerHTML = html;
+  }
+
+  window.toggleStatusMenu = function () {
+    const m = document.getElementById('status-menu');
+    m.classList.toggle('hidden');
+    if (!m.classList.contains('hidden')) {
+      const close = (ev) => {
+        if (document.getElementById('status-dropdown-wrap').contains(ev.target)) return;
+        m.classList.add('hidden');
+        document.removeEventListener('click', close);
+      };
+      setTimeout(() => document.addEventListener('click', close), 0);
+    }
+  };
+
+  window.setRackStatus = async function (status) {
+    document.getElementById('status-menu').classList.add('hidden');
+    try {
+      const r = await fetch('/warehouse/api/racks/' + encodeURIComponent(RACK_ID) + '/status', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status })
+      });
+      const data = await r.json();
+      if (!data.success) throw new Error(data.error || 'Failed to update status');
+      currentRack.status = status;
+      renderHeader();
+      renderKpis();
+      renderActionBar();
+      toast(data.message || 'Status updated', 'ok');
+    } catch (e) {
+      toast('Error: ' + e.message, 'error');
+    }
+  };
+
+  window.loadSlots = loadSlots;
+
+  document.addEventListener('DOMContentLoaded', function () {
+    loadRack().then(loadSlots);
+  });
+})();
+</script>
+{% endblock %}

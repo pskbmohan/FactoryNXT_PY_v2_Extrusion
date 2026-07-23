@@ -68,12 +68,14 @@ class WarehouseService:
             return {'success': False, 'error': str(e)}
 
     @staticmethod
-    def get_all_racks(status_filter: str = None, zone_filter: str = None) -> list:
+    def get_all_racks(status_filter: str = None, zone_filter: str = None,
+                      rack_type_filter: str = None) -> list:
         """Get all racks with optional filtering.
 
         Args:
             status_filter: Filter by rack status (AVAILABLE, IN_USE, MAINTENANCE)
             zone_filter: Filter by location zone
+            rack_type_filter: Filter by rack type (STORAGE_RACK, QUICK_CHANGE_RACK, INPRESS_RACK)
 
         Returns:
             List of rack dictionaries
@@ -84,6 +86,8 @@ class WarehouseService:
             query = query.filter_by(status=status_filter.upper())
         if zone_filter:
             query = query.filter_by(location_zone=zone_filter.upper())
+        if rack_type_filter:
+            query = query.filter_by(rack_type=rack_type_filter)
 
         racks = query.order_by(ToolRoomRack.location_zone, ToolRoomRack.rack_code).all()
         return [rack.to_dict() for rack in racks]

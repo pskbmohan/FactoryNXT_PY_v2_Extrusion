@@ -1,0 +1,704 @@
+{% extends "layout.html" %}
+{% block title %}{{ page_title }} - Warehouse{% endblock %}
+
+{% block content %}
+<!-- Page Header -->
+<div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
+  <div class="flex items-center gap-3">
+    <div class="w-11 h-11 rounded-xl bg-indigo-100 dark:bg-indigo-900/40 flex items-center justify-center text-indigo-600 dark:text-indigo-300">
+      <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M20.25 7.5l-.625 10.917a2.25 2.25 0 01-2.093 2.116L11.25 21 4.468 20.533a2.25 2.25 0 01-2.093-2.116L1.75 7.5M2.25 7.5h19.5M7.5 11.25v-3.75m3.75 3.75v-3.75m3.75 3.75v-3.75"/>
+      </svg>
+    </div>
+    <div>
+      <h1 class="text-2xl font-bold text-slate-900 dark:text-slate-50">{{ page_title }}</h1>
+      <p class="text-sm text-slate-500 dark:text-slate-400 mt-0.5">Live overview of tool-room racks, die inventory and recent movements.</p>
+    </div>
+  </div>
+  <div class="flex items-center gap-2">
+    <a href="{{ url_for('warehouse.create_rack_page') }}"
+       class="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 shadow-sm">
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+      New Rack
+    </a>
+    <button onclick="openQuickScanModal()"
+            class="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white text-sm font-medium rounded-lg hover:bg-emerald-700 shadow-sm">
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h2.25v10.5H3.75zm4.5 0h1.5v10.5h-1.5zm3 0h1.5v10.5h-1.5zm3 0h1.5v10.5h-1.5zm3 0h2.25v10.5H17.25z"/>
+      </svg>
+      Barcode Scanner
+    </button>
+  </div>
+</div>
+
+<!-- KPI hero (uses .kpi-hero CSS from layout.html) -->
+<div class="kpi-hero mb-6">
+  <div class="kpi-card">
+    <div class="flex items-center justify-between">
+      <div class="kpi-label text-indigo-600 dark:text-indigo-400">Total Racks</div>
+      <svg class="w-5 h-5 text-indigo-500 dark:text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M20.25 7.5l-.625 10.917a2.25 2.25 0 01-2.093 2.117L11.25 21 4.468 20.533a2.25 2.25 0 01-2.093-2.117L1.75 7.5m18.5 0H2.25m3 0v13.5m3.75-13.5v13.5m3.75-13.5v13.5m3.75-13.5v13.5"/>
+      </svg>
+    </div>
+    <div class="kpi-value" id="stat-total-racks">—</div>
+    <div class="text-xs text-slate-400 dark:text-slate-500 mt-1">Active racks on the floor</div>
+  </div>
+  <div class="kpi-card">
+    <div class="flex items-center justify-between">
+      <div class="kpi-label text-emerald-600 dark:text-emerald-400">Dies in Storage</div>
+      <svg class="w-5 h-5 text-emerald-500 dark:text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M9.594 3.94c.096-.546.56-1.09 1.406-1.09h1c.847 0 1.31.544 1.406 1.09l.395 2.244a2.25 2.25 0 001.862 1.862l2.244.395c.546.096 1.09.56 1.09 1.406v1c0 .847-.544 1.31-1.09 1.406l-2.244.395a2.25 2.25 0 00-1.862 1.862l-.395 2.244c-.096.546-.56 1.09-1.406 1.09h-1c-.847 0-1.31-.544-1.406-1.09l-.395-2.244a2.25 2.25 0 00-1.862-1.862L4.894 11.406c-.546-.096-1.09-.56-1.09-1.406v-1c0-.847.544-1.31 1.09-1.406l2.244-.395a2.25 2.25 0 001.862-1.862l.395-2.244z"/>
+      </svg>
+    </div>
+    <div class="kpi-value" id="stat-total-dies">—</div>
+    <div class="text-xs text-slate-400 dark:text-slate-500 mt-1">IN_STOCK at the moment</div>
+  </div>
+  <div class="kpi-card">
+    <div class="flex items-center justify-between">
+      <div class="kpi-label text-amber-600 dark:text-amber-400">Available Slots</div>
+      <svg class="w-5 h-5 text-amber-500 dark:text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zm0 9.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25v-2.25zm9.75-9.75A2.25 2.25 0 0115.75 3.75H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zm0 9.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25a2.25 2.25 0 01-2.25-2.25v-2.25z"/>
+      </svg>
+    </div>
+    <div class="kpi-value" id="stat-available-slots">—</div>
+    <div class="text-xs text-slate-400 dark:text-slate-500 mt-1">Free slots across all racks</div>
+  </div>
+  <div class="kpi-card">
+    <div class="flex items-center justify-between">
+      <div class="kpi-label text-sky-600 dark:text-sky-400">Recent Tx (24h)</div>
+      <svg class="w-5 h-5 text-sky-500 dark:text-sky-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z"/>
+      </svg>
+    </div>
+    <div class="kpi-value" id="stat-recent-tx">—</div>
+    <div class="text-xs text-slate-400 dark:text-slate-500 mt-1">Scan-ins and scan-outs</div>
+  </div>
+</div>
+
+<!-- Rack Overview -->
+<div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm mb-6">
+  <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-6 py-4 border-b border-slate-200 dark:border-slate-700">
+    <div class="flex items-center gap-2">
+      <svg class="w-5 h-5 text-slate-500 dark:text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5"/>
+      </svg>
+      <h2 class="text-sm font-semibold text-slate-700 dark:text-slate-200 uppercase tracking-wider">Rack Overview</h2>
+    </div>
+    <div class="flex items-center gap-2">
+      <select id="filter-rack-type" onchange="loadRacks()"
+              class="text-sm rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+        <option value="">All Types</option>
+        <option value="STORAGE_RACK">Storage Rack</option>
+        <option value="QUICK_CHANGE_RACK">Quick Change</option>
+        <option value="INPRESS_RACK">In-Press Rack</option>
+      </select>
+      <button onclick="loadRacks()"
+              class="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg border border-slate-300 dark:border-slate-600 text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-700 hover:bg-slate-50 dark:hover:bg-slate-600">
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.992 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182"/>
+        </svg>
+        Refresh
+      </button>
+    </div>
+  </div>
+  <div id="racks-container" class="p-6">
+    <div class="flex items-center justify-center py-12 text-slate-400 dark:text-slate-500 text-sm gap-2">
+      <svg class="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.992 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182"/>
+      </svg>
+      Loading racks…
+    </div>
+  </div>
+</div>
+
+<!-- Quick lookup + recent activity -->
+<div class="grid grid-cols-1 lg:grid-cols-5 gap-6 mb-6">
+  <!-- Quick Die Lookup -->
+  <div class="lg:col-span-2 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
+    <div class="px-6 py-4 border-b border-slate-200 dark:border-slate-700 flex items-center gap-2">
+      <svg class="w-5 h-5 text-slate-500 dark:text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"/>
+      </svg>
+      <h3 class="text-sm font-semibold text-slate-700 dark:text-slate-200 uppercase tracking-wider">Quick Die Lookup</h3>
+    </div>
+    <div class="p-6">
+      <form id="quick-search-form" onsubmit="searchDie(event)" class="space-y-3">
+        <div class="relative">
+          <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
+            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h2.25v10.5H3.75zm4.5 0h1.5v10.5h-1.5zm3 0h1.5v10.5h-1.5zm3 0h1.5v10.5h-1.5zm3 0h2.25v10.5H17.25z"/>
+            </svg>
+          </span>
+          <input type="text" autocomplete="off" id="quick-die-code"
+                 placeholder="Enter die code or scan barcode…"
+                 class="w-full pl-10 pr-3 py-3 text-base rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-50 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+        </div>
+        <button type="submit"
+                class="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg shadow-sm">
+          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"/>
+          </svg>
+          Search
+        </button>
+      </form>
+      <p class="text-xs text-slate-500 dark:text-slate-400 mt-3">Tip: aim your barcode scanner here — it auto-submits on Enter.</p>
+    </div>
+  </div>
+
+  <!-- Recent Activity -->
+  <div class="lg:col-span-3 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
+    <div class="px-6 py-4 border-b border-slate-200 dark:border-slate-700 flex items-center gap-2">
+      <svg class="w-5 h-5 text-slate-500 dark:text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z"/>
+      </svg>
+      <h3 class="text-sm font-semibold text-slate-700 dark:text-slate-200 uppercase tracking-wider">Recent Activity</h3>
+      <a href="{{ url_for('warehouse.transactions_history') }}" class="ml-auto text-xs text-indigo-600 dark:text-indigo-400 hover:underline font-medium">View all →</a>
+    </div>
+    <div class="max-h-72 overflow-y-auto">
+      <table class="min-w-full divide-y divide-slate-200 dark:divide-slate-700">
+        <thead class="bg-slate-50 dark:bg-slate-900/50 sticky top-0">
+          <tr>
+            <th class="px-4 py-2.5 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase">Type</th>
+            <th class="px-4 py-2.5 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase">Die Code</th>
+            <th class="px-4 py-2.5 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase">Rack / Slot</th>
+            <th class="px-4 py-2.5 text-right text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase">Time</th>
+          </tr>
+        </thead>
+        <tbody id="recent-activity-table" class="divide-y divide-slate-200 dark:divide-slate-700">
+          <tr><td colspan="4" class="px-4 py-6 text-center text-sm text-slate-400 dark:text-slate-500">Loading activity…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Search results (hidden by default) -->
+<div id="search-results-row" class="hidden">
+  <div class="bg-white dark:bg-slate-800 rounded-xl border border-indigo-200 dark:border-indigo-800 shadow-sm overflow-hidden">
+    <div class="flex items-center justify-between px-6 py-4 border-b border-indigo-200 dark:border-indigo-800 bg-indigo-50 dark:bg-indigo-900/30">
+      <div class="flex items-center gap-2">
+        <svg class="w-5 h-5 text-indigo-600 dark:text-indigo-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z"/>
+          <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z"/>
+        </svg>
+        <h3 class="text-sm font-semibold text-indigo-900 dark:text-indigo-100 uppercase tracking-wider">Die Location Results</h3>
+      </div>
+      <button onclick="hideSearchResults()"
+              class="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg bg-white dark:bg-slate-700 border border-indigo-200 dark:border-indigo-700 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-50 dark:hover:bg-slate-600">
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+        Close
+      </button>
+    </div>
+    <div id="search-results-content" class="p-6"><!-- content injected --></div>
+  </div>
+</div>
+
+<!-- ================================================================= -->
+<!-- QUICK SCAN MODAL                                                  -->
+<!-- ================================================================= -->
+<div id="quickScanModal" class="hidden fixed inset-0 z-[300] flex items-center justify-center p-4">
+  <div class="absolute inset-0 bg-slate-900/60 dark:bg-black/70 backdrop-blur-sm" onclick="closeQuickScanModal()"></div>
+  <div class="relative w-full max-w-2xl bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 overflow-hidden">
+    <!-- Header -->
+    <div class="flex items-center justify-between px-6 py-4 bg-emerald-600 dark:bg-emerald-700 text-white">
+      <div class="flex items-center gap-2">
+        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h2.25v10.5H3.75zm4.5 0h1.5v10.5h-1.5zm3 0h1.5v10.5h-1.5zm3 0h1.5v10.5h-1.5zm3 0h2.25v10.5H17.25z"/>
+        </svg>
+        <h3 class="text-lg font-semibold">Barcode Scanner — Quick Actions</h3>
+      </div>
+      <button onclick="closeQuickScanModal()" class="p-1 rounded-lg hover:bg-white/15 focus:outline-none">
+        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+      </button>
+    </div>
+
+    <!-- Tabs -->
+    <div class="flex border-b border-slate-200 dark:border-slate-700">
+      <button id="scan-in-tab" onclick="switchTab('in')"
+              class="flex-1 py-3 text-sm font-medium border-b-2 border-emerald-600 dark:border-emerald-400 text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-900/20">
+        Scan In
+      </button>
+      <button id="scan-out-tab" onclick="switchTab('out')"
+              class="flex-1 py-3 text-sm font-medium border-b-2 border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200">
+        Scan Out
+      </button>
+    </div>
+
+    <!-- Body -->
+    <div class="px-6 py-5">
+      <!-- Scan In -->
+      <div id="scan-in-content">
+        <form id="scan-in-form" onsubmit="handleScanIn(event)" class="space-y-4">
+          <div>
+            <label class="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-1">Die Code (Barcode)</label>
+            <input type="text" autocomplete="off" required id="scan-in-die-code" name="die_code"
+                   placeholder="Scan die barcode or enter code manually"
+                   class="w-full px-3 py-2.5 text-base rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-50 placeholder-slate-400 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 focus:outline-none">
+            <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Tip: press Enter after scanning to auto-submit.</p>
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-1">Rack Assignment</label>
+              <select id="scan-in-rack" name="rack_id_or_code" required
+                      class="w-full px-3 py-2.5 text-base rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-50 focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                <option value="">Select a rack…</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-1">Slot Number</label>
+              <input type="number" min="1" max="99" required id="scan-in-slot" name="slot_number" placeholder="1–20"
+                     class="w-full px-3 py-2.5 text-base rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-50 placeholder-slate-400 focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+            </div>
+          </div>
+          <div>
+            <label class="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-1">Notes <span class="font-normal text-slate-400">(optional)</span></label>
+            <input type="text" id="scan-in-notes" name="notes" placeholder="Any additional notes…"
+                   class="w-full px-3 py-2.5 text-sm rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-50 placeholder-slate-400 focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+          </div>
+          <button type="submit"
+                  class="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold rounded-lg shadow-sm">
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>
+            Confirm Scan In
+          </button>
+        </form>
+      </div>
+
+      <!-- Scan Out (hidden by default) -->
+      <div id="scan-out-content" class="hidden">
+        <form id="scan-out-form" onsubmit="handleScanOut(event)" class="space-y-4">
+          <div>
+            <label class="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-1">Die Code (Barcode)</label>
+            <input type="text" autocomplete="off" required id="scan-out-die-code" name="die_code"
+                   placeholder="Scan die barcode or enter code manually"
+                   class="w-full px-3 py-2.5 text-base rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-50 placeholder-slate-400 focus:ring-2 focus:ring-amber-500 focus:border-amber-500 focus:outline-none">
+          </div>
+          <div class="flex items-start gap-3 p-3 rounded-lg bg-sky-50 dark:bg-sky-900/20 border border-sky-200 dark:border-sky-800 text-sky-800 dark:text-sky-200 text-sm">
+            <svg class="w-5 h-5 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z"/>
+            </svg>
+            <span>The system will automatically find the rack and slot where this die is currently stored.</span>
+          </div>
+          <button type="submit"
+                  class="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-amber-500 hover:bg-amber-600 text-white text-sm font-semibold rounded-lg shadow-sm">
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+            Confirm Scan Out
+          </button>
+        </form>
+      </div>
+
+      <!-- Results area -->
+      <div id="scan-results" class="hidden mt-4"></div>
+    </div>
+
+    <!-- Footer -->
+    <div class="flex justify-end px-6 py-3 bg-slate-50 dark:bg-slate-900/40 border-t border-slate-200 dark:border-slate-700">
+      <button onclick="closeQuickScanModal()"
+              class="px-4 py-2 text-sm font-medium rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-600">
+        Close
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ================================================================= -->
+<!-- RACK DETAIL MODAL                                                 -->
+<!-- ================================================================= -->
+<div id="rackDetailModal" class="hidden fixed inset-0 z-[300] flex items-center justify-center p-4">
+  <div class="absolute inset-0 bg-slate-900/60 dark:bg-black/70 backdrop-blur-sm" onclick="closeRackDetailModal()"></div>
+  <div class="relative w-full max-w-3xl bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 overflow-hidden">
+    <div class="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-700">
+      <div class="flex items-center gap-2">
+        <svg class="w-5 h-5 text-slate-500 dark:text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M20.25 7.5l-.625 10.917a2.25 2.25 0 01-2.093 2.117L11.25 21 4.468 20.533a2.25 2.25 0 01-2.093-2.117L1.75 7.5m18.5 0H2.25"/>
+        </svg>
+        <h3 class="text-lg font-semibold text-slate-900 dark:text-slate-50">Rack Details</h3>
+      </div>
+      <button onclick="closeRackDetailModal()" class="p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-500">
+        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="p-6 max-h-[75vh] overflow-y-auto">
+      <div id="rack-detail-content">
+        <div class="text-center py-10 text-slate-400 dark:text-slate-500 text-sm">Loading…</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ================================================================= -->
+<!-- DASHBOARD SCRIPTS                                                 -->
+<!-- ================================================================= -->
+<script>
+(function () {
+  // ---------- Utility ----------
+  const $ = (sel) => document.querySelector(sel);
+  const api = (path) => fetch(path, { headers: { 'Accept': 'application/json' } })
+    .then(r => r.ok ? r.json() : Promise.reject(r.status))
+    .catch(err => { console.warn('api GET failure:', path, err); return null; });
+
+  const fmtTime = (iso) => {
+    if (!iso) return '—';
+    const d = new Date(iso);
+    return d.toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+  };
+  const setStatus = (id, value) => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = (value === null || value === undefined) ? '—' : value;
+  };
+
+  // ---------- KPI stats ----------
+  async function loadWarehouseStats() {
+    const data = await api('{{ url_for("warehouse.api_overview_stats") }}');
+    if (!data || !data.success) return;
+    const s = data.statistics;
+    setStatus('stat-total-racks', s.total_racks);
+    setStatus('stat-total-dies', s.total_dies_stored);
+    setStatus('stat-recent-tx', s.recent_transactions_24h);
+    // Available slots needs to be computed from racks
+  }
+
+  // ---------- Rack grid ----------
+  const TYPE_BADGE = {
+    'STORAGE_RACK':       { label: 'Storage',      cls: 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300' },
+    'QUICK_CHANGE_RACK':  { label: 'Quick Change', cls: 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300' },
+    'INPRESS_RACK':       { label: 'In-Press',     cls: 'bg-sky-100 dark:bg-sky-900/30 text-sky-700 dark:text-sky-300' },
+  };
+  const STATUS_BADGE = {
+    'AVAILABLE':   { cls: 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300' },
+    'IN_USE':      { cls: 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300' },
+    'MAINTENANCE': { cls: 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300' },
+  };
+
+  let _racksCache = [];
+
+  async function loadRacks() {
+    const filter = $('#filter-rack-type').value;
+    const qs = filter ? `?rack_type=${encodeURIComponent(filter)}` : '';
+    const data = await api('{{ url_for("warehouse.api_get_racks") }}' + qs);
+    const container = $('#racks-container');
+
+    if (!data || !data.success || !data.racks || data.racks.length === 0) {
+      container.innerHTML = `
+        <div class="flex flex-col items-center justify-center py-14 text-center">
+          <svg class="w-12 h-12 text-slate-300 dark:text-slate-600 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M20.25 7.5l-.625 10.917a2.25 2.25 0 01-2.093 2.117L11.25 21 4.468 20.533a2.25 2.25 0 01-2.093-2.117L1.75 7.5m18.5 0H2.25"/>
+          </svg>
+          <p class="text-sm font-medium text-slate-600 dark:text-slate-300">No racks yet</p>
+          <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Create your first rack to start tracking dies.</p>
+          <a href="{{ url_for('warehouse.create_rack_page') }}" class="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700">
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+            New Rack
+          </a>
+        </div>`;
+      return;
+    }
+
+    _racksCache = data.racks;
+
+    // Compute available slots for KPI
+    const totalAvailable = data.racks.reduce((sum, r) => sum + (parseInt(r.available_slots, 10) || 0), 0);
+    setStatus('stat-available-slots', totalAvailable);
+
+    const grid = data.racks.map(r => {
+      const used = (parseInt(r.total_slots, 10) || 0) - (parseInt(r.available_slots, 10) || 0);
+      const pct = Math.min(100, Math.round((used / Math.max(1, r.total_slots)) * 100));
+      const tb = TYPE_BADGE[r.rack_type] || { label: r.rack_type, cls: 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300' };
+      const sb = STATUS_BADGE[r.status] || STATUS_BADGE.AVAILABLE;
+      const barColor = pct >= 90 ? 'bg-red-500' : pct >= 65 ? 'bg-amber-500' : 'bg-emerald-500';
+
+      return `
+        <button type="button" onclick="openRackDetail('${r.id}')"
+                class="text-left bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-5 shadow-sm hover:shadow-md hover:border-indigo-300 dark:hover:border-indigo-700 transition-all group">
+          <div class="flex items-start justify-between gap-3 mb-3">
+            <div class="min-w-0">
+              <div class="font-mono text-sm font-bold text-slate-900 dark:text-slate-50 truncate">${escapeHtml(r.rack_code)}</div>
+              <div class="text-xs text-slate-500 dark:text-slate-400 truncate mt-0.5">${escapeHtml(r.rack_name)}</div>
+            </div>
+            <span class="shrink-0 px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider ${tb.cls}">${tb.label}</span>
+          </div>
+
+          <div class="mb-3">
+            <div class="flex items-baseline justify-between mb-1.5">
+              <span class="text-xs font-medium text-slate-500 dark:text-slate-400">Slot usage</span>
+              <span class="text-xs font-semibold text-slate-700 dark:text-slate-200"><span class="text-slate-900 dark:text-slate-50 font-bold">${used}</span> / ${r.total_slots}</span>
+            </div>
+            <div class="w-full h-1.5 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
+              <div class="${barColor} h-full rounded-full transition-all" style="width:${pct}%"></div>
+            </div>
+            <div class="text-right text-[10px] text-slate-400 dark:text-slate-500 mt-1">${r.available_slots} free · ${pct}% used</div>
+          </div>
+
+          <div class="flex items-center justify-between text-xs">
+            <span class="inline-flex items-center gap-1 text-slate-500 dark:text-slate-400">
+              <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z"/>
+                <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z"/>
+              </svg>
+              ${escapeHtml(r.location_zone || '—')}
+            </span>
+            <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider ${sb.cls}">${(r.status || 'AVAILABLE').replace('_',' ')}</span>
+          </div>
+        </button>`;
+    }).join('');
+
+    container.innerHTML = `<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">${grid}</div>`;
+
+    // Populate rack dropdown inside the scan-in modal
+    populateRackDropdown();
+  }
+
+  function escapeHtml(s) {
+    return String(s ?? '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+  }
+
+  function populateRackDropdown() {
+    const sel = $('#scan-in-rack');
+    if (!sel || !_racksCache.length) return;
+    const existing = new Set(Array.from(sel.options).map(o => o.value));
+    _racksCache.forEach(r => {
+      if (existing.has(r.id)) return;
+      const opt = document.createElement('option');
+      opt.value = r.rack_code;
+      opt.textContent = `${r.rack_code} · ${r.rack_name}`;
+      sel.appendChild(opt);
+    });
+  }
+
+  // ---------- Rack detail modal ----------
+  window.openRackDetail = async function (rackId) {
+    const modal = $('#rackDetailModal');
+    const content = $('#rack-detail-content');
+    modal.classList.remove('hidden');
+    content.innerHTML = '<div class="text-center py-10 text-sm text-slate-400 dark:text-slate-500">Loading…</div>';
+    const data = await api(`/warehouse/api/racks/${encodeURIComponent(rackId)}`);
+    if (!data || !data.success) {
+      content.innerHTML = `<div class="p-6 text-center text-sm text-red-600 dark:text-red-400">Unable to load rack details.</div>`;
+      return;
+    }
+    const r = data.rack;
+    const used = (parseInt(r.total_slots,10)||0) - (parseInt(r.available_slots,10)||0);
+    const tb = TYPE_BADGE[r.rack_type] || { label: r.rack_type, cls: '' };
+    const sb = STATUS_BADGE[r.status] || STATUS_BADGE.AVAILABLE;
+    const slots = (r.slots || []);
+
+    content.innerHTML = `
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+        <div class="bg-slate-50 dark:bg-slate-700/40 rounded-lg p-3">
+          <div class="text-[10px] uppercase tracking-wider text-slate-500 dark:text-slate-400 font-semibold">Rack Code</div>
+          <div class="mt-1 font-mono font-bold text-slate-900 dark:text-slate-50">${escapeHtml(r.rack_code)}</div>
+        </div>
+        <div class="bg-slate-50 dark:bg-slate-700/40 rounded-lg p-3">
+          <div class="text-[10px] uppercase tracking-wider text-slate-500 dark:text-slate-400 font-semibold">Type</div>
+          <div class="mt-1"><span class="px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider ${tb.cls}">${tb.label}</span></div>
+        </div>
+        <div class="bg-slate-50 dark:bg-slate-700/40 rounded-lg p-3">
+          <div class="text-[10px] uppercase tracking-wider text-slate-500 dark:text-slate-400 font-semibold">Zone</div>
+          <div class="mt-1 text-sm font-semibold text-slate-900 dark:text-slate-50">${escapeHtml(r.location_zone || '—')}</div>
+        </div>
+        <div class="bg-slate-50 dark:bg-slate-700/40 rounded-lg p-3">
+          <div class="text-[10px] uppercase tracking-wider text-slate-500 dark:text-slate-400 font-semibold">Status</div>
+          <div class="mt-1"><span class="px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider ${sb.cls}">${(r.status||'').replace('_',' ')}</span></div>
+        </div>
+      </div>
+
+      <div class="mb-6">
+        <div class="flex justify-between text-xs font-medium text-slate-600 dark:text-slate-300 mb-1.5">
+          <span>Slots occupied</span>
+          <span>${used} of ${r.total_slots}</span>
+        </div>
+        <div class="w-full h-2 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
+          <div class="bg-emerald-500 h-full rounded-full" style="width:${Math.min(100, Math.round(used/Math.max(1,r.total_slots)*100))}%"></div>
+        </div>
+      </div>
+
+      <h4 class="text-sm font-semibold text-slate-700 dark:text-slate-200 uppercase tracking-wider mb-3">Slot Assignments</h4>
+      ${slots.length ? `
+        <div class="overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-700">
+          <table class="min-w-full divide-y divide-slate-200 dark:divide-slate-700">
+            <thead class="bg-slate-50 dark:bg-slate-900/50">
+              <tr>
+                <th class="px-3 py-2 text-left text-[11px] font-semibold text-slate-500 uppercase">Slot</th>
+                <th class="px-3 py-2 text-left text-[11px] font-semibold text-slate-500 uppercase">Die Code</th>
+                <th class="px-3 py-2 text-left text-[11px] font-semibold text-slate-500 uppercase">Profile</th>
+                <th class="px-3 py-2 text-left text-[11px] font-semibold text-slate-500 uppercase">Alloy</th>
+                <th class="px-3 py-2 text-left text-[11px] font-semibold text-slate-500 uppercase">Assigned</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-200 dark:divide-slate-700">
+              ${slots.map(s => `
+                <tr>
+                  <td class="px-3 py-2 text-sm font-mono font-semibold text-slate-700 dark:text-slate-200">${s.slot_number}</td>
+                  <td class="px-3 py-2 text-sm text-slate-900 dark:text-slate-50 font-mono">${escapeHtml(s.die_code || '—')}</td>
+                  <td class="px-3 py-2 text-sm text-slate-500 dark:text-slate-400">${escapeHtml(s.profile_code || '—')}</td>
+                  <td class="px-3 py-2 text-sm text-slate-500 dark:text-slate-400">${escapeHtml(s.alloy || '—')}</td>
+                  <td class="px-3 py-2 text-sm text-slate-500 dark:text-slate-400">${escapeHtml(fmtTime(s.assigned_at))}</td>
+                </tr>`).join('')}
+            </tbody>
+          </table>
+        </div>
+      ` : `<div class="text-sm text-slate-500 dark:text-slate-400 py-4 text-center">No dies currently assigned to this rack.</div>`}
+
+      ${r.description ? `<p class="mt-5 text-xs text-slate-500 dark:text-slate-400">${escapeHtml(r.description)}</p>` : ''}
+    `;
+  };
+
+  window.closeRackDetailModal = function () {
+    $('#rackDetailModal').classList.add('hidden');
+  };
+
+  // ---------- Recent activity ----------
+  async function loadRecentActivity() {
+    const data = await api('{{ url_for("warehouse.api_get_transactions") }}?limit=10');
+    const tbody = $('#recent-activity-table');
+    if (!data || !data.success || !data.transactions || data.transactions.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="4" class="px-4 py-6 text-center text-sm text-slate-400 dark:text-slate-500">No recent activity.</td></tr>`;
+      return;
+    }
+    tbody.innerHTML = data.transactions.map(t => {
+      const type = t.transaction_type;
+      const badge = type === 'IN'
+        ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300'
+        : type === 'OUT'
+          ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300'
+          : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300';
+      return `
+        <tr class="hover:bg-slate-50 dark:hover:bg-slate-700/50">
+          <td class="px-4 py-2.5"><span class="px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider ${badge}">${type}</span></td>
+          <td class="px-4 py-2.5 text-sm font-mono text-slate-800 dark:text-slate-200">${escapeHtml(t.die_code)}</td>
+          <td class="px-4 py-2.5 text-sm text-slate-600 dark:text-slate-300">${t.rack_id ? `${escapeHtml(t.rack_code || 'Rack')} · Slot ${t.slot_number ?? '—'}` : '—'}</td>
+          <td class="px-4 py-2.5 text-sm text-right text-slate-500 dark:text-slate-400 whitespace-nowrap">${fmtTime(t.transaction_time)}</td>
+        </tr>`;
+    }).join('');
+  }
+
+  // ---------- Quick die lookup ----------
+  window.searchDie = async function (e) {
+    if (e) e.preventDefault();
+    const code = $('#quick-die-code').value.trim();
+    if (!code) return;
+    const data = await api(`/warehouse/api/die/location?die_code=${encodeURIComponent(code)}`);
+    const row = $('#search-results-row');
+    const content = $('#search-results-content');
+    row.classList.remove('hidden');
+    if (!data || !data.success) {
+      content.innerHTML = `<div class="text-sm text-slate-500 dark:text-slate-400">No in-stock location found for <span class="font-mono font-semibold text-slate-700 dark:text-slate-200">${escapeHtml(code)}</span>.</div>`;
+      return;
+    }
+    const loc = data.location || data;
+    content.innerHTML = `
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div class="bg-slate-50 dark:bg-slate-700/40 rounded-lg p-4">
+          <div class="text-[10px] uppercase tracking-wider text-slate-500 font-semibold">Die Code</div>
+          <div class="mt-1 font-mono text-lg font-bold text-slate-900 dark:text-slate-50">${escapeHtml(loc.die_code || code)}</div>
+        </div>
+        <div class="bg-slate-50 dark:bg-slate-700/40 rounded-lg p-4">
+          <div class="text-[10px] uppercase tracking-wider text-slate-500 font-semibold">Location</div>
+          <div class="mt-1 text-lg font-bold text-emerald-700 dark:text-emerald-300">${escapeHtml(loc.rack_code || '—')} · Slot ${escapeHtml(loc.slot_number ?? '—')}</div>
+        </div>
+        <div class="bg-slate-50 dark:bg-slate-700/40 rounded-lg p-4">
+          <div class="text-[10px] uppercase tracking-wider text-slate-500 font-semibold">Status</div>
+          <div class="mt-1 text-lg font-bold text-slate-900 dark:text-slate-50">${escapeHtml((loc.status || 'IN_STOCK').replace('_',' '))}</div>
+        </div>
+      </div>
+    `;
+    row.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  };
+
+  window.hideSearchResults = function () {
+    $('#search-results-row').classList.add('hidden');
+    $('#quick-die-code').value = '';
+  };
+
+  // ---------- Quick scan modal ----------
+  window.openQuickScanModal = function () {
+    $('#quickScanModal').classList.remove('hidden');
+    switchTab('in');
+    setTimeout(() => $('#scan-in-die-code')?.focus(), 50);
+  };
+  window.closeQuickScanModal = function () {
+    $('#quickScanModal').classList.add('hidden');
+    const r = $('#scan-results'); r.classList.add('hidden'); r.innerHTML = '';
+  };
+  window.switchTab = function (tab) {
+    const inTab = $('#scan-in-tab'), outTab = $('#scan-out-tab');
+    const inC = $('#scan-in-content'), outC = $('#scan-out-content');
+    if (tab === 'in') {
+      inTab.className = 'flex-1 py-3 text-sm font-medium border-b-2 border-emerald-600 dark:border-emerald-400 text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-900/20';
+      outTab.className = 'flex-1 py-3 text-sm font-medium border-b-2 border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-700';
+      inC.classList.remove('hidden'); outC.classList.add('hidden');
+    } else {
+      outTab.className = 'flex-1 py-3 text-sm font-medium border-b-2 border-amber-500 dark:border-amber-400 text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-900/20';
+      inTab.className = 'flex-1 py-3 text-sm font-medium border-b-2 border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-700';
+      outC.classList.remove('hidden'); inC.classList.add('hidden');
+    }
+  };
+
+  function showScanResult(ok, msg) {
+    const r = $('#scan-results');
+    r.classList.remove('hidden');
+    const color = ok
+      ? 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-200'
+      : 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800 text-red-800 dark:text-red-200';
+    r.innerHTML = `<div class="flex items-start gap-3 p-3 rounded-lg border ${color} text-sm">
+      <svg class="w-5 h-5 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="${ok ? 'M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z' : 'M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z'}"/>
+      </svg>
+      <div>${escapeHtml(msg)}</div>
+    </div>`;
+  }
+
+  window.handleScanIn = async function (e) {
+    e.preventDefault();
+    const body = {
+      die_code: $('#scan-in-die-code').value.trim(),
+      rack_id_or_code: $('#scan-in-rack').value,
+      slot_number: $('#scan-in-slot').value,
+      notes: $('#scan-in-notes').value.trim()
+    };
+    try {
+      const r = await fetch('/warehouse/api/die/scan-in', {
+        method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body)
+      }).then(x => x.json());
+      if (r && r.success) {
+        showScanResult(true, `Scanned in ${body.die_code} — ${r.message || 'OK'}`);
+        $('#scan-in-form').reset();
+        loadWarehouseStats(); loadRacks(); loadRecentActivity();
+      } else {
+        showScanResult(false, r?.error || 'Scan-in failed.');
+      }
+    } catch (err) { showScanResult(false, 'Network error during scan-in.'); }
+  };
+
+  window.handleScanOut = async function (e) {
+    e.preventDefault();
+    const body = { die_code: $('#scan-out-die-code').value.trim() };
+    try {
+      const r = await fetch('/warehouse/api/die/scan-out', {
+        method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body)
+      }).then(x => x.json());
+      if (r && r.success) {
+        showScanResult(true, `Scanned out ${body.die_code} — ${r.message || 'OK'}`);
+        $('#scan-out-form').reset();
+        loadWarehouseStats(); loadRacks(); loadRecentActivity();
+      } else {
+        showScanResult(false, r?.error || 'Scan-out failed.');
+      }
+    } catch (err) { showScanResult(false, 'Network error during scan-out.'); }
+  };
+
+  // Esc closes modals
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      closeQuickScanModal(); closeRackDetailModal();
+    }
+  });
+
+  // ---------- Init ----------
+  document.addEventListener('DOMContentLoaded', () => {
+    loadWarehouseStats();
+    loadRacks();
+    loadRecentActivity();
+  });
+})();
+</script>
+{% endblock %}

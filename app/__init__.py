@@ -224,6 +224,7 @@ def create_app(config_class=Config):
             seed_data.seed_finishing_module()
             seed_data.seed_logistics_module()
             seed_data.seed_cost_price_module()
+            seed_data.seed_warehouse_data()
             db.session.commit()
     except Exception as exc:  # pragma: no cover - startup seed best-effort
         try:
