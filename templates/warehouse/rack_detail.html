@@ -1,0 +1,340 @@
+{% extends "base.html" %}
+
+{% block title %}Rack Details - {{ rack_identifier }} - Warehouse System{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Page Header -->
+    <div class="row mb-4">
+        <div class="col-md-12 d-flex justify-content-between align-items-center">
+            <h3><i class="fas fa-box me-2"></i>Rack Details</h3>
+            <a href="{{ url_for('warehouse.racks_list') }}" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left me-1"></i>Back to Racks
+            </a>
+        </div>
+    </div>
+
+    <!-- Rack Information Card -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div id="rack-info-card" class="card">
+                <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="fas fa-box me-2"></i>Rack Information</h5>
+                    <span class="badge badge-light" id="rack-status-badge">Loading...</span>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3 mb-3">
+                            <small class="text-muted d-block">Rack Code</small>
+                            <strong id="rack-code" class="fs-5">-</strong>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <small class="text-muted d-block">Rack Name</small>
+                            <strong id="rack-name" class="fs-5">-</strong>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <small class="text-muted d-block">Type</small>
+                            <span id="rack-type" class="badge bg-info fs-6">-</span>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <small class="text-muted d-block">Location Zone</small>
+                            <span id="rack-zone" class="badge bg-secondary fs-6">-</span>
+                        </div>
+                    </div>
+                    <hr>
+                    <!-- Slot Statistics -->
+                    <div class="row text-center mb-3">
+                        <div class="col-md-4">
+                            <h4 id="rack-total-slots" class="text-primary">-</h4>
+                            <small class="text-muted">Total Slots</small>
+                        </div>
+                        <div class="col-md-4">
+                            <h4 id="rack-filled-slots" class="text-success">-</h4>
+                            <small class="text-muted">Occupied</small>
+                        </div>
+                        <div class="col-md-4">
+                            <h4 id="rack-available-slots" class="text-warning">-</h4>
+                            <small class="text-muted">Available</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slot Visualization -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card h-100">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="fas fa-th me-2"></i>Slot Layout</h5>
+                    <button onclick="loadRackSlots()" class="btn btn-sm btn-outline-secondary">
+                        <i class="fas fa-sync"></i> Refresh
+                    </button>
+                </div>
+                <div class="card-body p-3" id="slots-container">
+                    <!-- Slot visualization will be loaded here -->
+                    <div class="text-center py-4 text-muted">Loading slots...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Action Buttons for Empty Slots -->
+    <div id="action-buttons" style="display: none;" class="row mb-4">
+        <div class="col-md-12 d-flex gap-2">
+            <button onclick="openAssignDieModal()" class="btn btn-success">
+                <i class="fas fa-plus-circle me-1"></i>Assign Die to Empty Slot
+            </button>
+            <a href="{{ url_for('warehouse.search_dies') }}" class="btn btn-outline-primary">
+                <i class="fas fa-search me-1"></i>Search Dies
+            </a>
+        </div>
+    </div>
+
+</div>
+
+<!-- Assign Die Modal -->
+<div class="modal fade" id="assignDieModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title"><i class="fas fa-plus-circle me-2"></i>Assign Die to Slot</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="assign-die-form" onsubmit="handleAssignDie(event)">
+                <input type="hidden" name="_method" value="POST">
+                <div class="modal-body">
+                    <div class="alert alert-info mb-3">
+                        <i class="fas fa-info-circle me-2"></i>Enter the die information to assign to this slot.
+                    </div>
+                    <input type="hidden" id="slot-number-hidden">
+
+                    <div class="mb-3">
+                        <label for="assign-die-code" class="form-label fw-bold">Die Code (Barcode)</label>
+                        <input type="text" class="form-control form-control-lg" id="assign-die-code" name="die_code" placeholder="Scan or enter die code..." autofocus required autocomplete="off">
+                    </div>
+                    <div class="mb-3">
+                        <label for="assign-slot-number" class="form-label fw-bold">Slot Number</label>
+                        <input type="number" class="form-control form-control-lg" id="assign-slot-number" name="slot_number" readonly required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="assign-notes" class="form-label">Notes (Optional)</label>
+                        <input type="text" class="form-control" id="assign-notes" name="notes" placeholder="Any notes...">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="submit" class="btn btn-success">
+                        <i class="fas fa-check me-1"></i>Confirm Assignment
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Die Detail View Modal -->
+<div class="modal fade" id="dieDetailModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-info text-white">
+                <h5 class="modal-title"><i class="fas fa-cog me-2"></i>Die Information</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div id="die-detail-content">
+                    <!-- Die details will be loaded here -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button onclick="removeDieFromSlot()" id="btn-remove-die" class="btn btn-warning" style="display: none;">
+                    <i class="fas fa-times me-1"></i>Remove Die from Rack
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/warehouse-rack-detail.js') }}"></script>
+<script>
+// Initialize rack detail page
+document.addEventListener('DOMContentLoaded', function() {
+    const rackId = '{{ rack_identifier }}';
+    loadRackInfo(rackId);
+});
+
+function openAssignDieModal(slotNumber) {
+    document.getElementById('slot-number-hidden').value = slotNumber;
+    document.getElementById('assign-slot-number').value = slotNumber;
+    document.getElementById('assign-die-code').value = '';
+    document.getElementById('assign-notes').value = '';
+
+    const modal = new bootstrap.Modal(document.getElementById('assignDieModal'));
+    modal.show();
+}
+
+function handleAssignDie(event) {
+    event.preventDefault();
+
+    const form = event.target;
+    const formData = new FormData(form);
+
+    fetch('/warehouse/api/die/assign', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+            die_code: formData.get('die_code'),
+            rack_id_or_code: '{{ rack_identifier }}',
+            slot_number: parseInt(formData.get('slot_number')),
+            notes: formData.get('notes')
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            bootstrap.Modal.getInstance(document.getElementById('assignDieModal')).hide();
+            showNotification('success', data.message);
+            setTimeout(() => location.reload(), 1500);
+        } else {
+            showNotification('danger', 'Error: ' + (data.error || 'Failed to assign die'));
+        }
+    })
+    .catch(error => {
+        showNotification('danger', 'Network error: ' + error.message);
+    });
+}
+
+function openDieDetailModal(slotNumber, slotData) {
+    document.getElementById('die-detail-content').innerHTML = `
+        <div class="text-center py-4">Loading...</div>
+    `;
+
+    const modal = new bootstrap.Modal(document.getElementById('dieDetailModal'));
+    modal.show();
+
+    // Load die details from API
+    fetch(`/warehouse/api/search/dies?q=${encodeURIComponent(slotData.die_code)}`)
+        .then(response => response.json())
+        .then(data => {
+            const content = document.getElementById('die-detail-content');
+            if (data.success && data.total_results > 0) {
+                const dieInfo = data.results_by_rack[0]?.dies?.find(d => d.die_code === slotData.die_code);
+
+                let html = `
+                    <h5 class="text-primary mb-3"><i class="fas fa-cog me-2"></i>${dieInfo?.die_code || 'Unknown'}</h5>
+                    <div class="row">
+                        ${dieInfo?.profile_code ? `
+                        <div class="col-md-6 mb-3">
+                            <small class="text-muted d-block">Profile Code</small>
+                            <strong>${dieInfo.profile_code}</strong>
+                        </div>
+                        ` : ''}
+                        ${dieInfo?.alloy ? `
+                        <div class="col-md-6 mb-3">
+                            <small class="text-muted d-block">Alloy</small>
+                            <span class="badge bg-secondary">${dieInfo.alloy}</span>
+                        </div>
+                        ` : ''}
+                    </div>
+                    <hr>
+                    <table class="table table-sm mb-0">
+                        <tr><td class="text-muted">Slot Number</td><td>${slotNumber}</td></tr>
+                        ${dieInfo?.last_updated_at ? `<tr><td class="text-muted">Last Updated</td><td>${new Date(dieInfo.last_updated_at).toLocaleString()}</td></tr>` : ''}
+                    </table>
+
+                    <div class="mt-3 pt-2 border-top">
+                        <small class="text-muted d-block mb-1">Quick Actions:</small>
+                        <button onclick='showDieExternalLink("${dieInfo?.profile_code || ''}")' class="btn btn-sm btn-outline-primary me-2">
+                            <i class="fas fa-search me-1"></i>View in Full Search
+                        </button>
+                    </div>
+                `;
+
+                content.innerHTML = html;
+            } else {
+                content.innerHTML = `
+                    <div class="alert alert-warning mb-0">
+                        <i class="fas fa-exclamation-triangle me-2"></i>No additional information available for this die.
+                    </div>
+                `;
+            }
+
+            // Show remove button
+            document.getElementById('btn-remove-die').style.display = 'inline-block';
+        })
+        .catch(error => {
+            document.getElementById('die-detail-content').innerHTML = `
+                <div class="alert alert-danger mb-0">Error loading die details.</div>
+            `;
+        });
+
+    // Store slot data for remove operation
+    window.currentSlotData = slotData || {};
+}
+
+function showDieExternalLink(profileCode) {
+    bootstrap.Modal.getInstance(document.getElementById('dieDetailModal')).hide();
+    if (profileCode) {
+        window.location.href = `/warehouse/search?q=${encodeURIComponent(profileCode)}`;
+    } else {
+        window.location.href = '/warehouse/search';
+    }
+}
+
+function removeDieFromSlot() {
+    const dieCode = window.currentSlotData?.die_code || '';
+
+    if (!confirm(`Are you sure you want to remove ${dieCode} from this rack slot?`)) {
+        return;
+    }
+
+    fetch('/warehouse/api/die/remove', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+            die_code: dieCode,
+            rack_id_or_code: '{{ rack_identifier }}'
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            bootstrap.Modal.getInstance(document.getElementById('dieDetailModal')).hide();
+            showNotification('success', data.message);
+            setTimeout(() => location.reload(), 1500);
+        } else {
+            showNotification('danger', 'Error: ' + (data.error || 'Failed to remove die'));
+        }
+    })
+    .catch(error => {
+        showNotification('danger', 'Network error: ' + error.message);
+    });
+}
+
+function showNotification(type, message) {
+    const alertClass = type === 'success' ? 'alert-success' : 'alert-danger';
+    const notification = document.createElement('div');
+    notification.className = `fixed-top ${alertClass}`;
+    notification.style.cssText = 'padding: 1rem; margin: 1rem; z-index: 9999; min-width: 300px;';
+    notification.innerHTML = `<i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-circle'} me-2"></i>${message}`;
+
+    document.body.appendChild(notification);
+    setTimeout(() => notification.remove(), 3000);
+}
+
+// Auto-focus barcode scanner input in assign modal
+document.addEventListener('keypress', function(e) {
+    const modal = bootstrap.Modal.getInstance(document.getElementById('assignDieModal'));
+    if (!modal || !modal._isShown) return;
+
+    if (e.key === 'Enter') {
+        e.preventDefault();
+        document.getElementById('assign-die-form').dispatchEvent(new Event('submit'));
+    }
+});
+</script>
+{% endblock %}

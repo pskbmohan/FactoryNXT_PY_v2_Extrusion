@@ -1,0 +1,167 @@
+{% extends "base.html" %}
+
+{% block title %}Search Die Locations - Warehouse System{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Page Header -->
+    <div class="row mb-4">
+        <div class="col-md-12 d-flex justify-content-between align-items-center">
+            <h3><i class="fas fa-search me-2"></i>Search Die Locations</h3>
+            <a href="{{ url_for('warehouse.warehouse_dashboard') }}" class="btn btn-outline-secondary">
+                <i class="fas fa-home me-1"></i>Back to Dashboard
+            </a>
+        </div>
+    </div>
+
+    <!-- Search Form -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="fas fa-search me-2"></i>Search Criteria</h5>
+                </div>
+                <div class="card-body p-4">
+                    <form id="search-form" onsubmit="performSearch(event)">
+                        <div class="row g-3 align-items-end">
+                            <div class="col-md-6">
+                                <label for="search-q" class="form-label fw-bold"><i class="fas fa-barcode me-1"></i>Die Code / Search Term</label>
+                                <input type="text" class="form-control form-control-lg" id="search-q" name="q"
+                                       value="{{ current_search }}" placeholder="Enter die code, profile, or partial match...">
+                            </div>
+                            <div class="col-md-3">
+                                <label for="search-profile" class="form-label fw-bold"><i class="fas fa-list me-1"></i>Profile Code</label>
+                                <input type="text" class="form-control form-control-lg" id="search-profile" name="profile"
+                                       value="{{ current_profile }}" placeholder="Filter by profile...">
+                            </div>
+                            <div class="col-md-3">
+                                <label for="search-alloy" class="form-label fw-bold"><i class="fas fa-cube me-1"></i>Alloy</label>
+                                <select class="form-select form-select-lg" id="search-alloy" name="alloy">
+                                    <option value="">All Alloys</option>
+                                    <!-- Will be populated dynamically -->
+                                </select>
+                            </div>
+                        </div>
+                        <hr>
+                        <button type="submit" class="btn btn-primary btn-lg me-2">
+                            <i class="fas fa-search me-1"></i>Search Dies
+                        </button>
+                        <a href="{{ url_for('warehouse.search_dies') }}" class="btn btn-outline-secondary btn-lg">
+                            <i class="fas fa-redo me-1"></i>Reset Search
+                        </a>
+                    </form>
+
+                    <!-- Filter by Rack -->
+                    <div id="filter-by-rack" style="display: none;" class="mt-3 pt-2 border-top">
+                        <label for="search-rack" class="form-label fw-bold"><i class="fas fa-box me-1"></i>Rack Location</label>
+                        <select class="form-select form-select-lg d-inline-block w-auto align-middle ms-2" id="search-rack">
+                            <option value="">All Racks</option>
+                        </select>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Search Results -->
+    <div class="row mb-4" id="search-results-container">
+        <div class="col-md-12 text-center py-5 text-muted">
+            <i class="fas fa-search fa-4x mb-3"></i>
+            <h5>Enter search criteria above to find die locations</h5>
+        </div>
+    </div>
+
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/warehouse-search.js') }}"></script>
+<script>
+// Load available alloys and racks on page load
+document.addEventListener('DOMContentLoaded', function() {
+    loadAvailableAlloys();
+    loadAvailableRacks();
+});
+
+function loadAvailableAlloys() {
+    fetch('/warehouse/api/search/alloys')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const select = document.getElementById('search-alloy');
+                data.alloys.forEach(alloy => {
+                    const option = document.createElement('option');
+                    option.value = alloy;
+                    option.textContent = alloy;
+                    select.appendChild(option);
+                });
+
+                // Set current value if exists
+                const currentAlloy = '{{ current_alloy }}';
+                if (currentAlloy) {
+                    select.value = currentAlloy;
+                }
+            }
+        })
+        .catch(error => console.error('Error loading alloys:', error));
+}
+
+function loadAvailableRacks() {
+    fetch('/warehouse/api/racks')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const select = document.getElementById('search-rack');
+                data.racks.forEach(rack => {
+                    const option = document.createElement('option');
+                    option.value = rack.id;
+                    option.textContent = `${rack.rack_code} - ${rack.rack_name}`;
+                    select.appendChild(option);
+                });
+
+                // Show filter by rack if there are racks
+                if (data.racks.length > 0) {
+                    document.getElementById('filter-by-rack').style.display = 'block';
+                }
+            }
+        })
+        .catch(error => console.error('Error loading racks:', error));
+}
+
+function performSearch(event) {
+    event.preventDefault();
+
+    const searchParams = new URLSearchParams({
+        q: document.getElementById('search-q').value.trim(),
+        profile: document.getElementById('search-profile').value.trim(),
+        alloy: document.getElementById('search-alloy').value,
+        rack: document.getElementById('search-rack')?.value || ''
+    });
+
+    // Update current search term for form display
+    const form = event.target;
+    if (form.querySelector('[name="q"]')) {
+        form.querySelector('[name="q"]').value = searchParams.get('q');
+    }
+
+    window.location.href = '/warehouse/search?' + searchParams.toString();
+}
+
+// Auto-focus barcode scanner input on page load
+document.addEventListener('DOMContentLoaded', function() {
+    setTimeout(() => {
+        document.getElementById('search-q').focus();
+    }, 100);
+});
+
+// Handle Enter key for quick scanning
+document.addEventListener('keypress', function(e) {
+    if (e.key === 'Enter' && e.target.id === 'search-q') {
+        e.preventDefault();
+        document.getElementById('search-form').dispatchEvent(new Event('submit'));
+    }
+});
+</script>
+{% endblock %}

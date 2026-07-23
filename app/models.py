@@ -1743,6 +1743,185 @@ class WattmonReading(db.Model):
     epoch_ts = db.Column(db.Integer, nullable=True, index=True)
 
 
+# ──────────────────────────────────────────────────────────────────────────────
+# WAREHOUSE MANAGEMENT SYSTEM - TOOL ROOM RACK & DIE TRACKING
+# ──────────────────────────────────────────────────────────────────────────────
+
+class ToolRoomRack(db.Model):
+    """Tool room rack for die storage and organization.
+
+    Supports three rack types:
+    - STORAGE_RACK: General purpose warehouse storage
+    - QUICK_CHANGE_RACK: Near-press fast swap dies
+    - INPRESS_RACK: Dies currently in use at press
+    """
+    __tablename__ = 'tool_room_racks'
+
+    id = db.Column(db.String(36), primary_key=True, default=lambda: str(_uuid.uuid4()))
+    rack_code = db.Column(db.String(64), nullable=False, unique=True, index=True)
+    rack_name = db.Column(db.String(128), nullable=False)
+    rack_type = db.Column(db.String(32), nullable=False, default='STORAGE_RACK')  # STORAGE_RACK | QUICK_CHANGE_RACK | INPRESS_RACK
+    location_zone = db.Column(db.String(64), nullable=True, index=True)  # e.g., ZONE_A, TOOL_ROOM_1
+    total_slots = db.Column(db.Integer, nullable=False, default=20)
+    available_slots = db.Column(db.Integer, nullable=False, default=20)
+    status = db.Column(db.String(32), nullable=False, default='AVAILABLE')  # AVAILABLE | IN_USE | MAINTENANCE
+    description = db.Column(db.Text, nullable=True)
+    is_active = db.Column(db.Boolean, nullable=False, default=True)
+    created_by = db.Column(db.String(128), nullable=True)
+    created_at = db.Column(db.DateTime, server_default=db.func.now())
+    updated_at = db.Column(db.DateTime, server_default=db.func.now(), onupdate=db.func.now())
+
+    # Relationships
+    assignments = db.relationship('DieRackAssignment', backref='rack', lazy='dynamic', cascade='all, delete-orphan')
+    transactions = db.relationship('RackTransaction', backref='rack_ref', lazy='dynamic')
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'rack_code': self.rack_code,
+            'rack_name': self.rack_name,
+            'rack_type': self.rack_type,
+            'location_zone': self.location_zone,
+            'total_slots': self.total_slots,
+            'available_slots': self.available_slots,
+            'status': self.status,
+            'description': self.description,
+            'is_active': self.is_active,
+            'created_by': self.created_by,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'updated_at': self.updated_at.isoformat() if self.updated_at else None
+        }
+
+
+class DieRackAssignment(db.Model):
+    """Tracks which die is stored in which rack slot.
+
+    Links dies to specific rack locations for warehouse management.
+    Supports tracking assignment history and last access time.
+    """
+    __tablename__ = 'die_rack_assignments'
+
+    id = db.Column(db.String(36), primary_key=True, default=lambda: str(_uuid.uuid4()))
+    rack_id = db.Column(db.String(36), db.ForeignKey('tool_room_racks.id', ondelete='CASCADE'), nullable=False)
+    slot_number = db.Column(db.Integer, nullable=False)
+    die_code = db.Column(db.String(64), nullable=False, index=True)  # The die barcode/code stored here
+    die_id = db.Column(db.String(36), db.ForeignKey('dies.id', ondelete='SET NULL'), nullable=True)
+    profile_code = db.Column(db.String(64), nullable=True)
+    alloy = db.Column(db.String(64), nullable=True)
+    assignment_status = db.Column(db.String(32), nullable=False, default='ASSIGNED')  # ASSIGNED | RESERVED | REMOVED
+    assigned_at = db.Column(db.DateTime, server_default=db.func.now())
+    assigned_by = db.Column(db.String(128), nullable=True)
+    last_accessed_at = db.Column(db.DateTime, nullable=True)
+    notes = db.Column(db.Text, nullable=True)
+
+    __table_args__ = (
+        db.UniqueConstraint('rack_id', 'slot_number', name='uq_rack_slot'),
+        db.Index('ix_die_rack_assignments_die_code', 'die_code'),
+        db.Index('ix_die_rack_assignments_die_id', 'die_id'),
+        db.Index('ix_die_rack_assignments_status', 'assignment_status')
+    )
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'rack_id': self.rack_id,
+            'slot_number': self.slot_number,
+            'die_code': self.die_code,
+            'die_id': self.die_id,
+            'profile_code': self.profile_code,
+            'alloy': self.alloy,
+            'assignment_status': self.assignment_status,
+            'assigned_at': self.assigned_at.isoformat() if self.assigned_at else None,
+            'last_accessed_at': self.last_accessed_at.isoformat() if self.last_accessed_at else None,
+            'notes': self.notes
+        }
+
+
+class RackTransaction(db.Model):
+    """Transaction log for all die movements in/out of racks.
+
+    Records IN (scan-in), OUT (scan-out), TRANSFER, and ADJUSTMENT operations
+    with full audit trail including operator and timestamps.
+    """
+    __tablename__ = 'rack_transactions'
+
+    id = db.Column(db.String(36), primary_key=True, default=lambda: str(_uuid.uuid4()))
+    transaction_type = db.Column(db.String(32), nullable=False, index=True)  # IN | OUT | TRANSFER | ADJUSTMENT
+    rack_id = db.Column(db.String(36), db.ForeignKey('tool_room_racks.id', ondelete='SET NULL'), nullable=True)
+    slot_number = db.Column(db.Integer, nullable=True)
+    die_code = db.Column(db.String(64), nullable=False, index=True)  # Die being tracked
+    die_id = db.Column(db.String(36), db.ForeignKey('dies.id', ondelete='SET NULL'), nullable=True)
+    profile_code = db.Column(db.String(64), nullable=True)
+    alloy = db.Column(db.String(64), nullable=True)
+    from_rack_id = db.Column(db.String(36), db.ForeignKey('tool_room_racks.id', ondelete='SET NULL'), nullable=True)  # For TRANSFER source
+    to_rack_id = db.Column(db.String(36), db.ForeignKey('tool_room_racks.id', ondelete='SET NULL'), nullable=True)   # For TRANSFER destination
+    operator_id = db.Column(db.String(128), nullable=False)
+    transaction_time = db.Column(db.DateTime, server_default=db.func.now(), index=True)
+    notes = db.Column(db.Text, nullable=True)
+
+    __table_args__ = (
+        db.Index('ix_rack_transactions_transaction_type', 'transaction_type'),
+        db.Index('ix_rack_transactions_die_code', 'die_code'),
+        db.Index('ix_rack_transactions_operator_id', 'operator_id'),
+        db.Index('ix_rack_transactions_time', 'transaction_time')
+    )
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'transaction_type': self.transaction_type,
+            'rack_id': self.rack_id,
+            'slot_number': self.slot_number,
+            'die_code': self.die_code,
+            'die_id': self.die_id,
+            'profile_code': self.profile_code,
+            'alloy': self.alloy,
+            'from_rack_id': self.from_rack_id,
+            'to_rack_id': self.to_rack_id,
+            'operator_id': self.operator_id,
+            'transaction_time': self.transaction_time.isoformat() if self.transaction_time else None,
+            'notes': self.notes
+        }
+
+
+class DieLocationIndex(db.Model):
+    """Current location index for all dies in warehouse.
+
+    Provides fast lookup of where any die is currently stored.
+    Updated automatically on assignment/removal from racks.
+    Supports search by die_code, profile_code, or alloy.
+    """
+    __tablename__ = 'die_location_index'
+
+    id = db.Column(db.String(36), primary_key=True, default=lambda: str(_uuid.uuid4()))
+    die_code = db.Column(db.String(64), nullable=False, index=True)  # Primary search key
+    rack_id = db.Column(db.String(36), db.ForeignKey('tool_room_racks.id', ondelete='CASCADE'), nullable=False)
+    slot_number = db.Column(db.Integer, nullable=False)
+    profile_code = db.Column(db.String(64), nullable=True, index=True)  # For profile-based search
+    alloy = db.Column(db.String(64), nullable=True, index=True)         # For alloy-based search
+    status = db.Column(db.String(32), nullable=False, default='IN_STOCK')  # IN_STOCK | OUT | UNKNOWN
+    last_updated_at = db.Column(db.DateTime, server_default=db.func.now(), index=True)
+
+    __table_args__ = (
+        db.UniqueConstraint('die_code', name='uq_die_code_current_location'),
+        db.Index('ix_die_location_index_profile_code', 'profile_code'),
+        db.Index('ix_die_location_index_alloy', 'alloy'),
+        db.Index('ix_die_location_index_status', 'status')
+    )
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'die_code': self.die_code,
+            'rack_id': self.rack_id,
+            'slot_number': self.slot_number,
+            'profile_code': self.profile_code,
+            'alloy': self.alloy,
+            'status': self.status,
+            'last_updated_at': self.last_updated_at.isoformat() if self.last_updated_at else None
+        }
+
+
 # ─── EXTRUSION MASTER DATA: CUSTOMER / PART NUMBER / BOM ──────────────────────
 
 class Customer(db.Model):

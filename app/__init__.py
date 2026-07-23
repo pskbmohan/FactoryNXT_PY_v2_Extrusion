@@ -82,6 +82,9 @@ def create_app(config_class=Config):
     from app.routes.spc_charts import bp as spc_charts_bp
     from app.routes.mtc_reports import bp as mtc_reports_bp
 
+    # Warehouse Management System (Tool Room Rack & Die Tracking)
+    from .routes.warehouse_management import bp as warehouse_bp
+
     # Register Quality Reporting & Control System blueprints (Phase 1-3: Database + Services Layer)
     app.register_blueprint(quality_dashboard_bp)           # /quality/dashboard/*
     app.register_blueprint(fpy_reporting_bp)               # /quality/fpy/*
@@ -96,6 +99,9 @@ def create_app(config_class=Config):
     app.register_blueprint(traceability_viewer_bp)         # /quality/traceability/*
     app.register_blueprint(spc_charts_bp)                  # /quality/spc/*
     app.register_blueprint(mtc_reports_bp)                 # /quality/mtc-reports/*
+
+    # Register Warehouse Management System blueprint
+    app.register_blueprint(warehouse_bp)                   # /warehouse/* - Tool Room rack/die tracking
 
     app.register_blueprint(dashboard_bp)
     app.register_blueprint(auth_bp, url_prefix="/auth")
