@@ -145,11 +145,11 @@ def search_dies():
     available_alloys = [a[0] for a in alloys_query.all() if a[0]]
 
     # Get available profiles
-    profiles = [r.profile_code for r in db.session.query(distinct(DieLocationIndex.profile_code))
-                .filter(DieLocationIndex.profile_code.isnot(None)).all() if r.profile_code]
+    profiles = [r[0] for r in db.session.query(distinct(DieLocationIndex.profile_code))
+                .filter(DieLocationIndex.profile_code.isnot(None)).all() if r[0]]
 
     # Get rack types
-    rack_types = [r.rack_type for r in db.session.query(distinct(ToolRoomRack.rack_type)).all()]
+    rack_types = [r[0] for r in db.session.query(distinct(ToolRoomRack.rack_type)).all()]
 
     # Perform search if query parameters provided
     results = []

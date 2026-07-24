@@ -1809,7 +1809,7 @@ class DieRackAssignment(db.Model):
     id = db.Column(db.String(36), primary_key=True, default=lambda: str(_uuid.uuid4()))
     rack_id = db.Column(db.String(36), db.ForeignKey('tool_room_racks.id', ondelete='CASCADE'), nullable=False)
     slot_number = db.Column(db.Integer, nullable=False)
-    die_code = db.Column(db.String(64), nullable=False, index=True)  # The die barcode/code stored here
+    die_code = db.Column(db.String(64), nullable=False)  # The die barcode/code stored here
     die_id = db.Column(db.String(36), db.ForeignKey('dies.id', ondelete='SET NULL'), nullable=True)
     profile_code = db.Column(db.String(64), nullable=True)
     alloy = db.Column(db.String(64), nullable=True)
@@ -1851,10 +1851,10 @@ class RackTransaction(db.Model):
     __tablename__ = 'rack_transactions'
 
     id = db.Column(db.String(36), primary_key=True, default=lambda: str(_uuid.uuid4()))
-    transaction_type = db.Column(db.String(32), nullable=False, index=True)  # IN | OUT | TRANSFER | ADJUSTMENT
+    transaction_type = db.Column(db.String(32), nullable=False)  # IN | OUT | TRANSFER | ADJUSTMENT
     rack_id = db.Column(db.String(36), db.ForeignKey('tool_room_racks.id', ondelete='SET NULL'), nullable=True)
     slot_number = db.Column(db.Integer, nullable=True)
-    die_code = db.Column(db.String(64), nullable=False, index=True)  # Die being tracked
+    die_code = db.Column(db.String(64), nullable=False)  # Die being tracked
     die_id = db.Column(db.String(36), db.ForeignKey('dies.id', ondelete='SET NULL'), nullable=True)
     profile_code = db.Column(db.String(64), nullable=True)
     alloy = db.Column(db.String(64), nullable=True)
@@ -1899,11 +1899,11 @@ class DieLocationIndex(db.Model):
     __tablename__ = 'die_location_index'
 
     id = db.Column(db.String(36), primary_key=True, default=lambda: str(_uuid.uuid4()))
-    die_code = db.Column(db.String(64), nullable=False, index=True)  # Primary search key
+    die_code = db.Column(db.String(64), nullable=False)  # Primary search key
     rack_id = db.Column(db.String(36), db.ForeignKey('tool_room_racks.id', ondelete='CASCADE'), nullable=False)
     slot_number = db.Column(db.Integer, nullable=False)
-    profile_code = db.Column(db.String(64), nullable=True, index=True)  # For profile-based search
-    alloy = db.Column(db.String(64), nullable=True, index=True)         # For alloy-based search
+    profile_code = db.Column(db.String(64), nullable=True)  # For profile-based search
+    alloy = db.Column(db.String(64), nullable=True)         # For alloy-based search
     status = db.Column(db.String(32), nullable=False, default='IN_STOCK')  # IN_STOCK | OUT | UNKNOWN
     last_updated_at = db.Column(db.DateTime, server_default=db.func.now(), index=True)
 
