@@ -28,6 +28,9 @@ from ..models import (
     ProductionSchedule,
     WorkOrder,
 )
+from ..models_aps import ApsScheduleEntry
+from ..services.aps_engine import ApsEngine
+from ..services.bom_service import is_press_machine
 from ..services.scheduler import ScheduleOptimizer
 from ..services.erp_adapter import ERPAdapter
 
@@ -301,84 +304,61 @@ def scheduler():
     except ValueError:
         pass
 
-    # New extrusion plans
-    plans_q = ProcessPlan.query
+    # Same schedule data source as APS Planning / APS Scheduler / Weekly
+    # Board — this page is a read-only alternate view of the same
+    # ApsScheduleEntry rows, not a separate schedule.
+    version = ApsEngine._resolve_version(None)
+    entries_q = ApsScheduleEntry.query.filter(ApsScheduleEntry.version_id == version.id)
     if from_date:
-        plans_q = plans_q.filter(ProcessPlan.scheduled_end >= from_date)
+        entries_q = entries_q.filter(ApsScheduleEntry.scheduled_end >= from_date)
     if to_date:
-        plans_q = plans_q.filter(ProcessPlan.scheduled_start < to_date)
-    plans = plans_q.order_by(ProcessPlan.scheduled_start.asc()).all()
+        entries_q = entries_q.filter(ApsScheduleEntry.scheduled_start < to_date)
+    aps_entries = entries_q.order_by(ApsScheduleEntry.scheduled_start.asc()).all()
 
-    # Filter plans by line (via Machine.line_id) if a specific line was chosen
+    # Filter by line (via Machine.line_id) if a specific line was chosen
     if selected_line:
         try:
             line_id = int(selected_line)
-            plans = [p for p in plans if p.machine_id and Machine.query.get(p.machine_id) and Machine.query.get(p.machine_id).line_id == line_id]
+            aps_entries = [
+                e for e in aps_entries
+                if e.machine_id and Machine.query.get(e.machine_id)
+                and Machine.query.get(e.machine_id).line_id == line_id
+            ]
         except (ValueError, TypeError):
             pass
-
-    # Legacy schedule entries kept for backwards compatibility
-    legacy_q = ProductionSchedule.query
-    if from_date:
-        legacy_q = legacy_q.filter(ProductionSchedule.scheduled_end >= from_date)
-    if to_date:
-        legacy_q = legacy_q.filter(ProductionSchedule.scheduled_start < to_date)
-    legacy = legacy_q.order_by(
-        ProductionSchedule.scheduled_start.asc()
-    ).all()
 
     # Build template-compatible entries list with Gantt coordinates
     entries = []
     min_date = datetime.utcnow()
-    # Compute a min date from the data
-    all_starts = [p.scheduled_start for p in plans if p.scheduled_start] + [
-        l.scheduled_start for l in legacy if l.scheduled_start
-    ]
+    all_starts = [e.scheduled_start for e in aps_entries if e.scheduled_start]
     if all_starts:
         min_date = min(all_starts)
 
-    for idx, plan in enumerate(plans):
-        order_id = plan.order_id
-        customer_order = CustomerOrder.query.get(order_id) if order_id else None
-        machine = Machine.query.get(plan.machine_id) if plan.machine_id else None
+    for idx, entry in enumerate(aps_entries):
+        wo = entry.work_order
+        machine = Machine.query.get(entry.machine_id) if entry.machine_id else None
         bar_x = 50
         bar_y = 40 + idx * 35
         bar_w = 100
-        if plan.scheduled_start and plan.scheduled_end:
-            days = max(1, (plan.scheduled_end - plan.scheduled_start).days)
+        if entry.scheduled_start and entry.scheduled_end:
+            days = max(1, (entry.scheduled_end - entry.scheduled_start).days)
             bar_w = days * 30
-            bar_x = 50 + ((plan.scheduled_start - min_date).days * 30)
+            bar_x = 50 + ((entry.scheduled_start - min_date).days * 30)
         entries.append({
-            "work_order_number": plan.plan_number or "-",
-            "order_number": (customer_order.order_number if customer_order else (plan.plan_number or "-")),
-            "profile_code": plan.profile_shape or (customer_order.product_profile if customer_order else "-"),
+            "work_order_number": wo.order_number if wo else "-",
+            "order_number": wo.order_number if wo else "-",
+            "profile_code": wo.part_number if wo else "-",
             "machine_name": machine.name if machine else "Unassigned",
-            "scheduled_start": plan.scheduled_start.strftime('%Y-%m-%d') if plan.scheduled_start else "-",
-            "scheduled_end": plan.scheduled_end.strftime('%Y-%m-%d') if plan.scheduled_end else "-",
-            "status": (plan.status or "Draft").upper(),
+            "scheduled_start": entry.scheduled_start.strftime('%Y-%m-%d') if entry.scheduled_start else "-",
+            "scheduled_end": entry.scheduled_end.strftime('%Y-%m-%d') if entry.scheduled_end else "-",
+            "status": (entry.status or "PLANNED").upper(),
             "bar_x": bar_x,
             "bar_y": bar_y,
             "bar_w": bar_w,
         })
 
-    for idx, sched in enumerate(legacy):
-        entries.append({
-            "work_order_number": sched.id if hasattr(sched, "id") else "-",
-            "order_number": getattr(sched, "order_number", sched.id if hasattr(sched, "id") else "LEGACY"),
-            "profile_code": getattr(sched, "profile_code", "-"),
-            "machine_name": getattr(sched, "machine_name", "Unassigned"),
-            "scheduled_start": sched.scheduled_start.strftime('%Y-%m-%d') if sched.scheduled_start else "-",
-            "scheduled_end": sched.scheduled_end.strftime('%Y-%m-%d') if sched.scheduled_end else "-",
-            "status": getattr(sched, "status", "Draft").upper(),
-            "bar_x": 50 + (idx * 30),
-            "bar_y": 40 + len(plans) * 35 + idx * 35,
-            "bar_w": 100,
-        })
-
     return render_template(
         "planning/scheduler.html",
-        plans=plans,
-        legacy=legacy,
         entries=entries,
         lines=lines,
         selected_line=selected_line,
@@ -629,58 +609,79 @@ def weekly():
     next_week = (week_mon + timedelta(weeks=1)).strftime("%Y-W%W")
     current_week_label = week_mon.strftime("Week of %d %b %Y")
 
-    # is_active column may not exist on all installs — fall back to status check
+    # Press-only: the press is the only schedulable resource (see
+    # is_press_machine in app/services/bom_service.py). is_active column
+    # may not exist on all installs — fall back to status check.
     try:
-        machines = Machine.query.filter_by(is_active=True).order_by(Machine.name).all()
+        machines = [
+            m for m in Machine.query.filter_by(is_active=True).order_by(Machine.name).all()
+            if is_press_machine(m)
+        ]
     except Exception:
-        machines = Machine.query.filter(
-            Machine.status.in_(["Running", "Available", "Idle", "Active"])
-        ).order_by(Machine.name).all()
+        machines = [
+            m for m in Machine.query.filter(
+                Machine.status.in_(["Running", "Available", "Idle", "Active"])
+            ).order_by(Machine.name).all()
+            if is_press_machine(m)
+        ]
 
-    # If still empty, grab ALL machines so the weekly board never renders blank
+    # If still empty, grab ALL press machines so the weekly board never
+    # renders blank purely due to a status-filter mismatch.
     if not machines:
-        machines = Machine.query.order_by(Machine.name).all()
+        machines = [m for m in Machine.query.order_by(Machine.name).all() if is_press_machine(m)]
 
     week_start_dt = datetime.combine(week_days[0], datetime.min.time())
     week_end_dt = datetime.combine(week_days[-1], datetime.max.time())
 
-    # Guard: scheduled_start may be NULL in the DB — exclude those rows,
-    # and swallow any SQLAlchemy error so the page never 500s on a query issue.
+    # Same schedule data source as APS Planning / APS Scheduler — Weekly
+    # Board is a calendar view of the same ApsScheduleEntry rows, not a
+    # separate schedule.
+    version = ApsEngine._resolve_version(None)
     try:
-        plans = ProcessPlan.query.filter(
-            ProcessPlan.scheduled_start != None,
-            ProcessPlan.scheduled_start < week_end_dt,
-            ProcessPlan.scheduled_end > week_start_dt,
+        entries = ApsScheduleEntry.query.filter(
+            ApsScheduleEntry.version_id == version.id,
+            ApsScheduleEntry.scheduled_start != None,
+            ApsScheduleEntry.scheduled_start < week_end_dt,
+            ApsScheduleEntry.scheduled_end > week_start_dt,
         ).all()
     except Exception:
-        plans = []
+        entries = []
 
     slot_map = {}
     for m in machines:
         slot_map[str(m.id)] = {d.strftime("%Y-%m-%d"): [] for d in week_days}
 
-    for plan in plans:
+    scheduled_wo_ids = set()
+    for entry in entries:
         try:
-            if not plan.machine_id or not plan.scheduled_start:
+            if not entry.machine_id or not entry.scheduled_start:
                 continue
-            mid = str(plan.machine_id)
-            # scheduled_start might be a date object, not datetime — handle both
-            ss = plan.scheduled_start
-            if hasattr(ss, 'strftime'):
-                day_key = ss.strftime("%Y-%m-%d")
-            else:
-                day_key = str(ss)[:10]
+            if entry.work_order_id:
+                scheduled_wo_ids.add(entry.work_order_id)
+            mid = str(entry.machine_id)
+            day_key = entry.scheduled_start.strftime("%Y-%m-%d")
             if mid in slot_map and day_key in slot_map[mid]:
-                slot_map[mid][day_key].append(plan)
+                wo = entry.work_order
+                slot_map[mid][day_key].append({
+                    "id": entry.id,
+                    "status": entry.status,
+                    "profile_shape": wo.part_number if wo else None,
+                    "plan_number": wo.order_number if wo else None,
+                    "priority": entry.priority,
+                })
         except Exception:
             continue
 
     # Case-insensitive status filter — DB may hold "RELEASED", "Released", etc.
+    # Exclude WOs that already have an entry in the current version so they
+    # don't show as both scheduled-on-calendar and draggable-unscheduled.
     unscheduled_wos = WorkOrder.query.filter(
         WorkOrder.status.in_(["RELEASED", "Released", "PLANNED", "Planned", "DRAFT", "Draft"])
     ).all()
     unscheduled = []
     for wo in unscheduled_wos:
+        if wo.id in scheduled_wo_ids:
+            continue
         unscheduled.append({
             "id": wo.id,
             "wo_number": wo.order_number,
@@ -708,7 +709,7 @@ def weekly():
         })
     overall_capacity_pct = round((filled_slots / total_slots) * 100) if total_slots else 0
 
-    week_is_locked = any(p.status == "Locked" for p in plans)
+    week_is_locked = any(e.is_locked for e in entries)
 
     return render_template(
         "planning/weekly.html",
@@ -751,6 +752,8 @@ def weekly_assign():
         machine = None
     if not wo or not machine:
         return jsonify({"ok": False, "error": "WO or Machine not found"}), 404
+    if not is_press_machine(machine):
+        return jsonify({"ok": False, "error": f"{machine.name} is not a press — scheduling is press-only"}), 400
 
     try:
         day = datetime.strptime(day_str, "%Y-%m-%d")
@@ -762,47 +765,42 @@ def weekly_assign():
 
     start = day.replace(hour=6, minute=0)
     end = day.replace(hour=22, minute=0)
-    existing = ProcessPlan.query.filter(
-        ProcessPlan.machine_id == machine_id,
-        ProcessPlan.scheduled_start >= start,
-        ProcessPlan.scheduled_start < end,
+    version = ApsEngine._resolve_version(None)
+    existing = ApsScheduleEntry.query.filter(
+        ApsScheduleEntry.version_id == version.id,
+        ApsScheduleEntry.machine_id == machine.id,
+        ApsScheduleEntry.scheduled_start < end,
+        ApsScheduleEntry.scheduled_end > start,
     ).first()
     if existing:
         return jsonify({
             "ok": False,
-            "error": f"Slot already occupied by plan {existing.plan_number}",
+            "error": f"Slot already occupied by WO {existing.work_order.order_number if existing.work_order else existing.work_order_id}",
             "conflict": True,
         }), 409
 
-    plan_number_base = f"PLAN-{wo.order_number.replace('WO-', '')}-{day_str.replace('-', '')}"
-    plan_number = plan_number_base
-    suffix = 1
-    while ProcessPlan.query.filter_by(plan_number=plan_number).first():
-        plan_number = f"{plan_number_base}-{suffix}"
-        suffix += 1
-
-    plan = ProcessPlan(
+    entry = ApsScheduleEntry(
         id=str(uuid.uuid4()),
-        plan_number=plan_number,
-        machine_id=machine_id,
+        version_id=version.id,
+        work_order_id=wo.id,
+        machine_id=machine.id,
         scheduled_start=start,
         scheduled_end=end,
-        status="Scheduled",
+        status="PLANNED",
+        constraint_status="FEASIBLE",
         priority=wo.priority or "Medium",
-        created_by=session.get("username"),
-        profile_shape=wo.part_number,
+        notes=f"Manually assigned via Weekly Board by {session.get('username')}",
     )
-    db.session.add(plan)
-
-    wo.status = "PLANNED"
-    wo.scheduled_start = start
-    wo.scheduled_end = end
+    db.session.add(entry)
+    # WO lifecycle status is independent of scheduling state (matches
+    # ApsEngine.auto_schedule, which never mutates wo.status either) — only
+    # the ApsScheduleEntry tracks that this WO is now placed on the calendar.
 
     try:
         db.session.commit()
         return jsonify({
             "ok": True,
-            "plan_number": plan_number,
+            "entry_id": entry.id,
             "die_warning": not die_ok,
         })
     except Exception as e:
@@ -817,27 +815,21 @@ def weekly_unassign():
         return jsonify({"ok": False, "error": "Not authenticated"}), 401
 
     data = request.json or {}
-    plan_id = data.get("plan_id")
-    plan = db.session.get(ProcessPlan, plan_id)
-    if not plan:
-        return jsonify({"ok": False, "error": "Plan not found"}), 404
-    if plan.status == "Locked":
-        return jsonify({"ok": False, "error": "Plan is locked — unlock first"}), 400
+    entry_id = data.get("entry_id")
+    entry = db.session.get(ApsScheduleEntry, entry_id)
+    if not entry:
+        return jsonify({"ok": False, "error": "Schedule entry not found"}), 404
+    if entry.is_locked:
+        return jsonify({"ok": False, "error": "Entry is locked — unlock first"}), 400
 
-    wo = WorkOrder.query.filter_by(order_number=plan.plan_number.replace("PLAN-", "WO-")).first()
-    if wo:
-        wo.status = "RELEASED"
-        wo.scheduled_start = None
-        wo.scheduled_end = None
-
-    db.session.delete(plan)
+    db.session.delete(entry)
     db.session.commit()
     return jsonify({"ok": True})
 
 
 @bp.route("/planning/weekly/lock", methods=["POST"])
 def weekly_lock():
-    """Lock or unlock all plans in a given week."""
+    """Lock or unlock all schedule entries in a given week."""
     if "username" not in session:
         return jsonify({"ok": False, "error": "Not authenticated"}), 401
 
@@ -854,14 +846,17 @@ def weekly_lock():
         return jsonify({"ok": False, "error": "Invalid week_key format"}), 400
 
     week_end = week_mon + timedelta(days=7)
-    plans = ProcessPlan.query.filter(
-        ProcessPlan.scheduled_start >= week_mon,
-        ProcessPlan.scheduled_start < week_end,
+    version = ApsEngine._resolve_version(None)
+    entries = ApsScheduleEntry.query.filter(
+        ApsScheduleEntry.version_id == version.id,
+        ApsScheduleEntry.scheduled_start >= week_mon,
+        ApsScheduleEntry.scheduled_start < week_end,
     ).all()
 
-    new_status = "Locked" if locked else "Scheduled"
-    for plan in plans:
-        plan.status = new_status
+    for entry in entries:
+        entry.is_locked = locked
+        entry.locked_by = session.get("username") if locked else None
+        entry.locked_at = datetime.utcnow() if locked else None
 
     db.session.commit()
-    return jsonify({"ok": True, "updated": len(plans), "status": new_status})
+    return jsonify({"ok": True, "updated": len(entries), "locked": locked})

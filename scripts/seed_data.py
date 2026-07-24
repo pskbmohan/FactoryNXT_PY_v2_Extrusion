@@ -38,12 +38,14 @@ from app.models import (
     WorkOrder, PcbPanel, PcbBoard, UnitHistory, SmtLine, OeeSnapshot, DowntimeEvent,
     ProcessPlan, ProductionSchedule, AuditLog, GenealogyEvent, TraceabilityRecord,
     InspectionPlan,
+    Customer, PartNumber, CustomerPartNumber, PartNumberBOM, CustomerOrderLine,
 )
 from app.models_aps import (
     ApsScheduleVersion, ApsScheduleEntry, ApsConstraintLog, ApsScheduleEvent,
 )
 from app.models_routing import RoutingMaster, RoutingStepV2
-from app.services.aps_engine import ApsEngine
+from app.services.aps_engine import ApsEngine, DIE_READY_STATUSES, BILLET_READY_STATUSES
+from app.services.work_order_service import create_wo_from_order_line
 
 def _u():
     return str(uuid.uuid4())
@@ -841,7 +843,86 @@ def seed_aps_data():
     print(f"  +{len(sample_logs)} sample constraint-log rows (die/billet/machine/capacity)")
 
 
-# ── Main orchestrator ───────────────────────────────────────────────────
+def seed_bom_master_data_demo():
+    """One end-to-end Customer -> Part Number -> BOM -> Order -> Press chain.
+
+    Demonstrates the full BOM-driven planning flow: Customer, Part Number,
+    Customer<->Part Number mapping, and Part Number BOM (app/models.py) were
+    previously never seeded, so those master-data nav pages were empty and
+    the working create_wo_from_order_line() service (app/services/
+    work_order_service.py) had never been exercised end-to-end. This creates
+    one real order line, generates its WO through that same service (BOM
+    resolution, not a shortcut), then runs ApsEngine.auto_schedule() so it
+    lands on a press machine and shows up consistently across APS Planning,
+    APS Scheduler, Weekly Board, and Scheduler (Legacy) — all four read the
+    same ApsScheduleEntry rows.
+    """
+    print("[29] Seeding BOM master-data demo chain (Customer -> Part Number -> BOM -> Press) ...")
+    if Customer.query.filter_by(customer_code="ACME-01").first():
+        print("  skipped")
+        return
+
+    die = Die.query.filter(Die.status.in_(list(DIE_READY_STATUSES))).first()
+    billet = Billet.query.filter(Billet.status.in_(list(BILLET_READY_STATUSES))).first()
+    if not die or not billet:
+        print("  skipped (need a ready die + billet — run seed_dies_and_workflow/seed_billets first)")
+        return
+
+    customer = Customer(
+        id=_u(), customer_code="ACME-01", customer_name="Acme Extrusions",
+        contact_email="ops@acme-extrusions.example", is_active=True,
+    )
+    part = PartNumber(
+        id=_u(), part_code="PN-DEMO-100", description="Demo BOM-driven extrusion profile",
+        profile_code=die.profile_code, alloy=billet.alloy, unit_weight_kg=2.5, uom="KG",
+        is_active=True,
+    )
+    db.session.add_all([customer, part])
+    db.session.flush()
+
+    mapping = CustomerPartNumber(
+        id=_u(), customer_id=customer.id, part_number_id=part.id,
+        customer_part_ref="ACME-PN-100", is_active=True,
+    )
+    bom = PartNumberBOM(
+        id=_u(), part_number_id=part.id, version=1,
+        die_type_id=die.id, billet_type_id=billet.id,
+        billet_weight_kg=billet.quantity_kg or 2.5, extrusion_ratio=18.0,
+        notes="Seeded demo BOM", is_active=True, created_by="seed",
+    )
+    db.session.add_all([mapping, bom])
+
+    order = CustomerOrder(
+        id=_u(), order_number="CO-DEMO-100", customer_name=customer.customer_name,
+        product_profile=part.profile_code, alloy=part.alloy, quantity_tons=1.0,
+        due_date=date.today() + timedelta(days=10), status="CONFIRMED",
+    )
+    db.session.add(order)
+    db.session.flush()
+
+    line = CustomerOrderLine(
+        id=_u(), order_id=order.id, part_number_id=part.id, line_number=1,
+        ordered_qty=25, uom="KG", required_date=order.due_date,
+        customer_po_reference="PO-ACME-1001", status="OPEN",
+    )
+    db.session.add(line)
+    db.session.flush()
+
+    wo = create_wo_from_order_line(line.id, priority="HIGH")
+    print(f"  {customer.customer_name} / {part.part_code} / {order.order_number} "
+          f"-> WO {wo.order_number} (die={die.die_code}, billet={billet.billet_code})")
+
+    schedule_result = ApsEngine.auto_schedule(planned_by="seed", preserve_locked=True)
+    entry = ApsScheduleEntry.query.filter_by(work_order_id=wo.id).first()
+    if entry:
+        machine = Machine.query.get(entry.machine_id)
+        print(f"  scheduled on {machine.name if machine else entry.machine_id}: "
+              f"{entry.scheduled_start:%Y-%m-%d %H:%M} -> {entry.scheduled_end:%Y-%m-%d %H:%M}")
+    else:
+        print(f"  WARNING: WO {wo.order_number} was not scheduled — "
+              f"unassigned={schedule_result.get('unassigned')}")
+
+
 def seed_admin_master():
     print("[15/18] Seeding plant / roles / users / integrations ...")
     if Plant.query.first() and Integration.query.first() and UserProfile.query.first():
@@ -2236,6 +2317,7 @@ def main():
         seed_audit_trail()
         seed_extrusion_traceability()
         seed_aps_data()
+        seed_bom_master_data_demo()
         # --- Extrusion modules seed data ---
         seed_die_lifecycle_extended()
         seed_material_receipt_module()

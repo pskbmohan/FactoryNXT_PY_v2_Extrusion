@@ -20,6 +20,8 @@ from app.models_aps import (
 )
 from app.models import Machine, Die, WorkOrder
 from app.services.wo_probability import calculate_wo_probability
+from app.services.bom_service import is_press_machine
+from app.services.aps_engine import ApsEngine
 
 # ── Page blueprint ────────────────────────────────────────────────────────────
 aps_page_bp = Blueprint('aps', __name__, url_prefix='/aps')
@@ -35,17 +37,24 @@ def _version_horizon(version):
 
 
 def _active_machines():
-    """Return active machines, defensively handling the missing `is_active` column.
+    """Return active *press* machines, defensively handling the missing
+    `is_active` column.
+
+    Scheduling is press-only: the press is the actual bottleneck resource,
+    other station types (HLS, Quench, Puller, Stretch, Oven) are downstream
+    steps of the same run, not separate schedulable capacity. See
+    is_press_machine() in app/services/bom_service.py.
 
     Falls back (in order):
       1. filter_by(is_active=True)
       2. filter by status in common 'active' values
       3. ALL machines if nothing else works
+    Each tier is then filtered down to press machines only.
     """
     try:
         machines = Machine.query.filter_by(is_active=True).all()
         if machines:
-            return machines
+            return [m for m in machines if is_press_machine(m)]
     except Exception:
         pass
     try:
@@ -53,10 +62,10 @@ def _active_machines():
             Machine.status.in_(["Running", "Available", "Idle", "Active"])
         ).all()
         if machines:
-            return machines
+            return [m for m in machines if is_press_machine(m)]
     except Exception:
         pass
-    return Machine.query.order_by(Machine.name).all()
+    return [m for m in Machine.query.order_by(Machine.name).all() if is_press_machine(m)]
 
 
 def _safe_entries_for_version(version):
@@ -123,7 +132,7 @@ def _entry_to_dict(e):
 
 def _build_cockpit_context():
     """Build the full context dict required by aps/cockpit.html."""
-    version  = ApsScheduleVersion.query.order_by(ApsScheduleVersion.created_at.desc()).first()
+    version  = ApsEngine._resolve_version(None)
     entries  = _safe_entries_for_version(version)
     machines = _active_machines()
 
@@ -249,20 +258,8 @@ def wo_probability_page():
 def api_gantt():
     """Return current schedule version data for the Gantt chart."""
     try:
-        version = ApsScheduleVersion.query.order_by(ApsScheduleVersion.created_at.desc()).first()
+        version = ApsEngine._resolve_version(None)
         now     = datetime.utcnow()
-
-        if not version:
-            return jsonify({
-                'version':           None,
-                'machines':          [],
-                'entries_by_machine': {},
-                'blocked_by_machine': {},
-                'horizon': {
-                    'start': now.strftime('%Y-%m-%dT%H:%M:%S'),
-                    'end':   (now + timedelta(days=7)).strftime('%Y-%m-%dT%H:%M:%S'),
-                },
-            })
 
         horizon_start, horizon_end = _version_horizon(version)
         machines = _active_machines()
@@ -416,9 +413,9 @@ def api_replan():
         data            = request.json or {}
         preserve_locked = data.get('preserve_locked', True)
 
-        version = ApsScheduleVersion.query.order_by(ApsScheduleVersion.created_at.desc()).first()
+        version = ApsEngine._resolve_version(None)
         locked_entries = []
-        if version and preserve_locked:
+        if preserve_locked:
             locked_entries = ApsScheduleEntry.query.filter_by(
                 version_id=version.id, is_locked=True
             ).all()
@@ -589,7 +586,9 @@ def api_schedule_score():
             int((e.scheduled_end - e.scheduled_start).total_seconds() / 60)
             for e in entries
         )
-        machine_count = Machine.query.filter_by(is_active=True).count() or 1
+        # Press-only: capacity is measured against press machines only, since
+        # that's the only resource type entries are ever scheduled on.
+        machine_count = len(_active_machines()) or 1
         days = version.planning_horizon_days or 7
         capacity_min = days * 24 * 60 * machine_count
         utilization = total_load / capacity_min if capacity_min else 0
@@ -688,10 +687,11 @@ def api_auto_schedule_v2():
         open_wos = WorkOrder.query.filter(
             WorkOrder.status.in_(["RELEASED", "PLANNED"])
         ).all()
-        machines = Machine.query.filter_by(is_active=True).all()
+        # Press-only: see is_press_machine() in app/services/bom_service.py.
+        machines = [m for m in Machine.query.filter_by(is_active=True).all() if is_press_machine(m)]
 
         if not machines:
-            return jsonify({"ok": False, "error": "No active machines configured"}), 400
+            return jsonify({"ok": False, "error": "No active press machines configured"}), 400
 
         if algorithm == "DUE_DATE":
             open_wos = sorted(

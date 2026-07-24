@@ -46,6 +46,7 @@ from ..models import (
 from ..services.bom_service import (
     get_eligible_machines_for_die,
     check_billet_availability,
+    is_press_machine,
 )
 from ..models_routing import RoutingMaster, RoutingStepV2
 from ..models_aps import (
@@ -612,7 +613,21 @@ class ApsEngine:
             else:
                 remove_from_existing.append(e)
 
-        # Remove unlocked entries so the scheduler can replace them
+        # Remove unlocked entries so the scheduler can replace them.
+        # ApsScheduleEvent.entry_id and ApsConstraintLog.entry_id have no ON
+        # DELETE behavior, so an entry referenced by a past event or
+        # constraint log (e.g. a demo LOCK event, or a DUE_DATE_AT_RISK log)
+        # would otherwise raise a ForeignKeyViolation here — null out both
+        # references first, keeping the audit rows but detaching them from
+        # the entry being replaced.
+        if remove_from_existing:
+            removed_ids = [e.id for e in remove_from_existing]
+            ApsScheduleEvent.query.filter(
+                ApsScheduleEvent.entry_id.in_(removed_ids)
+            ).update({"entry_id": None}, synchronize_session=False)
+            ApsConstraintLog.query.filter(
+                ApsConstraintLog.entry_id.in_(removed_ids)
+            ).update({"entry_id": None}, synchronize_session=False)
         for e in remove_from_existing:
             db.session.delete(e)
         db.session.flush()
@@ -664,17 +679,18 @@ class ApsEngine:
             alloy = cls._extract_alloy_from_description(wo.description)
             profile = wo.part_number or None
 
-            # Determine candidate machines (any machine that's not Down/Maintenance)
+            # Determine candidate machines: press-only (the actual bottleneck
+            # resource — see is_press_machine()), not Down/Maintenance.
             candidate_machines = [
                 m for m in machines
-                if m.status not in ("Down", "Maintenance")
+                if m.status not in ("Down", "Maintenance") and is_press_machine(m)
             ]
             if not candidate_machines:
                 reason_codes.append("NO_MACHINE_CAPACITY")
                 cls._log_constraint(
                     version.id, wo.id, None,
                     reason_code="NO_MACHINE_CAPACITY",
-                    message="No machines available; all in Down/Maintenance state.",
+                    message="No press machines available; all in Down/Maintenance state (or none configured as Press-*).",
                     severity="CRITICAL",
                     logs=constraint_logs,
                 )
@@ -729,11 +745,18 @@ class ApsEngine:
 
                 if bom_die and bom_die.status in DIE_READY_STATUSES:
                     die_to_assign = bom_die
-                    # Check billet availability using BOM's required weight
+                    # Check billet availability using the BOM's declared
+                    # per-unit weight (bom_die.profile_code is a string like
+                    # "P100" — not a weight; using it here was a bug that
+                    # crashed on any BOM-driven WO with TypeError).
                     wo_quantity = max(1, int(wo.quantity or 1))
-                    bom_billet_weight = getattr(bom_billet, 'quantity_kg', None)
+                    per_unit_weight_kg = (
+                        wo.bom_ref.billet_weight_kg
+                        if wo.bom_ref and wo.bom_ref.billet_weight_kg
+                        else 1.0
+                    )
                     if bom_billet and bom_billet.status in BILLET_READY_STATUSES:
-                        billet_check = check_billet_availability(wo.billet_type_id, wo_quantity * (bom_die.profile_code or 1))
+                        billet_check = check_billet_availability(wo.billet_type_id, wo_quantity * per_unit_weight_kg)
                         if billet_check['available']:
                             billet_to_assign = bom_billet
 

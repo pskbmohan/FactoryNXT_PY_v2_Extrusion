@@ -262,7 +262,7 @@
     fetch("{{ url_for('planning.weekly_unassign') }}", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ plan_id: planId })
+      body: JSON.stringify({ entry_id: planId })
     })
     .then(function(r) { return r.json(); })
     .then(function(d) {
