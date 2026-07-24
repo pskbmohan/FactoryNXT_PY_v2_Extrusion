@@ -9,6 +9,18 @@ This module provides functions for:
 from app.models import PartNumberBOM, CustomerPartNumber, PartNumber
 from app import db
 
+# Scheduling is press-only: the press is the actual bottleneck resource.
+# Other station types (HLS, Quench, Puller, Stretch, Oven) are downstream
+# steps of the same run, not separate schedulable capacity. Adding another
+# press later just means naming it "Press-..." in Machine Master — no code
+# change needed.
+PRESS_NAME_PREFIX = "press"
+
+
+def is_press_machine(machine) -> bool:
+    """True if this machine is a press (the only schedulable resource type)."""
+    return bool(machine.name) and machine.name.strip().lower().startswith(PRESS_NAME_PREFIX)
+
 
 def get_active_bom(part_number_id: str):
     """Get the most recent active BOM for a part number.
@@ -85,8 +97,10 @@ def get_eligible_machines_for_die(die_type_id: str) -> list:
     die = Die.query.get(die_type_id)
     if not die:
         return []
-    # Return all idle machines - can be extended with more specific matching logic
-    return Machine.query.filter_by(is_active=True, status='Idle').all()
+    # Press-only: see is_press_machine() above. Can be extended with more
+    # specific die/press capacity matching logic later.
+    idle_machines = Machine.query.filter_by(is_active=True, status='Idle').all()
+    return [m for m in idle_machines if is_press_machine(m)]
 
 
 def check_billet_availability(billet_type_id: str, required_kg: float) -> dict:
