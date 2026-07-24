@@ -2150,6 +2150,66 @@ def seed_warehouse_data():
     print(f"  +{len(configs)} cost price configurations")
 
 
+def seed_wo_probability_demo():
+    """Three already-running WOs tuned to land at ~55% / ~80% / 100% on the
+    on-time probability dashboard (see app/services/wo_probability.py).
+
+    Note on the "50%" row: pace_index == 1.0 (progress exactly matching
+    time consumed) mathematically implies time_buffer_hours == 0, which
+    sits right on the formula's -20%/no-adjustment discontinuity — any
+    real-time drift at all flips it. Rather than aim for an exact-50 value
+    that would flip to "critical" within minutes, this uses produced_qty=58
+    (base probability 58, at_risk) chosen so that *even after* the -20%
+    penalty (58*0.8=46.4) or +10% boost (58*1.1=63.8) it stays inside the
+    at_risk band [40,70) — the status chip is stable even though the exact
+    percentage will wobble a few points depending on query timing.
+
+    All three figures are otherwise only exact at seed time: produced_qty
+    is static demo data (no production-reporting flow updates it yet), so
+    probability keeps drifting as real wall-clock time passes without
+    matching output — the same staleness every other "last N hours" demo
+    row in this script has. Re-run this after deleting the WO-PROB-DEMO-*
+    rows if you want fresh numbers.
+    """
+    print("[28] Seeding WO on-time-probability demo orders (~55% / ~80% / 100%) ...")
+    if WorkOrder.query.filter_by(order_number="WO-PROB-DEMO-50").first():
+        print("  skipped")
+        return
+
+    now = datetime.utcnow()
+    demo_wos = [
+        WorkOrder(
+            id="WO-PROB-DEMO-50", order_number="WO-PROB-DEMO-50", part_number="P100",
+            description="On-time probability demo — at risk (~55%)",
+            quantity=100, produced_qty=58, status="RUNNING", priority="Medium",
+            released_at=now - timedelta(hours=7),
+            started_at=now - timedelta(hours=6),
+            due_date=now + timedelta(hours=6),
+        ),
+        WorkOrder(
+            id="WO-PROB-DEMO-80", order_number="WO-PROB-DEMO-80", part_number="P101",
+            description="On-time probability demo — ahead of pace (~80%)",
+            quantity=100, produced_qty=80, status="RUNNING", priority="Medium",
+            released_at=now - timedelta(hours=7),
+            started_at=now - timedelta(hours=6),
+            due_date=now + timedelta(hours=6),
+        ),
+        # Fully produced but still open — plausible real state (production
+        # done, WO awaiting formal close-out). Must stay RUNNING/RELEASED,
+        # not COMPLETED, or the dashboard's active-WO filter would hide it.
+        WorkOrder(
+            id="WO-PROB-DEMO-100", order_number="WO-PROB-DEMO-100", part_number="P102",
+            description="On-time probability demo — already complete (100%)",
+            quantity=100, produced_qty=100, status="RUNNING", priority="Low",
+            released_at=now - timedelta(hours=16),
+            started_at=now - timedelta(hours=15),
+            due_date=now + timedelta(hours=5),
+        ),
+    ]
+    db.session.add_all(demo_wos)
+    print(f"  +{len(demo_wos)} demo work orders (~55%, ~80%, 100% on-time probability)")
+
+
 def main():
     app = create_app()
     with app.app_context():
@@ -2186,6 +2246,7 @@ def main():
         seed_logistics_module()
         seed_cost_price_module()
         seed_warehouse_data()
+        seed_wo_probability_demo()
         db.session.commit()
 
         print()
