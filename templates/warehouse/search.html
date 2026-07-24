@@ -1,0 +1,172 @@
+{% extends "base.html" %}
+
+{% block title %}Search Die Locations - Warehouse System{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Page Header -->
+    <div class="row mb-4">
+        <div class="col-md-12 d-flex justify-content-between align-items-center">
+            <h3><i class="fas fa-search me-2"></i>Search Die Locations</h3>
+            <a href="{{ url_for('warehouse.warehouse_dashboard') }}" class="btn btn-outline-secondary">
+                <i class="fas fa-home me-1"></i>Back to Dashboard
+            </a>
+        </div>
+    </div>
+
+    <!-- Search Form -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="fas fa-search me-2"></i>Search Criteria</h5>
+                </div>
+                <div class="card-body p-4">
+                    <!-- Keyboard shortcuts help -->
+                    <div class="alert alert-info py-2 mb-3" role="alert">
+                        <small><i class="fas fa-keyboard me-1"></i>Shortcuts:
+                            <kbd class="px-2 py-1 bg-dark">Ctrl+F</kbd> Focus search |
+                            <kbd class="px-2 py-1 bg-dark">Enter</kbd> Submit |
+                            <kbd class="px-2 py-1 bg-dark">Esc</kbd> Clear
+                        </small>
+                    </div>
+
+                    <form id="search-form" onsubmit="return false;">
+                        <div class="row g-3 align-items-end position-relative">
+                            <!-- Search term input with autocomplete -->
+                            <div class="col-md-6">
+                                <label for="search-q" class="form-label fw-bold"><i class="fas fa-barcode me-1"></i>Die Code / Search Term</label>
+                                <input type="text" class="form-control form-control-lg" id="search-q" name="q"
+                                       value="{{ current_search if current_search else '' }}"
+                                       placeholder="Enter die code, profile, or partial match..."
+                                       autocomplete="off">
+
+                                <!-- Autocomplete dropdown -->
+                                <div id="autocomplete-list" class="list-group position-absolute w-auto shadow-lg d-none z-index-1050" style="top: 100%; left: 0; max-height: 300px; overflow-y: auto;"></div>
+                            </div>
+
+                            <!-- Profile filter -->
+                            <div class="col-md-3">
+                                <label for="search-profile" class="form-label fw-bold"><i class="fas fa-list me-1"></i>Profile Code</label>
+                                <select class="form-select form-select-lg" id="search-profile" name="profile">
+                                    <option value="">All Profiles</option>
+                                    <!-- Will be populated dynamically -->
+                                </select>
+                            </div>
+
+                            <!-- Alloy filter -->
+                            <div class="col-md-3">
+                                <label for="search-alloy" class="form-label fw-bold"><i class="fas fa-cube me-1"></i>Alloy</label>
+                                <select class="form-select form-select-lg" id="search-alloy" name="alloy">
+                                    <option value="">All Alloys</option>
+                                    <!-- Will be populated dynamically -->
+                                </select>
+                            </div>
+
+                            <!-- Rack filter (hidden initially) -->
+                            <div id="filter-by-rack" class="col-md-12 d-none mt-3 pt-2 border-top">
+                                <label for="search-rack" class="form-label fw-bold"><i class="fas fa-box me-1"></i>Rack Location</label>
+                                <select class="form-select form-select-lg w-auto align-middle ms-2" id="search-rack">
+                                    <option value="">All Racks</option>
+                                    <!-- Will be populated dynamically -->
+                                </select>
+                            </div>
+
+                        </div>
+                        <hr>
+                        <button type="submit" class="btn btn-primary btn-lg me-2" onclick="handleSearchSubmit(event)">
+                            <i class="fas fa-search me-1"></i>Search Dies
+                        </button>
+                        <a href="{{ url_for('warehouse.search_dies') }}" class="btn btn-outline-secondary btn-lg">
+                            <i class="fas fa-redo me-1"></i>Reset Search
+                        </a>
+                    </form>
+
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Search Results -->
+    <div class="row mb-4" id="search-results-container">
+        {% if search_performed and results %}
+            <div class="col-md-12">
+                <div class="mb-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
+                    <div>
+                        <span class="badge bg-primary me-2">{{ current_search }}</span>
+                        {% if results|length > 0 %}
+                            <span class="badge bg-success">{{ results|length }} die(s) found</span>
+                        {% else %}
+                            <span class="badge bg-secondary">No results</span>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Results grouped by rack -->
+                {% for result in results %}
+                    <div class="card mb-3 border-start border-{% if loop.first %}primary{% else %}secondary{% endif %}" style="border-width: 4px;">
+                        <div class="card-header bg-light">
+                            <h6 class="mb-0">
+                                <i class="fas fa-box me-2"></i>{{ result.rack_code }} - {{ result.rack_name }}
+                                {% if result.location_zone %}
+                                    <span class="badge bg-secondary ms-2">{{ result.location_zone }}</span>
+                                {% endif %}
+                            </h6>
+                        </div>
+                        <div class="card-body p-0">
+                            <table class="table table-striped mb-0">
+                                <thead class="table-dark">
+                                    <tr>
+                                        <th>Die Code</th>
+                                        <th>Slot</th>
+                                        <th>Profile</th>
+                                        <th>Alloy</th>
+                                        <th>Last Updated</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td><strong>{{ result.die_code }}</strong></td>
+                                        <td><span class="badge bg-info">Slot {{ result.slot_id }}</span></td>
+                                        <td>{{ result.profile_code or '-' }}</td>
+                                        <td>{{ result.alloy or '-' }}</td>
+                                        <td>{{ result.updated_at.strftime('%Y-%m-%d %H:%M') if result.updated_at else 'N/A' }}</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                {% endfor %}
+
+            </div>
+        {% elif search_performed and not results %}
+            <div class="col-md-12 text-center py-5">
+                <i class="fas fa-search fa-4x mb-3 text-muted"></i>
+                <h5>No matches found</h5>
+                <p class="text-muted">Try adjusting your search criteria or use broader terms.</p>
+            </div>
+        {% else %}
+            <div class="col-md-12 text-center py-5 text-muted">
+                <i class="fas fa-search fa-4x mb-3"></i>
+                <h5>Enter search criteria above to find die locations</h5>
+                <p class="text-muted">Use the barcode scanner or type a die code, profile, or partial match.</p>
+            </div>
+        {% endif %}
+    </div>
+
+</div>
+
+<!-- Hidden container for AJAX results -->
+<div id="search-results-template" style="display: none;">
+    <!-- Populated dynamically via JavaScript -->
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/warehouse-search.js') }}"></script>
+<script>
+// Initialize search module on page load
+WarehouseSearch.focus();
+</script>
+{% endblock %}

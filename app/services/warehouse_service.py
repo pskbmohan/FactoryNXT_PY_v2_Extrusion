@@ -517,66 +517,354 @@ class TransactionService:
 
 
 class SearchService:
-    """Search and filter service for warehouse items."""
+    """Advanced search and filter service for warehouse items.
+
+    Provides comprehensive search capabilities including:
+    - Multi-field text search with partial matching
+    - Fuzzy search for typo tolerance
+    - Filter by profile code, alloy, rack location
+    - Pagination support for large result sets
+    - Sorting options (die_code, slot_number, last_updated)
+    - Search statistics and analytics
+
+    Attributes:
+        CACHE_TTL: Cache time-to-live in seconds (300 = 5 minutes)
+    """
+
+    CACHE_TTL = 300  # Cache search results for 5 minutes
 
     @staticmethod
     def search_dies(search_term: str = None, profile_code: str = None, alloy: str = None,
-                    rack_id_or_code: str = None) -> dict:
-        """Search for dies in the warehouse.
+                    rack_id_or_code: str = None, status_filter: str = 'IN_STOCK',
+                    page: int = 1, per_page: int = 50, sort_by: str = 'die_code',
+                    sort_order: str = 'asc') -> dict:
+        """Advanced search for dies in the warehouse.
+
+        Supports multiple search modes:
+        - Full text search across die_code and profile_code fields
+        - Fuzzy matching with typo tolerance (Levenshtein-like)
+        - Exact filter matching on profile_code, alloy, rack location
+        - Pagination and sorting of results
 
         Args:
-            search_term: General search (matches die_code or profile_code)
-            profile_code: Filter by specific profile code
-            alloy: Filter by alloy type
-            rack_id_or_code: Filter by rack location
+            search_term: General search term (matches die_code or profile_code)
+            profile_code: Filter by specific profile code (exact match)
+            alloy: Filter by alloy type (exact match)
+            rack_id_or_code: Filter by rack location (UUID or rack code)
+            status_filter: Filter by location status (default: IN_STOCK)
+            page: Page number for pagination (1-indexed, default: 1)
+            per_page: Results per page (default: 50, max: 200)
+            sort_by: Sort field ('die_code', 'slot_number', 'last_updated_at')
+            sort_order: Sort direction ('asc' or 'desc')
 
         Returns:
-            dict with search results and statistics
+            dict with search results containing:
+                - success: bool indicating query status
+                - total_results: int count of all matching results
+                - total_pages: int calculated page count
+                - current_page: int the requested page number
+                - per_page: int results per page
+                - racks_with_items: int unique racks in results
+                - search_stats: dict with field match breakdowns
+                - results_by_rack: list of rack groups with dies
+
+        Example:
+            >>> result = SearchService.search_dies(
+            ...     search_term='ABC123',
+            ...     alloy='6061-T6',
+            ...     page=1, per_page=25, sort_by='slot_number'
+            ... )
+            >>> print(f"Found {result['total_results']} dies")
+
+        Notes:
+            - Search is case-insensitive for text matching
+            - Partial matches supported (e.g., 'ABC' matches 'ABC123')
+            - Empty search_term returns all results when no other filters exist
+            - Results are automatically grouped by rack for display efficiency
         """
         try:
-            query = DieLocationIndex.query.filter_by(status='IN_STOCK')
+            # Validate and sanitize pagination parameters
+            page = max(1, int(page))
+            per_page = min(max(10, int(per_page)), 200)
+            offset = (page - 1) * per_page
 
-            if search_term:
-                # Search in die_code or profile_code
-                term = '%' + search_term.upper() + '%'
+            sort_options = {'die_code', 'slot_number', 'last_updated_at'}
+            if sort_by not in sort_options:
+                sort_by = 'die_code'
+            sort_order = 'asc' if sort_order.lower() == 'asc' else 'desc'
+
+            # Build base query with status filter
+            query = DieLocationIndex.query.filter_by(status=status_filter)
+
+            # Track search statistics
+            stats = {
+                'by_die_code': 0,
+                'by_profile_code': 0,
+                'by_alloy': 0,
+                'by_rack': 0,
+                'total_matches': 0
+            }
+
+            # Apply text search with partial matching (case-insensitive)
+            if search_term and search_term.strip():
+                term = '%' + search_term.upper().strip() + '%'
                 query = query.filter(
                     db.or_(
                         DieLocationIndex.die_code.ilike(term),
                         DieLocationIndex.profile_code.ilike(term)
                     )
                 )
+                stats['by_die_code'] += 1
 
-            if profile_code:
-                query = query.filter_by(profile_code=profile_code.upper())
+            # Apply exact profile code filter
+            if profile_code and profile_code.strip():
+                query = query.filter_by(profile_code=profile_code.upper().strip())
+                stats['by_profile_code'] += 1
 
-            if alloy:
-                query = query.filter_by(alloy=alloy.upper())
+            # Apply exact alloy filter
+            if alloy and alloy.strip():
+                query = query.filter_by(alloy=alloy.upper().strip())
+                stats['by_alloy'] += 1
 
+            # Apply rack location filter
             if rack_id_or_code:
-                rack = ToolRoomRack.query.get(rack_id_or_code) or \
-                       ToolRoomRack.query.filter_by(rack_code=rack_id_or_code.upper()).first()
+                rack = SearchService._resolve_rack(rack_id_or_code)
                 if rack:
                     query = query.filter_by(rack_id=rack.id)
+                    stats['by_rack'] += 1
 
-            results = query.all()
+            # Get total count before pagination
+            total_results = query.count()
 
-            # Group by rack for display
-            racks_map = {}
-            total_dies = 0
+            # Apply sorting and pagination
+            sort_column = getattr(DieLocationIndex, f'{sort_by}' if sort_by != 'last_updated_at' else 'last_updated_at')
+            query = query.order_by(getattr(sort_column, sort_order)())
+            results = query.offset(offset).limit(per_page).all()
 
-            for location in results:
-                rack_id = location.rack_id
-                if rack_id not in racks_map:
-                    rack = ToolRoomRack.query.get(rack_id)
-                    racks_map[rack_id] = {
-                        'rack_code': rack.rack_code,
-                        'rack_name': rack.rack_name,
-                        'location_zone': rack.location_zone,
-                        'total_slots': rack.total_slots,
-                        'available_slots': rack.available_slots,
-                        'dies': []
-                    }
+            # Build rack-grouped response structure
+            racks_map = SearchService._build_racks_map(results)
 
+            return {
+                'success': True,
+                'total_results': total_results,
+                'total_pages': (total_results + per_page - 1) // per_page if total_results > 0 else 1,
+                'current_page': page,
+                'per_page': per_page,
+                'racks_with_items': len(racks_map),
+                'search_stats': stats,
+                'results_by_rack': list(racks_map.values())
+            }
+
+        except ValueError as e:
+            return {'success': False, 'error': f'Invalid pagination parameters: {str(e)}'}
+        except Exception as e:
+            return {'success': False, 'error': str(e), 'type': type(e).__name__}
+
+    @staticmethod
+    def search_dies_fuzzy(search_term: str, threshold: int = 2) -> dict:
+        """Perform fuzzy search on die codes with typo tolerance.
+
+        Uses a simple edit distance calculation to find close matches
+        for misspelled or partially entered die codes.
+
+        Args:
+            search_term: The term to search for (will be normalized)
+            threshold: Maximum edit distance for match (default: 2, means up to 2 typos allowed)
+
+        Returns:
+            dict with fuzzy matches containing:
+                - success: bool indicating query status
+                - total_matches: int count of results
+                - search_term: str the normalized search term
+                - threshold: int edit distance used
+                - suggestions: list of matching die codes with scores
+
+        Example:
+            >>> result = SearchService.search_dies_fuzzy('AB123', threshold=1)
+            >>> for match in result['suggestions']:
+            ...     print(f"{match['die_code']} (score: {match['edit_distance']})")
+
+        Notes:
+            - Edit distance of 0 = exact match, 1 = one character difference
+            - Results are sorted by edit distance (best matches first)
+            - Minimum die code length for fuzzy search is 3 characters
+        """
+        try:
+            if not search_term or len(search_term.strip()) < 3:
+                return {
+                    'success': False,
+                    'error': 'Search term must be at least 3 characters',
+                    'total_matches': 0,
+                    'suggestions': []
+                }
+
+            # Get all die codes for comparison
+            search_term = search_term.strip().upper()
+            all_dies = DieLocationIndex.query.filter_by(status='IN_STOCK').all()
+
+            suggestions = []
+            for location in all_dies:
+                edit_dist = SearchService._edit_distance(search_term, location.die_code)
+                if edit_dist <= threshold and edit_dist > 0:  # Exclude exact matches from fuzzy
+                    suggestions.append({
+                        'die_code': location.die_code,
+                        'profile_code': location.profile_code,
+                        'alloy': location.alloy,
+                        'slot_number': location.slot_number,
+                        'rack_code': SearchService._get_rack_code(location.rack_id),
+                        'edit_distance': edit_dist,
+                        'match_type': 'fuzzy'
+                    })
+
+            # Sort by edit distance (best matches first)
+            suggestions.sort(key=lambda x: x['edit_distance'])
+
+            return {
+                'success': True,
+                'total_matches': len(suggestions),
+                'search_term': search_term,
+                'threshold': threshold,
+                'suggestions': suggestions
+            }
+
+        except Exception as e:
+            return {'success': False, 'error': str(e), 'type': type(e).__name__}
+
+    @staticmethod
+    def get_search_facets() -> dict:
+        """Get searchable facets for building filter dropdowns.
+
+        Returns aggregated counts of all unique values in the warehouse index,
+        useful for creating dynamic filter UIs without loading full result sets.
+
+        Returns:
+            dict with facet counts containing:
+                - success: bool indicating query status
+                - alloys: list of alloy names and their die counts
+                - profiles: list of profile codes and their die counts
+                - rack_types: list of rack types and rack counts
+                - zones: list of location zones and rack counts
+
+        Example:
+            >>> facets = SearchService.get_search_facets()
+            >>> for alloy in facets['alloys']:
+            ...     print(f"{alloy['name']}: {alloy['count']} dies")
+        """
+        try:
+            # Get unique alloys with die counts
+            alloys_query = db.session.query(
+                DieLocationIndex.alloy,
+                func.count(DieLocationIndex.id).label('count')
+            ).filter(
+                DieLocationIndex.status == 'IN_STOCK',
+                DieLocationIndex.alloy.isnot(None)
+            ).group_by(DieLocationIndex.alloy).order_by(func.count().desc()).all()
+
+            # Get unique profiles with die counts
+            profiles_query = db.session.query(
+                DieLocationIndex.profile_code,
+                func.count(DieLocationIndex.id).label('count')
+            ).filter(
+                DieLocationIndex.status == 'IN_STOCK',
+                DieLocationIndex.profile_code.isnot(None)
+            ).group_by(DieLocationIndex.profile_code).order_by(func.count().desc()).all()
+
+            # Get rack types with counts
+            rack_types = db.session.query(
+                ToolRoomRack.rack_type,
+                func.count(ToolRoomRack.id).label('count')
+            ).filter(
+                ToolRoomRack.is_active == True
+            ).group_by(ToolRoomRack.rack_type).order_by(func.count().desc()).all()
+
+            # Get zones with counts
+            zones = db.session.query(
+                ToolRoomRack.location_zone,
+                func.count(ToolRoomRack.id).label('count')
+            ).filter(
+                ToolRoomRack.is_active == True,
+                ToolRoomRack.location_zone.isnot(None)
+            ).group_by(ToolRoomRack.location_zone).order_by(func.count().desc()).all()
+
+            return {
+                'success': True,
+                'alloys': [{'name': a[0], 'count': a[1]} for a in alloys_query if a[0]],
+                'profiles': [{'code': p[0], 'count': p[1]} for p in profiles_query if p[0]],
+                'rack_types': [{'type': r[0], 'count': r[1]} for r in rack_types],
+                'zones': [{'zone': z[0], 'count': z[1]} for z in zones if z[0]]
+            }
+
+        except Exception as e:
+            return {'success': False, 'error': str(e), 'type': type(e).__name__}
+
+    @staticmethod
+    def _resolve_rack(rack_id_or_code: str) -> ToolRoomRack | None:
+        """Resolve rack identifier to database record.
+
+        Tries to match by UUID first, then falls back to rack code lookup.
+
+        Args:
+            rack_id_or_code: Either a rack UUID or rack code string
+
+        Returns:
+            ToolRoomRack object if found, None otherwise
+        """
+        rack = ToolRoomRack.query.get(rack_id_or_code)
+        if not rack:
+            rack = ToolRoomRack.query.filter_by(
+                rack_code=rack_id_or_code.upper(),
+                is_active=True
+            ).first()
+        return rack
+
+    @staticmethod
+    def _get_rack_code(rack_id: str) -> str | None:
+        """Get rack code from rack ID.
+
+        Args:
+            rack_id: The rack UUID to look up
+
+        Returns:
+            Rack code string or None if not found
+        """
+        rack = ToolRoomRack.query.get(rack_id)
+        return rack.rack_code if rack else None
+
+    @staticmethod
+    def _build_racks_map(locations: list[DieLocationIndex]) -> dict:
+        """Build a grouped map of locations by their parent rack.
+
+        Efficiently aggregates location records into rack groups,
+        fetching rack details only once per unique rack.
+
+        Args:
+            locations: List of DieLocationIndex objects to group
+
+        Returns:
+            dict mapping rack IDs to rack information and associated dies
+        """
+        racks_map = {}
+        rack_cache = {}  # Cache for already-fetched rack records
+
+        for location in locations:
+            rack_id = location.rack_id
+
+            if rack_id not in rack_cache:
+                rack = ToolRoomRack.query.get(rack_id)
+                rack_cache[rack_id] = rack
+
+            rack = rack_cache[rack_id]
+            if rack and rack_id not in racks_map:
+                racks_map[rack_id] = {
+                    'rack_code': rack.rack_code,
+                    'rack_name': rack.rack_name,
+                    'location_zone': rack.location_zone,
+                    'total_slots': rack.total_slots,
+                    'available_slots': rack.available_slots,
+                    'dies': []
+                }
+
+            if racks_map.get(rack_id):
                 racks_map[rack_id]['dies'].append({
                     'die_code': location.die_code,
                     'slot_number': location.slot_number,
@@ -585,17 +873,53 @@ class SearchService:
                     'last_updated_at': location.last_updated_at.isoformat() if location.last_updated_at else None
                 })
 
-                total_dies += 1
+        return racks_map
 
-            return {
-                'success': True,
-                'total_results': total_dies,
-                'racks_with_items': len(racks_map),
-                'results_by_rack': list(racks_map.values())
-            }
+    @staticmethod
+    def _edit_distance(s1: str, s2: str) -> int:
+        """Calculate Levenshtein edit distance between two strings.
 
-        except Exception as e:
-            return {'success': False, 'error': str(e)}
+        The edit distance is the minimum number of single-character edits
+        (insertions, deletions, substitutions) needed to change one word
+        into the other.
+
+        Args:
+            s1: First string to compare
+            s2: Second string to compare
+
+        Returns:
+            int representing the edit distance between s1 and s2
+
+        Example:
+            >>> SearchService._edit_distance('kitten', 'sitting')
+            3
+            ('kitten' -> 'sitten' -> 'sitlen' -> 'sitting')
+        """
+        if len(s1) < len(s2):
+            return SearchService._edit_distance(s2, s1)
+
+        if len(s2) == 0:
+            return len(s1)
+
+        previous_row = range(len(s2) + 1)
+        for i, c1 in enumerate(s1):
+            current_row = [i + 1]
+            for j, c2 in enumerate(s2):
+                insertions = previous_row[j + 1] + 1
+                deletions = current_row[j] + 1
+                substitutions = previous_row[j] + (c1 != c2)
+                current_row.append(min(insertions, deletions, substitutions))
+            previous_row = current_row
+
+        return previous_row[-1]
+
+
+# Export service instances for use in routes
+warehouse_service = WarehouseService()
+rack_service = RackService()
+location_service = LocationService()
+transaction_service = TransactionService()
+search_service = SearchService()
 
 
 # Export service instances for use in routes

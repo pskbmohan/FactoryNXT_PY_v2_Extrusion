@@ -1,0 +1,268 @@
+{% extends "base.html" %}
+
+{% block title %}Rack Management - Warehouse System{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Page Header -->
+    <div class="row mb-4">
+        <div class="col-md-12 d-flex justify-content-between align-items-center">
+            <h3><i class="fas fa-boxes me-2"></i>Rack Management</h3>
+            <a href="{{ url_for('warehouse.create_rack_page') }}" class="btn btn-primary">
+                <i class="fas fa-plus-circle me-1"></i>New Rack
+            </a>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-body p-3">
+                    <form id="filter-form" method="GET" action="{{ url_for('warehouse.racks_list') }}">
+                        <div class="row align-items-end">
+                            <div class="col-md-4 mb-2">
+                                <label class="form-label fw-bold">Status Filter</label>
+                                <select name="status" class="form-select" id="filter-status">
+                                    <option value="">All Statuses</option>
+                                    <option value="AVAILABLE" {% if current_status == 'AVAILABLE' %}selected{% endif %}>Available</option>
+                                    <option value="IN_USE" {% if current_status == 'IN_USE' %}selected{% endif %}>In Use</option>
+                                    <option value="MAINTENANCE" {% if current_status == 'MAINTENANCE' %}selected{% endif %}>Maintenance</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4 mb-2">
+                                <label class="form-label fw-bold">Zone Filter</label>
+                                <input type="text" name="zone" class="form-control" id="filter-zone"
+                                       value="{{ current_zone }}" placeholder="Filter by zone...">
+                            </div>
+                            <div class="col-md-4 mb-2">
+                                <button type="submit" class="btn btn-primary w-100 me-2">
+                                    <i class="fas fa-filter me-1"></i>Apply Filters
+                                </button>
+                                <a href="{{ url_for('warehouse.racks_list') }}" class="btn btn-outline-secondary w-100 ms-1">
+                                    <i class="fas fa-times me-1"></i>Clear
+                                </a>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Racks Grid -->
+    <div class="row" id="racks-grid">
+        {% set rack_type_map = {
+            'STORAGE_RACK': {'icon': 'fa-boxes', 'color': 'primary'},
+            'QUICK_CHANGE_RACK': {'icon': 'fa-bolt', 'color': 'warning'},
+            'INPRESS_RACK': {'icon': 'fa-industry', 'color': 'secondary'}
+        } %}
+
+        {% for rack in racks_data|default([]) %}
+        <div class="col-md-4 mb-4">
+            <div class="card h-100 rack-card" data-rack-id="{{ rack.id }}"
+                 data-rack-code="{{ rack.rack_code }}">
+                <div class="card-header d-flex justify-content-between align-items-center
+                            {% if rack.status == 'AVAILABLE' %}bg-success{% elif rack.status == 'IN_USE' %}bg-primary{% else %}bg-secondary{% endif %} text-white">
+                    <h6 class="mb-0"><i class="fas {{ rack_type_map.get(rack.rack_type, {}).get('icon', 'fa-box') }} me-2"></i>{{ rack.rack_name }}</h6>
+                    <span class="badge bg-light text-dark">{{ rack.status|upper }}</span>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <small class="text-muted d-block">Rack Code</small>
+                        <strong>{{ rack.rack_code }}</strong>
+                    </div>
+                    {% if rack.location_zone %}
+                    <div class="mb-3">
+                        <small class="text-muted d-block">Location Zone</small>
+                        <span class="badge bg-info">{{ rack.location_zone }}</span>
+                    </div>
+                    {% endif %}
+                    <hr>
+                    <!-- Slot Progress Bar -->
+                    <div class="mb-2">
+                        <div class="d-flex justify-content-between mb-1">
+                            <small>Filled Slots</small>
+                            <strong>{{ rack.filled_slots or 0 }} / {{ rack.total_slots }}</strong>
+                        </div>
+                        <div class="progress" style="height: 8px;">
+                            {% set fill_pct = ((rack.filled_slots or 0) / (rack.total_slots or 1)) * 100 %}
+                            <div class="progress-bar progress-bar-striped progress-bar-animated bg-{{ rack_type_map.get(rack.rack_type, {}).get('color', 'secondary') }}"
+                                 role="progressbar" style="width: {{ fill_pct }}%">
+                                {{ '%.0f'|format(fill_pct) }}%
+                            </div>
+                        </div>
+                    </div>
+
+                    <hr>
+                    <!-- Quick Actions -->
+                    <div class="d-grid gap-2">
+                        <a href="{{ url_for('warehouse.rack_detail', rack_id=rack.id) }}" class="btn btn-sm btn-outline-primary">
+                            <i class="fas fa-eye me-1"></i>View Details
+                        </a>
+                        {% if rack.status == 'AVAILABLE' %}
+                        <button onclick="openQuickAssignModal('{{ rack.id }}', '{{ rack.rack_code }}')" class="btn btn-sm btn-outline-success">
+                            <i class="fas fa-plus me-1"></i>Assign Die
+                        </button>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% else %}
+        <div class="col-md-12 text-center py-5">
+            <i class="fas fa-boxes-open fa-4x text-muted mb-3"></i>
+            <h5>No Racks Found</h5>
+            <p class="text-muted">Create a new rack to get started, or adjust your filters.</p>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Empty State when no racks match filter -->
+    <div id="no-racks-message" style="display: none;" class="alert alert-info">
+        No racks found matching the current filters.
+        <a href="{{ url_for('warehouse.create_rack_page') }}" class="alert-link">Create a new rack</a> to get started.
+    </div>
+
+</div>
+
+<!-- Quick Assign Modal -->
+<div class="modal fade" id="quickAssignModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title"><i class="fas fa-plus-circle me-2"></i>Assign Die to Rack</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="quick-assign-form" onsubmit="handleQuickAssign(event)">
+                <input type="hidden" name="_method" value="POST">
+                <input type="hidden" id="quick-assign-rack-id">
+                <input type="hidden" id="quick-assign-rack-code">
+                <div class="modal-body">
+                    <div class="alert alert-info mb-3">
+                        <i class="fas fa-info-circle me-2"></i>Assign a die to this rack using barcode scan or manual entry.
+                    </div>
+                    <div class="mb-3">
+                        <label for="quick-assign-die-code" class="form-label fw-bold">Die Code (Barcode)</label>
+                        <input type="text" class="form-control form-control-lg" id="quick-assign-die-code" name="die_code" placeholder="Scan or enter die code..." autofocus required autocomplete="off">
+                    </div>
+                    <div class="mb-3">
+                        <label for="quick-assign-slot" class="form-label fw-bold">Slot Number</label>
+                        <input type="number" class="form-control form-control-lg" id="quick-assign-slot" name="slot_number" placeholder="1 - 20" min="1" max="20" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="quick-assign-notes" class="form-label">Notes (Optional)</label>
+                        <input type="text" class="form-control" id="quick-assign-notes" name="notes" placeholder="Any notes...">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="submit" class="btn btn-success">
+                        <i class="fas fa-check me-1"></i>Confirm Assignment
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Pass racks data from Python to JavaScript
+const racksData = {{ racks_data|tojson }};
+
+document.addEventListener('DOMContentLoaded', function() {
+    updateRackVisibility();
+});
+
+function openQuickAssignModal(rackId, rackCode) {
+    document.getElementById('quick-assign-rack-id').value = rackId;
+    document.getElementById('quick-assign-rack-code').value = rackCode;
+
+    // Reset form
+    document.getElementById('quick-assign-die-code').value = '';
+    document.getElementById('quick-assign-slot').value = '';
+    document.getElementById('quick-assign-notes').value = '';
+
+    const modal = new bootstrap.Modal(document.getElementById('quickAssignModal'));
+    modal.show();
+}
+
+function handleQuickAssign(event) {
+    event.preventDefault();
+
+    const form = event.target;
+    const formData = new FormData(form);
+    const rackId = document.getElementById('quick-assign-rack-id').value;
+
+    fetch('/warehouse/api/die/assign', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            die_code: formData.get('die_code'),
+            rack_id_or_code: formData.get('rack_id_or_code') || rackId,
+            slot_number: parseInt(formData.get('slot_number')),
+            notes: formData.get('notes')
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            bootstrap.Modal.getInstance(document.getElementById('quickAssignModal')).hide();
+
+            // Show success message and refresh page
+            showNotification('success', data.message);
+            setTimeout(() => location.reload(), 1500);
+        } else {
+            showNotification('danger', 'Error: ' + (data.error || 'Failed to assign die'));
+        }
+    })
+    .catch(error => {
+        showNotification('danger', 'Network error: ' + error.message);
+    });
+}
+
+function updateRackVisibility() {
+    const racksGrid = document.getElementById('racks-grid');
+    const noRacksMsg = document.getElementById('no-racks-message');
+
+    if (racksData.length === 0) {
+        racksGrid.style.display = 'none';
+        noRacksMsg.style.display = 'block';
+    } else {
+        racksGrid.style.display = '';
+        noRacksMsg.style.display = 'none';
+    }
+}
+
+function showNotification(type, message) {
+    const alertClass = type === 'success' ? 'alert-success' : 'alert-danger';
+
+    // Create temporary notification element
+    const notification = document.createElement('div');
+    notification.className = `fixed-top ${alertClass}`;
+    notification.style.cssText = 'padding: 1rem; margin: 1rem; z-index: 9999; min-width: 300px;';
+    notification.innerHTML = `<i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-circle'} me-2"></i>${message}`;
+
+    document.body.appendChild(notification);
+
+    setTimeout(() => {
+        notification.remove();
+    }, 3000);
+}
+
+// Auto-focus barcode scanner input
+document.addEventListener('keypress', function(e) {
+    const modal = bootstrap.Modal.getInstance(document.getElementById('quickAssignModal'));
+    if (!modal || !modal._isShown) return;
+
+    if (e.key === 'Enter') {
+        e.preventDefault();
+        document.getElementById('quick-assign-form').dispatchEvent(new Event('submit'));
+    }
+});
+</script>
+{% endblock %}

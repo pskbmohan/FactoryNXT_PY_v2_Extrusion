@@ -484,20 +484,176 @@ def api_scan_die_out():
 
 @bp.route('/api/search/dies')
 def api_search_dies():
-    """Search for dies by various criteria."""
-    search_term = request.args.get('q', '')
-    profile_code = request.args.get('profile', '')
-    alloy_filter = request.args.get('alloy', '')
-    rack_id_or_code = request.args.get('rack', '')
+    """Advanced search for dies with pagination and sorting support.
+
+    Query parameters:
+        q: Search term (die_code or profile_code partial match)
+        profile: Exact profile code filter
+        alloy: Exact alloy type filter
+        rack: Rack UUID or code filter
+        page: Page number (default: 1, max: 200 per page)
+        per_page: Results per page (default: 50, range: 10-200)
+        sort_by: Sort field ('die_code', 'slot_number', 'last_updated_at')
+        sort_order: Sort direction ('asc' or 'desc')
+
+    Returns paginated results grouped by rack with search statistics.
+    """
+    # Extract and validate query parameters
+    search_term = request.args.get('q', '').strip() if request.args.get('q') else None
+    profile_code = request.args.get('profile', '').strip() if request.args.get('profile') else None
+    alloy_filter = request.args.get('alloy', '').strip() if request.args.get('alloy') else None
+    rack_id_or_code = request.args.get('rack', '').strip() if request.args.get('rack') else None
+
+    # Pagination parameters with defaults and validation
+    try:
+        page = max(1, int(request.args.get('page', 1)))
+        per_page = min(max(10, int(request.args.get('per_page', 50))), 200)
+    except ValueError as e:
+        return jsonify({
+            'success': False,
+            'error': f'Invalid pagination parameters: {str(e)}'
+        }), 400
+
+    sort_by = request.args.get('sort_by', 'die_code')
+    sort_order = request.args.get('sort_order', 'asc').lower()
 
     result = search_service.search_dies(
-        search_term=search_term if search_term else None,
-        profile_code=profile_code if profile_code else None,
-        alloy=alloy_filter if alloy_filter else None,
-        rack_id_or_code=rack_id_or_code if rack_id_or_code else None
+        search_term=search_term or None,
+        profile_code=profile_code or None,
+        alloy=alloy_filter or None,
+        rack_id_or_code=rack_id_or_code or None,
+        page=page,
+        per_page=per_page,
+        sort_by=sort_by,
+        sort_order=sort_order
     )
 
     return jsonify(result)
+
+
+@bp.route('/api/search/dies/fuzzy')
+def api_search_dies_fuzzy():
+    """Fuzzy search for dies with typo tolerance.
+
+    Query parameters:
+        q: Search term (minimum 3 characters required)
+        threshold: Maximum edit distance allowed (default: 2, range: 1-5)
+
+    Returns suggestions sorted by match quality, useful for autocomplete
+    and misspelling correction in search interfaces.
+
+    Example: Searching 'AB123' with threshold=1 finds 'ABC123', 'AB124', etc.
+    """
+    search_term = request.args.get('q', '').strip() if request.args.get('q') else ''
+
+    try:
+        threshold = min(max(1, int(request.args.get('threshold', 2))), 5)
+    except ValueError:
+        return jsonify({
+            'success': False,
+            'error': 'Invalid threshold value'
+        }), 400
+
+    if not search_term or len(search_term) < 3:
+        return jsonify({
+            'success': False,
+            'error': 'Search term must be at least 3 characters',
+            'total_matches': 0,
+            'suggestions': []
+        }), 400
+
+    result = search_service.search_dies_fuzzy(search_term, threshold)
+    return jsonify(result)
+
+
+@bp.route('/api/search/facets')
+def api_get_search_facets():
+    """Get searchable facets for filter dropdowns.
+
+    Returns aggregated counts of all unique values in the warehouse index:
+        - alloys: Available alloy types with die counts
+        - profiles: Profile codes with die counts
+        - rack_types: Rack type distribution
+        - zones: Location zone breakdown
+
+    Useful for building dynamic filter UIs without loading full result sets.
+    """
+    result = search_service.get_search_facets()
+    return jsonify(result)
+
+
+@bp.route('/api/search/dies/autocomplete')
+def api_autocomplete_dies():
+    """Autocomplete suggestions for die codes.
+
+    Query parameters:
+        q: Partial die code or profile to match (minimum 2 characters)
+        limit: Maximum number of suggestions (default: 10, max: 50)
+        include_profile: Include matching profiles in results (default: false)
+
+    Returns quick suggestions for search input completion.
+    """
+    search_term = request.args.get('q', '').strip() if request.args.get('q') else ''
+
+    try:
+        limit = min(max(1, int(request.args.get('limit', 10))), 50)
+    except ValueError:
+        return jsonify({
+            'success': False,
+            'error': 'Invalid limit parameter'
+        }), 400
+
+    if not search_term or len(search_term) < 2:
+        return jsonify({
+            'success': True,
+            'suggestions': [],
+            'total_matches': 0
+        })
+
+    # Search by die code (case-insensitive prefix match)
+    term = search_term.upper().strip() + '%'
+    query = db.session.query(DieLocationIndex).filter(
+        DieLocationIndex.die_code.ilike(term),
+        DieLocationIndex.status == 'IN_STOCK'
+    ).order_by(DieLocationIndex.die_code).limit(limit)
+
+    suggestions = []
+    for location in query.all():
+        rack_code = search_service._get_rack_code(location.rack_id)
+        suggestions.append({
+            'type': 'die',
+            'value': location.die_code,
+            'display': f"{location.die_code} (Slot {location.slot_number}, {rack_code})",
+            'profile_code': location.profile_code,
+            'alloy': location.alloy,
+            'slot_number': location.slot_number,
+            'rack_code': rack_code
+        })
+
+    # Optionally include profile matches
+    if request.args.get('include_profile', '').lower() == 'true':
+        profile_query = db.session.query(DieLocationIndex).filter(
+            DieLocationIndex.profile_code.ilike(term),
+            DieLocationIndex.status == 'IN_STOCK'
+        ).order_by(DieLocationIndex.profile_code).limit(limit)
+
+        for location in profile_query.all():
+            if not any(s['value'] == location.profile_code for s in suggestions):
+                rack_code = search_service._get_rack_code(location.rack_id)
+                suggestions.append({
+                    'type': 'profile',
+                    'value': location.profile_code,
+                    'display': f"{location.profile_code} ({len([l for l in query.filter(DieLocationIndex.profile_code == location.profile_code).all()])} dies)",
+                    'alloy': location.alloy,
+                    'rack_code': rack_code
+                })
+
+    return jsonify({
+        'success': True,
+        'suggestions': suggestions[:limit],
+        'total_matches': len(suggestions),
+        'search_term': search_term
+    })
 
 
 @bp.route('/api/search/alloys')

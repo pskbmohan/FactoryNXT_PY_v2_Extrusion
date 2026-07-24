@@ -1,0 +1,190 @@
+{% extends "base.html" %}
+
+{% block title %}Create New Rack - Warehouse System{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Page Header -->
+    <div class="row mb-4">
+        <div class="col-md-12 d-flex justify-content-between align-items-center">
+            <h3><i class="fas fa-plus-circle me-2"></i>Create New Rack</h3>
+            <a href="{{ url_for('warehouse.racks_list') }}" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left me-1"></i>Back to Racks
+            </a>
+        </div>
+    </div>
+
+    <!-- Create Rack Form -->
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="fas fa-box me-2"></i>Rack Information</h5>
+                </div>
+                <form id="create-rack-form" onsubmit="handleCreateRack(event)">
+                    <input type="hidden" name="_method" value="POST">
+                    <div class="card-body p-4">
+
+                        <!-- Rack Code -->
+                        <div class="mb-3">
+                            <label for="rack-code" class="form-label fw-bold"><i class="fas fa-barcode me-1"></i>Rack Code *</label>
+                            <input type="text" class="form-control form-control-lg" id="rack-code" name="rack_code"
+                                   placeholder="e.g., RACK-A-001" required autocomplete="off">
+                            <small class="text-muted d-block mt-1">Unique identifier for the rack (uppercase, alphanumeric)</small>
+                        </div>
+
+                        <!-- Rack Name -->
+                        <div class="mb-3">
+                            <label for="rack-name" class="form-label fw-bold"><i class="fas fa-tag me-1"></i>Rack Name *</label>
+                            <input type="text" class="form-control form-control-lg" id="rack-name" name="rack_name"
+                                   placeholder="e.g., Storage Rack A - Zone 1" required autocomplete="off">
+                        </div>
+
+                        <!-- Rack Type -->
+                        <div class="mb-3">
+                            <label for="rack-type" class="form-label fw-bold"><i class="fas fa-cube me-1"></i>Rack Type *</label>
+                            <select class="form-select form-select-lg" id="rack-type" name="rack_type" required>
+                                <option value="">Select rack type...</option>
+                                <option value="STORAGE_RACK">Storage Rack - General purpose storage</option>
+                                <option value="QUICK_CHANGE_RACK">Quick Change Rack - Fast swap dies (near press)</option>
+                                <option value="INPRESS_RACK">In-Press Rack - Dies currently in use</option>
+                            </select>
+                        </div>
+
+                        <!-- Location Zone -->
+                        <div class="mb-3">
+                            <label for="rack-zone" class="form-label fw-bold"><i class="fas fa-map-marker-alt me-1"></i>Location Zone</label>
+                            <input type="text" class="form-control form-control-lg" id="rack-zone" name="location_zone"
+                                   placeholder="e.g., ZONE_A, TOOL_ROOM_1" autocomplete="off">
+                            <small class="text-muted d-block mt-1">Zone designation for organizing racks</small>
+                        </div>
+
+                        <!-- Total Slots -->
+                        <div class="mb-3">
+                            <label for="rack-slots" class="form-label fw-bold"><i class="fas fa-th-large me-1"></i>Total Slots *</label>
+                            <input type="number" class="form-control form-control-lg" id="rack-slots" name="total_slots"
+                                   value="20" min="4" max="50" required>
+                            <small class="text-muted d-block mt-1">Number of slots in this rack (default: 20)</small>
+                        </div>
+
+                        <!-- Description -->
+                        <div class="mb-3">
+                            <label for="rack-description" class="form-label fw-bold"><i class="fas fa-align-left me-1"></i>Description</label>
+                            <textarea class="form-control" id="rack-description" name="description" rows="2"
+                                      placeholder="Additional notes about this rack..."></textarea>
+                        </div>
+
+                    </div>
+                    <div class="card-footer bg-light">
+                        <button type="submit" class="btn btn-primary btn-lg me-2">
+                            <i class="fas fa-check me-1"></i>Create Rack
+                        </button>
+                        <a href="{{ url_for('warehouse.racks_list') }}" class="btn btn-outline-secondary btn-lg">
+                            Cancel
+                        </a>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Rack Type Information Cards -->
+            <div class="row mt-4">
+                <div class="col-md-6 mb-3">
+                    <div class="card border-primary h-100">
+                        <div class="card-header bg-light text-primary">
+                            <h6 class="mb-0"><i class="fas fa-boxes me-2"></i>Storage Rack</h6>
+                        </div>
+                        <div class="card-body">
+                            <p class="small mb-0">General purpose storage racks for organizing dies in the tool room warehouse. Used for long-term storage and inventory management.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <div class="card border-warning h-100">
+                        <div class="card-header bg-light text-warning">
+                            <h6 class="mb-0"><i class="fas fa-bolt me-2"></i>Quick Change Rack</h6>
+                        </div>
+                        <div class="card-body">
+                            <p class="small mb-0">Racks positioned near the press for rapid die changes during production. Designed for frequently used dies.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/warehouse-create-rack.js') }}"></script>
+<script>
+// Rack type icons and colors for display
+const rackTypeInfo = {
+    'STORAGE_RACK': { icon: 'fa-boxes', color: 'primary' },
+    'QUICK_CHANGE_RACK': { icon: 'fa-bolt', color: 'warning' },
+    'INPRESS_RACK': { icon: 'fa-industry', color: 'secondary' }
+};
+
+// Auto-format rack code to uppercase as user types
+document.getElementById('rack-code').addEventListener('input', function(e) {
+    e.target.value = e.target.value.toUpperCase().replace(/[^A-Z0-9-_]/g, '');
+});
+
+function handleCreateRack(event) {
+    event.preventDefault();
+
+    const form = event.target;
+    const formData = new FormData(form);
+
+    // Validate total slots
+    const totalSlots = parseInt(formData.get('total_slots'));
+    if (totalSlots < 4 || totalSlots > 50) {
+        alert('Total slots must be between 4 and 50.');
+        return;
+    }
+
+    fetch('/warehouse/api/racks', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+            rack_code: formData.get('rack_code'),
+            rack_name: formData.get('rack_name'),
+            rack_type: formData.get('rack_type'),
+            location_zone: formData.get('location_zone') || null,
+            total_slots: totalSlots,
+            description: formData.get('description') || null
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showNotification('success', 'Rack created successfully!');
+            setTimeout(() => window.location.href = '/warehouse/racks', 1500);
+        } else {
+            showNotification('danger', 'Error: ' + (data.error || 'Failed to create rack'));
+
+            // Show specific error if rack code exists
+            if (data.error && data.error.includes('already exists')) {
+                document.getElementById('rack-code').classList.add('is-invalid');
+            }
+        }
+    })
+    .catch(error => {
+        showNotification('danger', 'Network error: ' + error.message);
+    });
+}
+
+function showNotification(type, message) {
+    const alertClass = type === 'success' ? 'alert-success' : 'alert-danger';
+    const notification = document.createElement('div');
+    notification.className = `fixed-top ${alertClass}`;
+    notification.style.cssText = 'padding: 1rem; margin: 1rem; z-index: 9999; min-width: 300px;';
+    notification.innerHTML = `<i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-circle'} me-2"></i>${message}`;
+
+    document.body.appendChild(notification);
+    setTimeout(() => notification.remove(), 3000);
+}
+</script>
+{% endblock %}
