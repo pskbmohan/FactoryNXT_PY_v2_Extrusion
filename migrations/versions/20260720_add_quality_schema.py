@@ -368,10 +368,15 @@ def upgrade():
     # 10. Extend Die model with quality-related columns via ALTER TABLE
     # -------------------------------------------------------------------------
     inspector = inspect(conn)
+    # Note: `default=` is a sa.Column()-level argument (applied by the ORM on
+    # INSERT), not a type-constructor argument — sa.Float(default=...) raises
+    # TypeError. The model (app/models.py) already declares
+    # total_setup_time_minutes with default=0.0 at the ORM level, so the raw
+    # ALTER TABLE here doesn't need to carry a default at all.
     die_quality_columns = [
         ('die_life_cycles_remaining', sa.Integer, {}),
         ('last_failure_reason',       sa.Text,   {}),
-        ('total_setup_time_minutes',  sa.Float,  {'default': 0.0}),
+        ('total_setup_time_minutes',  sa.Float,  {}),
         ('average_setup_time_minutes', sa.Float, {}),
     ]
     for col_name, col_type, col_kwargs in die_quality_columns:
