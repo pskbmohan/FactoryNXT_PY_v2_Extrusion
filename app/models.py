@@ -52,6 +52,10 @@ class WorkOrder(db.Model):
     part_number = db.Column(db.String(64), nullable=False)
     description = db.Column(db.Text, nullable=True)
     quantity = db.Column(db.Integer, nullable=False)
+    # Units completed so far. No production-reporting flow writes this yet;
+    # it exists so the on-time probability engine (app/services/wo_probability.py)
+    # has a progress figure to read. Defaults to 0 for every existing WO.
+    produced_qty = db.Column(db.Integer, nullable=False, default=0)
     # Status lifecycle: DRAFT -> RELEASED -> RUNNING -> COMPLETED | CANCELLED
     status = db.Column(db.String(32), nullable=False, default="DRAFT")
     due_date = db.Column(db.DateTime, nullable=True)

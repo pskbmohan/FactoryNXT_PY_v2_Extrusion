@@ -19,6 +19,7 @@ from app.models_aps import (
     ApsScheduleEntry,
 )
 from app.models import Machine, Die, WorkOrder
+from app.services.wo_probability import calculate_wo_probability
 
 # ── Page blueprint ────────────────────────────────────────────────────────────
 aps_page_bp = Blueprint('aps', __name__, url_prefix='/aps')
@@ -234,6 +235,12 @@ def cockpit():
 def scheduler():
     """APS Gantt / scheduler view."""
     return render_template('aps/scheduler.html')
+
+
+@aps_page_bp.route('/wo-probability')
+def wo_probability_page():
+    """WO On-Time Probability dashboard."""
+    return render_template('aps/wo_probability.html')
 
 
 # ── Scheduler JSON API ────────────────────────────────────────────────────────
@@ -806,6 +813,40 @@ def api_unscheduled_wos():
 
         return jsonify({"ok": True, "count": len(result), "work_orders": result})
     except Exception as exc:
+        return jsonify({"error": str(exc)}), 500
+
+
+@aps_page_bp.route('/api/wo-probability', methods=['GET'])
+def api_wo_probability():
+    """On-time delivery probability for every active (RELEASED/RUNNING) WO."""
+    try:
+        now = datetime.utcnow()
+        work_orders = WorkOrder.query.filter(
+            WorkOrder.status.in_(["RELEASED", "RUNNING"])
+        ).all()
+
+        results = [calculate_wo_probability(wo, now=now) for wo in work_orders]
+        results.sort(key=lambda r: r["probability_pct"])
+
+        for r in results:
+            if r["projected_completion"] is not None:
+                r["projected_completion"] = r["projected_completion"].strftime("%Y-%m-%dT%H:%M:%S")
+
+        summary = {
+            "total": len(results),
+            "critical": sum(1 for r in results if r["status"] == "critical"),
+            "at_risk": sum(1 for r in results if r["status"] == "at_risk"),
+            "on_track": sum(1 for r in results if r["status"] == "on_track"),
+            "ahead": sum(1 for r in results if r["status"] == "ahead"),
+        }
+
+        return jsonify({
+            "as_of": now.strftime("%Y-%m-%dT%H:%M:%S"),
+            "work_orders": results,
+            "summary": summary,
+        })
+    except Exception as exc:
+        traceback.print_exc()
         return jsonify({"error": str(exc)}), 500
 
 
