@@ -105,7 +105,7 @@
 {% block head_extra %}
 <script>
 (function () {
-  const RACK_ID = document.querySelector('[data-rack-id]').dataset.rackId;
+  let RACK_ID = null;
   let currentRack = null;
   let currentSlots = [];
 
@@ -339,6 +339,7 @@
   window.loadSlots = loadSlots;
 
   document.addEventListener('DOMContentLoaded', function () {
+    RACK_ID = document.querySelector('[data-rack-id]').dataset.rackId;
     loadRack().then(loadSlots);
   });
 })();
